@@ -7,5 +7,7 @@ build/
 *.egg
 .env
 .zapcontext
+*.zap.py
+instructions.md
 test_output.txt
 stdin.txt

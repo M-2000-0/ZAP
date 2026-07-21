@@ -27,6 +27,8 @@ class Evaluator:
         for stmt in node.stmts:
             try:
                 result = self._eval_stmt(stmt)
+            except ReturnSignal as rs:
+                return rs.value
             except Exception as e:
                 trace('error', '<program>', {'error': str(e)[:200], 'stmt': type(stmt).__name__})
                 raise
@@ -96,7 +98,10 @@ class Evaluator:
         result = None
         try:
             for stmt in block.stmts:
-                result = self._eval_stmt(stmt)
+                try:
+                    result = self._eval_stmt(stmt)
+                except ReturnSignal as rs:
+                    return rs
                 if isinstance(result, ReturnSignal):
                     return result
         finally:

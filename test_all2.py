@@ -9,7 +9,7 @@ for f in sorted(os.listdir('examples')):
     if not f.endswith('.zap'):
         continue
     path = os.path.join('examples', f)
-    src = open(path).read()
+    src = open(path, encoding='utf-8').read()
     try:
         l = Lexer(src, f)
         tokens = l.tokenize()
