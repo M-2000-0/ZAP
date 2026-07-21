@@ -29,6 +29,19 @@ class ZapLSP:
             'referencesProvider': True,
             'documentSymbolProvider': True,
             'workspaceSymbolProvider': True,
+            'semanticTokensProvider': {
+                'legend': {
+                    'tokenTypes': [
+                        'namespace', 'type', 'class', 'enum', 'interface',
+                        'struct', 'typeParameter', 'parameter', 'variable',
+                        'property', 'enumMember', 'event', 'function', 'method',
+                        'macro', 'keyword', 'modifier', 'comment', 'string',
+                        'number', 'regexp', 'operator',
+                    ],
+                    'tokenModifiers': [],
+                },
+                'full': True,
+            },
             'diagnosticProvider': {
                 'interFileDependencies': False,
                 'workspaceDiagnostics': False,
@@ -190,6 +203,62 @@ class ZapLSP:
                     })
         local_items.sort(key=lambda x: x['label'])
         return {'isIncomplete': True, 'items': local_items[:100]}
+
+    def handle_textDocument_semanticTokens(self, params):
+        """Provide semantic tokens for syntax highlighting in AI editors.
+        Uses the lexer to tokenize the document and map tokens to semantic types."""
+        uri = params.get('textDocument', {}).get('uri', '')
+        text = self._documents.get(uri, '')
+        if not text:
+            return None
+
+        filepath = self._uri_to_path(uri)
+        try:
+            tokens = Lexer(text, filepath).tokenize()
+        except Exception:
+            return None
+
+        # Semantic token types: 0=namespace, 1=type, 2=class, 3=enum, 4=interface,
+        # 5=struct, 6=typeParameter, 7=parameter, 8=variable, 9=property,
+        # 10=enumMember, 11=event, 12=function, 13=method, 14=macro, 15=keyword,
+        # 16=modifier, 17=comment, 18=string, 19=number, 20=regexp, 21=operator
+        token_types = {
+            'KW_FN': 15, 'KW_LET': 15, 'KW_IF': 15, 'KW_EL': 15,
+            'KW_FOR': 15, 'KW_IN': 15, 'KW_WHILE': 15, 'KW_RET': 15,
+            'KW_TRUE': 15, 'KW_FALSE': 15, 'KW_NONE': 15, 'KW_AND': 15,
+            'KW_OR': 15, 'KW_NOT': 15, 'KW_IMPORT': 15, 'KW_CLASS': 15,
+            'KW_DEF': 15, 'KW_ASYNC': 15, 'KW_AWAIT': 15, 'KW_MATCH': 15,
+            'KW_INTEND': 15, 'KW_SERVICE': 15, 'KW_DATABASE': 15, 'KW_API': 15,
+            'KW_PAGE': 15, 'KW_SCHEMA': 15, 'KW_MODEL': 15, 'KW_EXPOSE': 15,
+            'KW_REQUIRES': 15, 'KW_ENSURES': 15, 'KW_INVARIANT': 15,
+            'KW_EXPECT': 15, 'KW_PERMISSION': 15, 'KW_CONCURRENT': 15,
+            'KW_CHANNEL': 15, 'KW_GUARANTEES': 15, 'KW_VERSION': 15,
+            'KW_CHECK': 15, 'KW_FROM': 15,
+            'IDENTIFIER': 8, 'NUMBER': 19, 'STRING': 18, 'COMMENT': 17,
+            'PLUS': 21, 'MINUS': 21, 'STAR': 21, 'SLASH': 21,
+            'PERCENT': 21, 'EQ': 21, 'NEQ': 21, 'LT': 21, 'GT': 21,
+            'LTE': 21, 'GTE': 21, 'ASSIGN': 21, 'ARROW': 21,
+            'LPAREN': 21, 'RPAREN': 21, 'LBRACKET': 21, 'RBRACKET': 21,
+            'LBRACE': 21, 'RBRACE': 21, 'COMMA': 21, 'COLON': 21,
+            'DOT': 21, 'PIPE': 21,
+        }
+
+        # Build token data array: [line, startChar, length, tokenType, tokenModifiers]
+        data = []
+        for tok in tokens:
+            ttype = token_types.get(tok.type.name, 8)  # default to variable
+            text_val = tok.value if tok.value else ''
+            data.append([
+                tok.line - 1,  # LSP is 0-based, lexer is 1-based for lines
+                tok.col,       # lexer col is already 0-based
+                len(text_val),
+                ttype,
+                0,  # no modifiers
+            ])
+
+        return {
+            'data': data,
+        }
 
     def handle_textDocument_references(self, params):
         uri = params.get('textDocument', {}).get('uri', '')
