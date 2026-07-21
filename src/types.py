@@ -373,6 +373,11 @@ class TypeChecker:
             'run': FunctionType([STR, ListType(STR)], STR),
             'http_server': FunctionType([INT, DictType(STR, ANY)], NONE),
             'serve': FunctionType([INT, DictType(STR, ANY)], NONE),
+
+            # Parallel collections
+            'par_map': FunctionType([FunctionType([ANY], ANY), ListType(ANY), INT], ListType(ANY)),
+            'par_filter': FunctionType([FunctionType([ANY], BOOL), ListType(ANY), INT], ListType(ANY)),
+            'par_for': FunctionType([ListType(ANY), FunctionType([ANY], NONE), INT], BOOL),
         }
         for name, typ in builtins.items():
             self.env.set(name, typ, mutable=False)

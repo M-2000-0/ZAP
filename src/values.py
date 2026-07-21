@@ -360,6 +360,11 @@ def make_zap_builtins():
     env.define('run', ZapBuiltin(_stdlib_run, 'run'))
     env.define('serve', ZapBuiltin(_stdlib_serve, 'serve'))
 
+    # Parallel collections (zero-boilerplate parallelization)
+    env.define('par_map', ZapBuiltin(_stdlib_par_map, 'par_map'))
+    env.define('par_filter', ZapBuiltin(_stdlib_par_filter, 'par_filter'))
+    env.define('par_for', ZapBuiltin(_stdlib_par_for, 'par_for'))
+
     # Dict helpers
     env.define('has_key', ZapBuiltin(lambda d, k: k in (d.entries if isinstance(d, ZapDict) else d), 'has_key'))
 
@@ -993,6 +998,47 @@ def _stdlib_http_server(port=3000, handler=None, routes=None):
 def _stdlib_serve(port=3000, routes=None):
     """Alias for http_server - zero-boilerplate web server."""
     return _stdlib_http_server(port, routes=routes)
+
+
+def _stdlib_par_map(fn, items, workers=None):
+    """Parallel map - applies fn to each item in items using a thread pool.
+    Returns a ZapList with the results in order."""
+    import concurrent.futures
+    if isinstance(items, ZapList):
+        items = list(items.elements)
+    else:
+        items = list(items)
+    workers = workers or min(len(items), 4) or 1
+    with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
+        results = list(pool.map(fn, items))
+    return ZapList(results)
+
+
+def _stdlib_par_filter(fn, items, workers=None):
+    """Parallel filter - keeps items where fn(item) is truthy."""
+    import concurrent.futures
+    if isinstance(items, ZapList):
+        items = list(items.elements)
+    else:
+        items = list(items)
+    workers = workers or min(len(items), 4) or 1
+    with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
+        results = [item for item, keep in zip(items, pool.map(fn, items)) if keep]
+    return ZapList(results)
+
+
+def _stdlib_par_for(items, fn, workers=None):
+    """Parallel for-each - calls fn(item) for each item in parallel.
+    Returns True when all items are processed."""
+    import concurrent.futures
+    if isinstance(items, ZapList):
+        items = list(items.elements)
+    else:
+        items = list(items)
+    workers = workers or min(len(items), 4) or 1
+    with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
+        list(pool.map(fn, items))
+    return True
 
 
 def _py_to_zap(obj):
