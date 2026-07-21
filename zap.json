@@ -1,0 +1,7 @@
+{
+  "name": "zap-lang",
+  "version": "0.2.0",
+  "entrypoint": "main.zap",
+  "grammar": "0.2",
+  "dependencies": {}
+}

@@ -3,14 +3,17 @@ CLI entrypoint. The grammar-version check, the diagnostic formatting, and
 all subcommands live here.
 
 Subcommands:
-  zap run <file>           execute a .zap file
-  zap check <file>         parse + type-check, emit diagnostics
-  zap build <file>         check + run
-  zap repl                 interactive REPL
-  zap test [path]          run @test / expect blocks
-  zap version              print VERSION and GRAMMAR_VERSION
-  zap compile <file>       transpile to Python bytecode (stub)
-  zap diag <text>          parse human-readable diagnostic output -> JSON
+  zap run <file|folder>      execute a .zap file or folder (auto-detects entrypoint)
+  zap check <file>           parse + type-check, emit diagnostics
+  zap build <file>           check + run
+  zap repl                   interactive REPL
+  zap test [path]            run @test / expect blocks
+  zap version                print VERSION and GRAMMAR_VERSION
+  zap compile <file>         transpile to Python bytecode (stub)
+  zap diag <text>            parse human-readable diagnostic output -> JSON
+  zap init [name]            scaffold a new Zap project
+  zap install                install dependencies from zap.json
+  zap add <spec>             add and install a dependency
 """
 
 from __future__ import annotations
@@ -44,11 +47,65 @@ def _diagnostics_from_exception(exc: BaseException, *, file: str | None = None,
     return [parse_error(msg, code=code, span=span, file=file)]
 
 
-def run_file(filepath, *, diag_format: str = "text"):
+# ---------------------------------------------------------------------------
+# Entrypoint detection for folder-based execution
+# ---------------------------------------------------------------------------
+
+_ENTRYPOINT_CANDIDATES = (
+    "main.zap",
+    "index.zap",
+    "app.zap",
+    "server.zap",
+    "run.zap",
+    "start.zap",
+    "cli.zap",
+    "api.zap",
+    "web.zap",
+)
+
+
+def _find_entrypoint(path: str) -> str | None:
+    """Return the entrypoint file path if path is a directory with a known entrypoint."""
+    if not os.path.isdir(path):
+        return None
+    for name in _ENTRYPOINT_CANDIDATES:
+        candidate = os.path.join(path, name)
+        if os.path.exists(candidate):
+            return candidate
+    # Fallback: any .zap file in the directory (first one alphabetically)
+    try:
+        zap_files = sorted(f for f in os.listdir(path) if f.endswith(".zap"))
+        if zap_files:
+            return os.path.join(path, zap_files[0])
+    except OSError:
+        pass
+    return None
+
+
+def _resolve_target(target: str) -> str:
+    """Resolve a file or folder to an executable .zap file."""
+    if os.path.isfile(target):
+        return target
+    entrypoint = _find_entrypoint(target)
+    if entrypoint:
+        return entrypoint
+    # If it's a folder with no entrypoint, error with helpful message
+    raise FileNotFoundError(
+        f"No entrypoint found in {target!r}. "
+        f"Expected one of: {', '.join(_ENTRYPOINT_CANDIDATES)} "
+        f"or any .zap file."
+    )
+
+
+# ---------------------------------------------------------------------------
+# Core execution functions
+# ---------------------------------------------------------------------------
+
+def run_file(filepath: str, *, diag_format: str = "text"):
     from .lexer import Lexer
     from .parser import Parser
     from .evaluator import Evaluator
-    from .diagnostics import Span, runtime_error, emit, parse_grammar_pragma
+    from .diagnostics import Span, runtime_error, emit
     from .version import GRAMMAR_VERSION, parse_grammar_pragma as vpragma
 
     if not os.path.exists(filepath):
@@ -99,7 +156,18 @@ def run_file(filepath, *, diag_format: str = "text"):
         print(result)
 
 
-def check_file(filepath, *, diag_format: str = "text"):
+def run_path(target: str, *, diag_format: str = "text"):
+    """Run a .zap file or folder (auto-detects entrypoint)."""
+    try:
+        filepath = _resolve_target(target)
+    except FileNotFoundError as e:
+        from .diagnostics import runtime_error, emit
+        emit([runtime_error(str(e), code="Z500", file=target)], fmt=diag_format)
+        sys.exit(1)
+    run_file(filepath, diag_format=diag_format)
+
+
+def check_file(filepath: str, *, diag_format: str = "text"):
     from .lexer import Lexer
     from .parser import Parser
     from .types import TypeChecker
@@ -166,14 +234,22 @@ def check_file(filepath, *, diag_format: str = "text"):
     if diagnostics:
         emit(diagnostics, fmt=diag_format)
         sys.exit(1)
-    print("ok")
+    # Always emit in JSON mode (even when ok) so AI agents get a structured response
+    if diag_format == "json":
+        emit(diagnostics, fmt=diag_format)
+    else:
+        print("ok")
 
 
-def build_file(filepath, *, diag_format: str = "text"):
+def build_file(filepath: str, *, diag_format: str = "text"):
     # build == check + run, both with diagnostics
     check_file(filepath, diag_format=diag_format)
     run_file(filepath, diag_format=diag_format)
 
+
+# ---------------------------------------------------------------------------
+# REPL
+# ---------------------------------------------------------------------------
 
 def repl():
     import atexit
@@ -262,6 +338,10 @@ def repl():
         buffer = ""
 
 
+# ---------------------------------------------------------------------------
+# Test command
+# ---------------------------------------------------------------------------
+
 def test_command(args, *, diag_format: str = "text"):
     """Run all @test / expect blocks under the given path (default: cwd)."""
     from .test_runner import run_tests
@@ -270,6 +350,10 @@ def test_command(args, *, diag_format: str = "text"):
     if summary.failed or summary.errored:
         sys.exit(1)
 
+
+# ---------------------------------------------------------------------------
+# Version command
+# ---------------------------------------------------------------------------
 
 def version_command(_args, *, diag_format: str = "text"):
     from .version import VERSION, GRAMMAR_VERSION
@@ -280,7 +364,11 @@ def version_command(_args, *, diag_format: str = "text"):
         print(f"Grammar: {GRAMMAR_VERSION}")
 
 
-def compile_command(filepath, *, out: str | None = None, diag_format: str = "text"):
+# ---------------------------------------------------------------------------
+# Compile command (transpile to Python bytecode)
+# ---------------------------------------------------------------------------
+
+def compile_command(filepath: str, *, out: str | None = None, diag_format: str = "text"):
     """Transpile a .zap file to Python bytecode (cached as .pyc next to the
     source) and exec it. Falls back to the tree-walking interpreter on
     unsupported AST nodes."""
@@ -315,6 +403,10 @@ def compile_command(filepath, *, out: str | None = None, diag_format: str = "tex
         print(result)
 
 
+# ---------------------------------------------------------------------------
+# Diagnostic parsing (for AI agents)
+# ---------------------------------------------------------------------------
+
 def diag_command(args, *, diag_format: str = "text"):
     """Read human-readable diagnostic output on stdin (or first arg) and
     print the structured JSON. Useful for AI agents that capture stderr
@@ -328,24 +420,103 @@ def diag_command(args, *, diag_format: str = "text"):
     print(json.dumps(diags, indent=2))
 
 
+# ---------------------------------------------------------------------------
+# Init command - scaffold a new project
+# ---------------------------------------------------------------------------
+
+def init_command(args, *, diag_format: str = "text"):
+    """Scaffold a new Zap project with recommended structure."""
+    name = args[0] if args else "my-zap-app"
+    target_dir = os.path.join(os.getcwd(), name)
+
+    if os.path.exists(target_dir):
+        from .diagnostics import runtime_error, emit
+        emit([runtime_error(f"directory already exists: {target_dir}", code="Z500")],
+             fmt=diag_format)
+        sys.exit(1)
+
+    os.makedirs(target_dir, exist_ok=True)
+
+    # Create main.zap entrypoint
+    main_zap = f'''# {name} - Zap application
+# Run with: zap run .
+
+fn main()
+  print("Hello from {name}!")
+
+main()
+'''
+    with open(os.path.join(target_dir, "main.zap"), "w", encoding="utf-8") as f:
+        f.write(main_zap)
+
+    # Create zap.json config
+    config = {
+        "name": name,
+        "version": "0.1.0",
+        "entrypoint": "main.zap",
+        "grammar": "2026.07",
+        "dependencies": {}
+    }
+    import json as _json
+    with open(os.path.join(target_dir, "zap.json"), "w", encoding="utf-8") as f:
+        _json.dump(config, f, indent=2)
+
+    # Create .gitignore
+    gitignore = """__pycache__/
+*.pyc
+.zap_cache/
+.env
+*.log
+"""
+    with open(os.path.join(target_dir, ".gitignore"), "w", encoding="utf-8") as f:
+        f.write(gitignore)
+
+    print(f"Created {name}/")
+    print(f"  main.zap      - entrypoint")
+    print(f"  zap.json      - project config")
+    print(f"  .gitignore    - git ignore rules")
+    print(f"\nRun with: zap run {name}")
+
+
+# ---------------------------------------------------------------------------
+# Help text
+# ---------------------------------------------------------------------------
+
 HELP_TEXT = """Zap — one language, every layer
 
 Usage:
-  zap run <file.zap>         execute a .zap file
-  zap check <file.zap>       parse + type-check
-  zap build <file.zap>       check + run
-  zap test [path]            run @test / expect blocks
-  zap compile <file.zap>     transpile to Python bytecode
-  zap repl                   interactive REPL
-  zap version                print version + grammar version
-  zap diag                   parse diagnostic text -> JSON
-  zap help                   this message
+  zap run <file.zap|folder>   execute a .zap file or folder (auto-detects entrypoint)
+  zap check <file.zap>        parse + type-check
+  zap build <file.zap>        check + run
+  zap test [path]             run @test / expect blocks
+  zap compile <file.zap>      transpile to Python bytecode
+  zap repl                    interactive REPL
+  zap version                 print version + grammar version
+  zap diag <text>             parse diagnostic text -> JSON
+  zap init [name]             scaffold a new Zap project
+  zap install                 install dependencies from zap.json
+  zap add <spec>              add and install a dependency
+  zap help                    this message
 
 Common flags:
-  --format=json              emit diagnostics as JSON (run, check, build, test)
-  --no-color                 disable ANSI colors
+  --format=json               emit diagnostics as JSON (run, check, build, test)
+  --no-color                  disable ANSI colors
+
+Entrypoint detection for folders (in order):
+  main.zap, index.zap, app.zap, server.zap, run.zap, start.zap, cli.zap, api.zap, web.zap
+
+Examples:
+  zap run main.zap            # run a single file
+  zap run .                   # run current folder (finds main.zap, index.zap, etc.)
+  zap run ./my-app            # run folder ./my-app
+  zap init my-api             # create new project in ./my-api
+  zap check main.zap --format=json  # machine-readable diagnostics for AI
 """
 
+
+# ---------------------------------------------------------------------------
+# Main entrypoint
+# ---------------------------------------------------------------------------
 
 def main(argv=None):
     argv = argv if argv is not None else sys.argv
@@ -384,9 +555,9 @@ def main(argv=None):
         repl()
     elif cmd == "run":
         if not args:
-            print("usage: zap run <file.zap>", file=sys.stderr)
-            sys.exit(1)
-        run_file(args[0], diag_format=diag_format)
+            # Default to current directory for plug-and-play experience
+            args = ["."]
+        run_path(args[0], diag_format=diag_format)
     elif cmd == "check":
         if not args:
             print("usage: zap check <file.zap>", file=sys.stderr)
@@ -408,12 +579,20 @@ def main(argv=None):
         compile_command(args[0], diag_format=diag_format)
     elif cmd == "diag":
         diag_command(args, diag_format=diag_format)
+    elif cmd == "init":
+        init_command(args, diag_format=diag_format)
+    elif cmd == "install":
+        from .pkg import install
+        install(args, diag_format=diag_format)
+    elif cmd == "add":
+        from .pkg import add
+        add(args, diag_format=diag_format)
     elif cmd in ("help", "--help", "-h"):
         print(HELP_TEXT)
     else:
         # Back-compat: if the first arg looks like a file, run it.
         if os.path.exists(cmd):
-            run_file(cmd, diag_format=diag_format)
+            run_path(cmd, diag_format=diag_format)
             return
         print(f"unknown command: {cmd}\n\n{HELP_TEXT}", file=sys.stderr)
         sys.exit(1)

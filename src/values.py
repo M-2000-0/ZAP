@@ -138,9 +138,11 @@ class ZapTensor(ZapType):
         return ZapTensor(result, [m, n])
 
     def _getitem(self, d, idx):
-        for i in idx:
-            d = d[i]
-        return d
+        if isinstance(idx, tuple):
+            for i in idx:
+                d = d[i]
+            return d
+        return d[idx]
 
     def __neg__(self):
         return self._map(lambda a: -a)
@@ -351,6 +353,13 @@ def make_zap_builtins():
     env.define('signal', ZapBuiltin(_stdlib_signal, 'signal'))
     env.define('effect', ZapBuiltin(_stdlib_effect, 'effect'))
 
+    # Zero-boilerplate: HTTP server, config, watch, subprocess
+    env.define('http_server', ZapBuiltin(_stdlib_http_server, 'http_server'))
+    env.define('config', ZapBuiltin(_stdlib_config, 'config'))
+    env.define('watch', ZapBuiltin(_stdlib_watch, 'watch'))
+    env.define('run', ZapBuiltin(_stdlib_run, 'run'))
+    env.define('serve', ZapBuiltin(_stdlib_serve, 'serve'))
+
     # Dict helpers
     env.define('has_key', ZapBuiltin(lambda d, k: k in (d.entries if isinstance(d, ZapDict) else d), 'has_key'))
 
@@ -401,19 +410,25 @@ def _builtin_sum(x):
         return sum(x.elements)
     return sum(x)
 
-def _builtin_max(x):
-    if isinstance(x, ZapTensor):
-        return max(_tensor_iter(x))
-    if isinstance(x, ZapList):
-        return max(x.elements)
-    return max(x)
+def _builtin_max(*args):
+    if len(args) == 1:
+        x = args[0]
+        if isinstance(x, ZapTensor):
+            return max(_tensor_iter(x))
+        if isinstance(x, ZapList):
+            return max(x.elements)
+        return max(x)
+    return max(*args)
 
-def _builtin_min(x):
-    if isinstance(x, ZapTensor):
-        return min(_tensor_iter(x))
-    if isinstance(x, ZapList):
-        return min(x.elements)
-    return min(x)
+def _builtin_min(*args):
+    if len(args) == 1:
+        x = args[0]
+        if isinstance(x, ZapTensor):
+            return min(_tensor_iter(x))
+        if isinstance(x, ZapList):
+            return min(x.elements)
+        return min(x)
+    return min(*args)
 
 def _builtin_list(x):
     if isinstance(x, ZapList):
@@ -853,6 +868,132 @@ def _stdlib_effect(signal, fn):
         signal.sub(fn)
         fn(signal.get())
     return True
+
+
+def _stdlib_config(path=None):
+    """Load JSON config from zap.json (or a custom path)."""
+    import os, json
+    if path is None:
+        path = "zap.json"
+    if not os.path.exists(str(path)):
+        return ZapDict({})
+    with open(str(path), "r", encoding="utf-8") as f:
+        data = json.load(f)
+    return _py_to_zap(data)
+
+
+def _stdlib_watch(path, fn):
+    """Watch a file or directory for changes. Calls fn on each change.
+    Uses polling (every 0.5s) for cross-platform compatibility."""
+    import os, time, threading
+    path = str(path)
+    last_mtime = 0
+    if os.path.isdir(path):
+        files = []
+        for root, _, fs in os.walk(path):
+            for f in fs:
+                if f.endswith(".zap"):
+                    files.append(os.path.join(root, f))
+        def _get_mtimes():
+            return {f: os.path.getmtime(f) for f in files if os.path.exists(f)}
+    else:
+        files = [path]
+        def _get_mtimes():
+            return {path: os.path.getmtime(path) if os.path.exists(path) else 0}
+
+    def _loop():
+        nonlocal last_mtime
+        while True:
+            try:
+                mtimes = _get_mtimes()
+                current = max(mtimes.values()) if mtimes else 0
+                if current > last_mtime:
+                    last_mtime = current
+                    fn()
+            except Exception:
+                pass
+            time.sleep(0.5)
+
+    t = threading.Thread(target=_loop, daemon=True)
+    t.start()
+    return True
+
+
+def _stdlib_run(cmd, args=None):
+    """Run a subprocess and return its stdout."""
+    import subprocess
+    cmd = str(cmd)
+    if args is not None:
+        if isinstance(args, ZapList):
+            args = [_zap_to_py(a) for a in args.elements]
+        cmd = [cmd] + list(args)
+    else:
+        cmd = cmd.split()
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    return result.stdout
+
+
+def _stdlib_http_server(port=3000, handler=None, routes=None):
+    """Start a zero-boilerplate HTTP server.
+    If routes is provided (dict of path -> fn), serves those routes.
+    Otherwise serves a simple default page."""
+    from http.server import HTTPServer, BaseHTTPRequestHandler
+    import threading, json as _json
+
+    routes_map = {}
+    if routes is not None:
+        if isinstance(routes, ZapDict):
+            for k, v in routes.entries.items():
+                routes_map[_zap_to_py(k)] = v
+
+    class _Handler(BaseHTTPRequestHandler):
+        def _send(self, code, body, content_type="text/html"):
+            self.send_response(code)
+            self.send_header("Content-Type", content_type)
+            self.end_headers()
+            self.wfile.write(body.encode() if isinstance(body, str) else body)
+
+        def do_GET(self):
+            path = self.path.split("?")[0]
+            if path in routes_map:
+                try:
+                    result = routes_map[path]()
+                    if isinstance(result, ZapDict):
+                        self._send(200, _json.dumps(_zap_to_py(result)), "application/json")
+                    else:
+                        self._send(200, str(result))
+                except Exception as e:
+                    self._send(500, str(e))
+            else:
+                self._send(404, "Not Found")
+
+        def do_POST(self):
+            path = self.path.split("?")[0]
+            if path in routes_map:
+                try:
+                    result = routes_map[path]()
+                    if isinstance(result, ZapDict):
+                        self._send(200, _json.dumps(_zap_to_py(result)), "application/json")
+                    else:
+                        self._send(200, str(result))
+                except Exception as e:
+                    self._send(500, str(e))
+            else:
+                self._send(404, "Not Found")
+
+        def log_message(self, *args):
+            pass  # Suppress logging
+
+    server = HTTPServer(("0.0.0.0", int(port)), _Handler)
+    print(f"  Zap server listening on :{port}")
+    server.serve_forever()
+    return True
+
+
+def _stdlib_serve(port=3000, routes=None):
+    """Alias for http_server - zero-boilerplate web server."""
+    return _stdlib_http_server(port, routes=routes)
+
 
 def _py_to_zap(obj):
     if isinstance(obj, dict):

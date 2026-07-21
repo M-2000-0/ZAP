@@ -366,6 +366,13 @@ class TypeChecker:
             'css': FunctionType([STR], STR),
             'signal': FunctionType([ANY], ANY),
             'effect': FunctionType([ANY, FunctionType([ANY], NONE)], BOOL),
+
+            # Zero-boilerplate
+            'config': FunctionType([STR], DictType(STR, ANY)),
+            'watch': FunctionType([STR, ANY], BOOL),
+            'run': FunctionType([STR, ListType(STR)], STR),
+            'http_server': FunctionType([INT, DictType(STR, ANY)], NONE),
+            'serve': FunctionType([INT, DictType(STR, ANY)], NONE),
         }
         for name, typ in builtins.items():
             self.env.set(name, typ, mutable=False)
