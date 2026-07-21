@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68.0"]
+build-backend = "setuptools.backends._legacy:_Backend"
+
+[project]
+name = "zap-lang"
+version = "0.2.0"
+description = "Zap programming language — AI-native, full-stack"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "M-2000-0"},
+]
+requires-python = ">=3.10"
+keywords = ["programming-language", "ai-native", "fullstack"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "License :: OSI Approved :: MIT License",
+]
+
+[project.urls]
+Homepage = "https://github.com/M-2000-0/ZAP"
+Repository = "https://github.com/M-2000-0/ZAP"
+
+[project.scripts]
+zap = "src.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["src*"]
