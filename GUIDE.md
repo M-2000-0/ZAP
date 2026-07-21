@@ -267,6 +267,63 @@ eval.evaluate(parse("fn double(x) x * 2"))
 The rule: **write new code in Zap, bridge to existing libraries.** Over time the stdlib
 grows until bridges are rarely needed.
 
+## Zero-Boilerplate Patterns
+
+Zap includes built-in primitives for common patterns — no imports needed:
+
+### Web Server (One Line)
+
+```python
+serve(3000, {"/": () => "Hello!", "/api": () => {status: "ok"}})
+```
+
+### Project Config
+
+```python
+cfg = config("zap.json")
+name = cfg["name"]
+```
+
+### File Watching
+
+```python
+watch("main.zap", () => reload())
+```
+
+### Parallel Processing
+
+```python
+# par_map automatically parallelizes using a thread pool
+result = par_map(x => expensive_op(x), data)
+
+# par_filter for parallel filtering
+evens = par_filter(x => x % 2 == 0, numbers)
+
+# par_for for parallel side effects
+par_for(urls, url => fetch(url))
+```
+
+### Package Management
+
+```bash
+zap init my-app          # scaffold new project
+zap add file:./lib/x     # add local dependency
+zap install              # install all deps
+```
+
+### Bytecode Caching
+
+```bash
+zap compile main.zap     # compile + cache in .zap_cache/
+zap run main.zap         # uses cache automatically
+```
+
+### Machine-Readable Diagnostics
+
+```bash
+zap check main.zap --format=json
+```
+
 ## Setting Up AI Assistants for Zap
 
 ### Cursor

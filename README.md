@@ -428,7 +428,101 @@ Build a working MVP in minutes, then iterate. No build tools, no config files,
 no CI pipeline needed. One command to run:
 
 ```bash
-zap run app.zap
+zap run app.zap        # run a file
+zap run .              # run a folder (auto-detects main.zap, index.zap, etc.)
+zap run ./my-app       # run a folder
+```
+
+## Zero-Boilerplate Features
+
+Zap includes batteries-included primitives that require zero configuration:
+
+### Built-in HTTP Server
+
+```python
+fn hello()
+  "<h1>Hello from Zap!</h1>"
+
+fn api()
+  {message: "Hello API", status: "ok"}
+
+serve(3000, {"/": hello, "/api": api})
+```
+
+### Project Configuration
+
+```python
+cfg = config("zap.json")
+print(cfg["name"])
+```
+
+### File Watching (Auto-reload)
+
+```python
+watch("main.zap", () => {
+  print("File changed, reloading...")
+  # Your reload logic here
+})
+```
+
+### Parallel Collections
+
+```python
+# Parallel map - automatically uses thread pool
+result = par_map(x => x * x, [1, 2, 3, 4, 5])
+# [1, 4, 9, 16, 25]
+
+# Parallel filter
+evens = par_filter(x => x % 2 == 0, [1, 2, 3, 4, 5])
+# [2, 4]
+
+# Parallel for-each
+par_for([1, 2, 3], x => print("Processing " + str(x)))
+```
+
+### Package Management
+
+```bash
+zap init my-app        # create a new project
+zap add file:./lib/my-lib  # add a local dependency
+zap install            # install all dependencies
+```
+
+### Bytecode Caching
+
+Compiled bytecode is cached in `.zap_cache/` for fast subsequent runs.
+Cache is automatically invalidated when source files change.
+
+```bash
+zap compile main.zap   # compile + cache
+zap run main.zap       # uses cache if available
+```
+
+## Machine-Readable Diagnostics
+
+AI agents can get structured JSON diagnostics for error handling:
+
+```bash
+zap check main.zap --format=json
+```
+
+Output:
+```json
+{
+  "ok": false,
+  "count": 2,
+  "errors": 2,
+  "warnings": 0,
+  "diagnostics": [
+    {
+      "code": "Z200",
+      "severity": "error",
+      "message": "undefined variable 'foo'",
+      "span": {"line": 5, "col": 3, "end_line": null, "end_col": null},
+      "file": "main.zap"
+    }
+  ]
+}
 ```
 
 ## Multi-Language Mode
