@@ -114,6 +114,7 @@ class Parser:
     # indent tracking: [0] initially, push INDENT value when entering block,
     # consume DEDENTs when leaving, pop when target level matches current level
     def parse_block(self):
+        self.skip_newlines()
         try:
             indent_tok = self.expect(TokenType.INDENT)
         except SyntaxError as e:
@@ -293,6 +294,7 @@ class Parser:
         name = self.expect(TokenType.IDENTIFIER).value
         self.expect(TokenType.COLON)
         self.expect(TokenType.NEWLINE)
+        self.skip_newlines()
         indent_tok = self.expect(TokenType.INDENT)
         self._indents.append(indent_tok.value)
         methods = []
@@ -327,6 +329,7 @@ class Parser:
         name = self.expect(TokenType.IDENTIFIER).value
         self.expect(TokenType.COLON)
         self.expect(TokenType.NEWLINE)
+        self.skip_newlines()
         indent_tok = self.expect(TokenType.INDENT)
         self._indents.append(indent_tok.value)
         tables = []
@@ -359,6 +362,7 @@ class Parser:
             returns = None
         self.expect(TokenType.COLON)
         self.expect(TokenType.NEWLINE)
+        self.skip_newlines()
         indent_tok = self.expect(TokenType.INDENT)
         self._indents.append(indent_tok.value)
         handler = None
@@ -394,6 +398,7 @@ class Parser:
             route = self.advance().value
         self.expect(TokenType.COLON)
         self.expect(TokenType.NEWLINE)
+        self.skip_newlines()
         indent_tok = self.expect(TokenType.INDENT)
         self._indents.append(indent_tok.value)
         components = []
@@ -410,6 +415,7 @@ class Parser:
         name = self.expect(TokenType.IDENTIFIER).value
         self.expect(TokenType.COLON)
         self.expect(TokenType.NEWLINE)
+        self.skip_newlines()
         indent_tok = self.expect(TokenType.INDENT)
         self._indents.append(indent_tok.value)
         fields = []
@@ -438,6 +444,7 @@ class Parser:
         name = self.expect(TokenType.IDENTIFIER).value
         self.expect(TokenType.COLON)
         self.expect(TokenType.NEWLINE)
+        self.skip_newlines()
         indent_tok = self.expect(TokenType.INDENT)
         self._indents.append(indent_tok.value)
         fields = []
@@ -485,6 +492,7 @@ class Parser:
         self.advance()  # 'requires' or 'guarantees'
         self.expect(TokenType.COLON)
         self.expect(TokenType.NEWLINE)
+        self.skip_newlines()
         indent_tok = self.expect(TokenType.INDENT)
         self._indents.append(indent_tok.value)
         conditions = []
@@ -511,6 +519,7 @@ class Parser:
         tok = self.advance()
         self.expect(TokenType.COLON)
         self.expect(TokenType.NEWLINE)
+        self.skip_newlines()
         indent_tok = self.expect(TokenType.INDENT)
         self._indents.append(indent_tok.value)
         branches = []
@@ -536,6 +545,7 @@ class Parser:
         tok = self.advance()
         self.expect(TokenType.COLON)
         self.expect(TokenType.NEWLINE)
+        self.skip_newlines()
         indent_tok = self.expect(TokenType.INDENT)
         self._indents.append(indent_tok.value)
         assertions = []
@@ -610,6 +620,7 @@ class Parser:
         contracts = []
         if self.peek().type == TokenType.NEWLINE:
             self.advance()
+            self.skip_newlines()
             indent_tok = self.expect(TokenType.INDENT)
             fn_indent = indent_tok.value
             self._indents.append(fn_indent)
@@ -744,6 +755,7 @@ class Parser:
             self.expect(TokenType.RPAREN)
         self.expect(TokenType.COLON)
         self.expect(TokenType.NEWLINE)
+        self.skip_newlines()
         indent_tok = self.expect(TokenType.INDENT)
         self._indents.append(indent_tok.value)
         methods = []
@@ -768,6 +780,7 @@ class Parser:
         value = self.parse_expr()
         self.expect(TokenType.COLON)
         self.expect(TokenType.NEWLINE)
+        self.skip_newlines()
         indent_tok = self.expect(TokenType.INDENT)
         self._indents.append(indent_tok.value)
         cases = []

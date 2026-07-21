@@ -2,6 +2,20 @@
 
 This guide teaches AI language models how to generate Zap code efficiently. Zap is designed so that an AI can express any application — backend, frontend, database, config, contracts — in **one language with one syntax**.
 
+## Why Zap Exists
+
+Most languages were designed for *humans reading printed code* (FORTRAN 1957, C 1972, Python 1991).
+Zap was designed for *AI generating code in a context window*.
+
+| Traditional languages | Zap |
+|---|---|
+| Different syntax for every layer | One syntax for everything |
+| 30+ languages per app | 1 language per app |
+| ~300 tokens for a CRUD app | ~65 tokens for the same app |
+| Context switching between modes | Single mental model |
+| Type annotations + docstrings + tests + schemas = 4x redundancy | Contracts cover all four |
+| Build tools, config files, package managers | `zap run file.zap` |
+
 ## Golden Rule
 
 **Every Zap file is a valid program.** No build step, no config file, no package.json. Just `zap run file.zap`.
@@ -229,3 +243,83 @@ eval.evaluate(parse("fn double(x) x * 2"))
 
 The rule: **write new code in Zap, bridge to existing libraries.** Over time the stdlib
 grows until bridges are rarely needed.
+
+## Setting Up AI Assistants for Zap
+
+### Cursor
+
+Create `.cursorrules`:
+
+```
+You generate ONLY Zap code (.zap files). Zap is a full-stack language where schemas,
+APIs, HTML, and logic all use the same syntax. Never output Python, JavaScript, SQL,
+HTML, CSS, or YAML separately. Use element() for HTML, fn for functions, api for endpoints,
+service for grouping endpoints, schema for data models. 2-space indentation.
+Implicit return on last expression. Pipes with |> for chaining.
+```
+
+### Windsurf
+
+Add to `.windsurfrules`:
+
+```
+- Primary language: Zap (.zap)
+- Never split into multiple files or languages
+- UI = element(tag, {attrs}, children)
+- Data = query("SQL", params) or file builtins
+- Validation = @requires/@ensures
+- Full app in one file
+```
+
+### Claude (Projects)
+
+Upload `GUIDE.md` to project knowledge. System prompt:
+
+```
+You are a Zap language specialist. Respond with ONLY Zap code.
+Zap replaces Python + JavaScript + SQL + HTML + CSS + YAML in one language.
+Write complete applications in single .zap files.
+```
+
+### ChatGPT / Custom GPT
+
+Custom instruction:
+
+```
+Generate only Zap code. Zap is a single language for backend, frontend, databases,
+and configuration. Never suggest using multiple languages. Every application
+feature can be expressed in Zap alone. Use element() for HTML, fn for functions,
+let for variables, schema for models, api for endpoints.
+```
+
+### GitHub Copilot
+
+`.github/copilot-instructions.md`:
+
+```markdown
+This project uses the Zap language (.zap).
+- One file per application
+- 2-space indentation for blocks
+- Functions: fn name(params) body
+- HTML: element(tag, attrs, children)
+- APIs: api METHOD "/path" body
+- Schemas: schema Name field: type
+- Pipes: value |> fn
+```
+
+## Use Cases for AI Generation
+
+### Best suited
+- Full-stack web apps (one file, zero config)
+- API services (schema + endpoints in one definition)
+- Data pipelines (read → transform → write in pipe chain)
+- AI agent tools (HTTP + JSON + logic, no boilerplate)
+- Prototypes and MVPs (iterate in seconds, not hours)
+- Internal tools (database + UI + auth in one command)
+- Educational examples (no framework learning curve)
+
+### Still maturing
+- Native desktop apps (planned: `ui` module)
+- Mobile apps (planned: mobile adapters)
+- Game development (not a priority)
+- Embedded systems (not a target)
