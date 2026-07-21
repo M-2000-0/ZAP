@@ -369,9 +369,11 @@ def version_command(_args, *, diag_format: str = "text"):
 # ---------------------------------------------------------------------------
 
 def compile_command(filepath: str, *, out: str | None = None, diag_format: str = "text"):
-    """Transpile a .zap file to Python bytecode (cached as .pyc next to the
-    source) and exec it. Falls back to the tree-walking interpreter on
-    unsupported AST nodes."""
+    """Compile a .zap file to cached Python bytecode.
+
+    Uses .zap_cache/ for caching with automatic invalidation based on
+    source hash, mtime, and grammar version.
+    """
     from .diagnostics import parse_error, runtime_error, emit
     from .version import parse_grammar_pragma, GRAMMAR_VERSION
 
@@ -391,16 +393,42 @@ def compile_command(filepath: str, *, out: str | None = None, diag_format: str =
         )], fmt=diag_format)
         sys.exit(2)
 
-    from .compiler import transpile_to_python_source, transpile_and_exec
-    try:
-        result = transpile_and_exec(text, filepath, fallback_to_interpreter=True)
-    except Exception as e:
-        emit([runtime_error(f"compile failed: {e}", code="Z300", file=filepath)],
-             fmt=diag_format)
-        sys.exit(1)
+    from .compiler import transpile_and_exec, compile_to_file
+    import io
+    import contextlib
 
-    if result is not None:
-        print(result)
+    if out:
+        # Compile to explicit output path
+        try:
+            py_path = compile_to_file(text, filepath, out_path=out)
+            if diag_format == "json":
+                print(json.dumps({"ok": True, "output": py_path}))
+            else:
+                print(f"Compiled to {py_path}")
+        except Exception as e:
+            emit([runtime_error(f"compile failed: {e}", code="Z300", file=filepath)],
+                 fmt=diag_format)
+            sys.exit(1)
+    else:
+        # Execute with caching
+        try:
+            if diag_format == "json":
+                # Capture stdout to avoid mixing program output with JSON diagnostics
+                captured = io.StringIO()
+                with contextlib.redirect_stdout(captured):
+                    result = transpile_and_exec(text, filepath, fallback_to_interpreter=True)
+                program_output = captured.getvalue()
+            else:
+                result = transpile_and_exec(text, filepath, fallback_to_interpreter=True)
+        except Exception as e:
+            emit([runtime_error(f"compile failed: {e}", code="Z300", file=filepath)],
+                 fmt=diag_format)
+            sys.exit(1)
+
+        if diag_format == "json":
+            print(json.dumps({"ok": True, "result": str(result) if result is not None else None, "output": program_output}))
+        elif result is not None:
+            print(result)
 
 
 # ---------------------------------------------------------------------------
@@ -574,9 +602,23 @@ def main(argv=None):
         version_command(args, diag_format=diag_format)
     elif cmd == "compile":
         if not args:
-            print("usage: zap compile <file.zap>", file=sys.stderr)
+            print("usage: zap compile <file.zap> [--out <path>]", file=sys.stderr)
             sys.exit(1)
-        compile_command(args[0], diag_format=diag_format)
+        # Parse --out flag
+        out = None
+        compile_args = []
+        i = 0
+        while i < len(args):
+            if args[i] == "--out" and i + 1 < len(args):
+                out = args[i + 1]
+                i += 2
+            else:
+                compile_args.append(args[i])
+                i += 1
+        if not compile_args:
+            print("usage: zap compile <file.zap> [--out <path>]", file=sys.stderr)
+            sys.exit(1)
+        compile_command(compile_args[0], out=out, diag_format=diag_format)
     elif cmd == "diag":
         diag_command(args, diag_format=diag_format)
     elif cmd == "init":

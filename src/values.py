@@ -876,10 +876,23 @@ def _stdlib_effect(signal, fn):
 
 
 def _stdlib_config(path=None):
-    """Load JSON config from zap.json (or a custom path)."""
+    """Load JSON config from zap.json (or a custom path).
+    If no path is provided, looks for zap.json in the current file's directory.
+    If a relative path is provided, resolves it relative to the current file's directory."""
     import os, json
+    from .evaluator import Evaluator
+    
+    # If no path provided, default to zap.json
     if path is None:
         path = "zap.json"
+    
+    # Resolve relative paths relative to the current file's directory
+    if not os.path.isabs(str(path)):
+        current_file = Evaluator.get_current_file()
+        if current_file:
+            base_dir = os.path.dirname(os.path.abspath(current_file))
+            path = os.path.join(base_dir, str(path))
+    
     if not os.path.exists(str(path)):
         return ZapDict({})
     with open(str(path), "r", encoding="utf-8") as f:

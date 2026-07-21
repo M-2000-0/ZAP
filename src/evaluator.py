@@ -1,4 +1,5 @@
 import time
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from .ast_nodes import *
 from .environment import Environment
@@ -8,6 +9,7 @@ from .tracer import trace, get_tracer
 
 class Evaluator:
     _current = None
+    _current_file = None
 
     def __init__(self, is_main=True, current_file=None):
         self.global_env = make_zap_builtins()
@@ -16,6 +18,14 @@ class Evaluator:
         self._current_file = current_file
         if is_main:
             Evaluator._current = self
+        # Always set the current file for context-aware builtins
+        if current_file:
+            Evaluator._current_file = current_file
+
+    @classmethod
+    def get_current_file(cls):
+        """Get the current file being evaluated, if any."""
+        return cls._current_file
 
     def evaluate(self, node):
         if isinstance(node, Program):
@@ -743,8 +753,7 @@ class Evaluator:
         if isinstance(obj, ZapList):
             return obj.elements[idx]
         if isinstance(obj, ZapTensor):
-            flat = obj._flatten(obj.data)
-            return flat[idx]
+            return obj._getitem(obj.data, idx)
         if isinstance(obj, ZapDict):
             return obj.entries[idx]
         if isinstance(obj, str):
