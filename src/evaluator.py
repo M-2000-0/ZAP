@@ -313,8 +313,9 @@ class Evaluator:
     def _eval_zap_import(self, stmt):
         import os as _os
         module_path = stmt.module
+        # Handle both "lib/strings.zap" and "lib.strings" paths
         if not module_path.endswith('.zap'):
-            module_path += '.zap'
+            module_path = module_path.replace('.', '/') + '.zap'
 
         search_dirs = ['.']
         if self._current_file:

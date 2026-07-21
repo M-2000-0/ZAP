@@ -207,6 +207,52 @@ Key syntax rules:
 - Pipes: value |> fn |> fn2
 ```
 
+## Token-Optimized Code
+
+Zap is built for minimal token consumption. Use short aliases to reduce API costs:
+
+| Long form | Short alias | Saves |
+|---|---|---|
+| `element("div", attrs, children)` | `el("div", attrs, children)` | 5 chars |
+| `read_file("path")` | `rd("path")` | 5 chars |
+| `write_file("path", data)` | `wr("path", data)` | 6 chars |
+| `json_parse(string)` | `jp(string)` | 6 chars |
+| `json_stringify(data)` | `js(data)` | 9 chars |
+| `sha256(string)` | `sha(string)` | 3 chars |
+| `contains(s, sub)` | `has(s, sub)` | 5 chars |
+| `@requires(cond)` | `@req(cond)` | 5 chars |
+| `@ensures(cond)` | `@ens(cond)` | 4 chars |
+| `base64_encode(s)` | `b64e(s)` | 7 chars |
+| `uuid()` | `uid()` | 2 chars |
+
+Example — before vs after:
+
+```
+# Standard (82 chars)
+json_parse(http_get("https://api.example.com/data"))
+
+# Optimized (44 chars — 46% less)
+hget("https://api.example.com/data") |> jp
+```
+
+## Libraries
+
+Reusable Zap modules in `lib/`:
+
+```
+import "lib/std.zap"          # Everything
+import "lib/strings.zap"      # capitalize, title, truncate, slug, etc.
+import "lib/http.zap"         # get_json, post_json, get_text
+import "lib/collections.zap"  # first, last, take, drop, pluck, append
+```
+
+```python
+import "lib/std.zap"
+print(capitalize("hello"))         # "Hello"
+print(first([1, 2, 3]))           # 1
+print(get_json("https://api..."))  # parsed JSON
+```
+
 ## Quick Start
 
 ```bash

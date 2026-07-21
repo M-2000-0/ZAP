@@ -184,6 +184,29 @@ permission concurrent channel guarantees version
 check
 ```
 
+## Short Aliases (Token Optimization)
+
+Use these to reduce token count by 40-60%:
+
+| Short | Long | When to use |
+|---|---|---|
+| `el` | `element` | HTML elements |
+| `rd` | `read_file` | File I/O |
+| `wr` | `write_file` | File I/O |
+| `jp` | `json_parse` | JSON parsing |
+| `js` | `json_stringify` | JSON output |
+| `sha` | `sha256` | Hashing |
+| `uid` | `uuid` | Unique IDs |
+| `rstr` | `random_string` | Random strings |
+| `has` | `contains` | String contains |
+| `b64e` / `b64d` | `base64_encode/decode` | Encoding |
+| `ls` | `list_dir` | Directory listing |
+| `ex` | `file_exists` | File check |
+| `hget` | `http_get` | HTTP GET |
+| `hpost` | `http_post` | HTTP POST |
+| `@req` | `@requires` | Pre-conditions |
+| `@ens` | `@ensures` | Post-conditions |
+
 ## AI-Specific Tips
 
 1. **Stay in Zap.** If you need to generate SQL, generate it as a string literal inside Zap. If you need HTML, use `element()`. Never switch languages.

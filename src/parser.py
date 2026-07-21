@@ -256,7 +256,7 @@ class Parser:
                         args.append(self.parse_expr())
                 self.expect(TokenType.RPAREN)
             self.expect(TokenType.NEWLINE)
-            if name in ('requires', 'ensures'):
+            if name in ('requires', 'ensures', 'req', 'ens'):
                 cond = args[0] if args else Literal(True)
                 contracts.append(ContractAnnotation(name, cond, tok.line, tok.col))
             else:
@@ -735,6 +735,10 @@ class Parser:
             while self.match(TokenType.COMMA):
                 names.append(self.expect(TokenType.IDENTIFIER).value)
             return ImportStmt(module, names, from_module=module, line=tok.line, col=tok.col)
+        # Support both `import lib.strings` and `import "lib/strings.zap"`
+        if self.peek().type == TokenType.STRING:
+            module = self.advance().value
+            return ImportStmt(module, None, line=tok.line, col=tok.col)
         module = self.expect(TokenType.IDENTIFIER).value
         names = None
         if self.peek().type == TokenType.COLON and self.peek(1).value == ':':

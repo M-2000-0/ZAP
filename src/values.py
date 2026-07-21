@@ -351,6 +351,41 @@ def make_zap_builtins():
     env.define('signal', ZapBuiltin(_stdlib_signal, 'signal'))
     env.define('effect', ZapBuiltin(_stdlib_effect, 'effect'))
 
+    # Dict helpers
+    env.define('has_key', ZapBuiltin(lambda d, k: k in (d.entries if isinstance(d, ZapDict) else d), 'has_key'))
+
+    # --- Short aliases (token optimization) ---
+    short = {
+        'el': 'element',           # element(tag, attrs, children)
+        'rd': 'read_file',         # rd("file.txt")
+        'wr': 'write_file',        # wr("file.txt", content)
+        'ap': 'append_file',       # ap("file.txt", content)
+        'ls': 'list_dir',          # ls(".")
+        'mv': 'remove',            # mv("file.txt")
+        'sz': 'file_size',         # sz("file.txt")
+        'ex': 'file_exists',       # ex("file.txt")
+        'jp': 'json_parse',        # jp(str)
+        'js': 'json_stringify',    # js(val)
+        'hget': 'http_get',          # hget("https://...")
+        'hpost': 'http_post',        # hpost("https://...", data)
+        'sha': 'sha256',           # sha("hello")
+        'b64e': 'base64_encode',   # b64e("hello")
+        'b64d': 'base64_decode',   # b64d("aGVsbG8=")
+        'uid': 'uuid',             # uid()
+        'rstr': 'random_string',   # rstr(10)
+        'enc': 'env_get',          # enc("PATH")
+        'ens': 'env_set',          # ens("KEY", "val")
+        'has': 'contains',         # has("hello", "el")
+        'sw': 'startswith',        # sw("hi", "h")
+        'ew': 'endswith',          # ew("hi", "i")
+        'trim': 'strip',           # trim("  hi  ")
+        'rev': 'reverse',          # rev("abc")
+    }
+    for short_name, long_name in short.items():
+        original = env.store.get(long_name)
+        if original:
+            env.define(short_name, original)
+
     env.define('True', True)
     env.define('False', False)
     return env

@@ -369,6 +369,23 @@ class TypeChecker:
         }
         for name, typ in builtins.items():
             self.env.set(name, typ, mutable=False)
+        # Dict helpers
+        self.env.set('has_key', FunctionType([DictType(ANY, ANY), ANY], BOOL), mutable=False)
+        # Short aliases
+        short_map = {
+            'el': 'element', 'rd': 'read_file', 'wr': 'write_file',
+            'ap': 'append_file', 'ls': 'list_dir', 'mv': 'remove',
+            'sz': 'file_size', 'ex': 'file_exists', 'jp': 'json_parse',
+            'js': 'json_stringify', 'sha': 'sha256',
+            'b64e': 'base64_encode', 'b64d': 'base64_decode',
+            'uid': 'uuid', 'rstr': 'random_string',
+            'enc': 'env_get', 'ens': 'env_set',
+            'has': 'contains', 'sw': 'startswith', 'ew': 'endswith',
+            'trim': 'strip', 'rev': 'reverse',
+        }
+        for short_name, long_name in short_map.items():
+            if long_name in builtins:
+                self.env.set(short_name, builtins[long_name], mutable=False)
         self.env.set('True', BOOL, mutable=False)
         self.env.set('False', BOOL, mutable=False)
         self.env.set('result', ANY, mutable=True)  # implicit in ensures clauses
