@@ -1,7 +1,6 @@
 import json
 import os
 import time
-import hashlib
 from .analysis import extract_file as extract_zap, build_dependency_graph
 from .adapters import extract_file as extract_any, get_adapter
 
@@ -50,8 +49,8 @@ class ProjectIndex:
             pass
 
     def _hash_file(self, path):
-        with open(path, 'rb') as f:
-            return hashlib.md5(f.read()).hexdigest()
+        st = os.stat(path)
+        return f"{st.st_mtime}:{st.st_size}"
 
     def watch(self, interval=2.0):
         self.scan()

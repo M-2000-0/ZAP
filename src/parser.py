@@ -32,7 +32,8 @@ class Parser:
         TokenType.KW_DATABASE, TokenType.KW_API, TokenType.KW_PAGE,
         TokenType.KW_SCHEMA, TokenType.KW_MODEL, TokenType.KW_PERMISSION,
         TokenType.KW_CONCURRENT, TokenType.KW_CHECK, TokenType.KW_INVARIANT,
-        TokenType.KW_EXPECT, TokenType.KW_VERSION, TokenType.DEDENT,
+        TokenType.KW_EXPECT, TokenType.KW_VERSION, TokenType.KW_BREAK,
+        TokenType.KW_CONTINUE, TokenType.DEDENT,
     }
 
     def error(self, msg):
@@ -213,6 +214,11 @@ class Parser:
             if self.peek(1) and self.peek(1).type == TokenType.EQ:
                 return self.parse_expr_stmt()
             return self.parse_version()
+
+        if tok.type == TokenType.KW_BREAK:
+            return self.parse_break()
+        if tok.type == TokenType.KW_CONTINUE:
+            return self.parse_continue()
 
         if tok.type == TokenType.NEWLINE:
             self.advance()
@@ -473,11 +479,11 @@ class Parser:
         return ModelDecl(name, fields, methods, tok.line, tok.col)
 
     def parse_version_value(self):
-        """Parse: version STRING, return string value."""
-        self.advance()  # 'version'
+        """Parse: version STRING, return VersionAnn node."""
+        tok = self.advance()  # 'version'
         val = self.expect(TokenType.STRING).value
         self.expect(TokenType.NEWLINE)
-        return val
+        return VersionAnn(val, tok.line, tok.col)
 
     def parse_contract_clause(self):
         """requires/ensures expression NEWLINE"""
@@ -724,6 +730,14 @@ class Parser:
             return RetStmt(None, tok.line, tok.col)
         value = self.parse_expr()
         return RetStmt(value, tok.line, tok.col)
+
+    def parse_break(self):
+        tok = self.advance()
+        return BreakStmt(tok.line, tok.col)
+
+    def parse_continue(self):
+        tok = self.advance()
+        return ContinueStmt(tok.line, tok.col)
 
     def parse_import(self):
         tok = self.advance()

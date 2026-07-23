@@ -99,6 +99,10 @@ class Evaluator:
         if st is RetStmt:
             val = self._eval_expr(stmt.value) if stmt.value else None
             raise ReturnSignal(val)
+        if st is BreakStmt:
+            raise BreakSignal()
+        if st is ContinueStmt:
+            raise ContinueSignal()
         if st is IfStmt:
             return self._eval_if(stmt)
         if st is ForStmt:
@@ -229,21 +233,31 @@ class Evaluator:
                 first = False
             else:
                 self.env.set(stmt.var, item)
-            r = self._eval_block(stmt.body)
-            if isinstance(r, ReturnSignal):
-                return r
-            if r is not None:
-                result = r
+            try:
+                r = self._eval_block(stmt.body)
+                if isinstance(r, ReturnSignal):
+                    return r
+                if r is not None:
+                    result = r
+            except ContinueSignal:
+                continue
+            except BreakSignal:
+                break
         return result
 
     def _eval_while(self, stmt):
         result = None
         while self._is_truthy(self._eval_expr(stmt.condition)):
-            r = self._eval_block(stmt.body)
-            if isinstance(r, ReturnSignal):
-                return r
-            if r is not None:
-                result = r
+            try:
+                r = self._eval_block(stmt.body)
+                if isinstance(r, ReturnSignal):
+                    return r
+                if r is not None:
+                    result = r
+            except ContinueSignal:
+                continue
+            except BreakSignal:
+                break
         return result
 
     def _eval_fn_def(self, stmt):
@@ -470,7 +484,7 @@ class Evaluator:
         obj.fields['__name__'] = stmt.name
         obj.fields['__kind__'] = 'service'
         obj.fields['__expose__'] = stmt.expose
-        obj.fields['__version__'] = stmt.version
+        obj.fields['__version__'] = stmt.version.value if stmt.version else None
         obj.fields['__metadata__'] = stmt.metadata
         if stmt.permissions:
             obj.fields['__permissions__'] = stmt.permissions
@@ -991,34 +1005,9 @@ class Evaluator:
                 })
                 raise RuntimeError(self._format_error_with_context(e, expr)) from None
         
-        # Normal evaluation with JIT compilation and SIMD optimizations
+        # Normal evaluation
         try:
             args = [self._eval_expr(a) for a in expr.args]
-            
-            # Enable JIT compilation for hot functions
-            if not hasattr(self, '_jit_enabled'):
-                self._jit_enabled = True
-                self._hot_function_cache = {}
-                self._simd_optimizer = SIMDOptimizer()
-            
-            # Check for hot functions and apply JIT compilation
-            cache_key = callee_name
-            if cache_key in self._hot_function_cache:
-                return self._execute_compiled_function(
-                    self._hot_function_cache[cache_key], 
-                    callee, args
-                )
-            
-            # Apply SIMD optimization for numeric operations
-            if self._should_use_simd(callee_name, args):
-                return self._simd_optimizer.optimize_call(callee_name, args)
-            
-            # Check if we should use JIT compilation
-            if self._is_hot_function(cache_key, args):
-                bytecode = self._compile_to_jit(callee, args, callee_name)
-                self._hot_function_cache[cache_key] = bytecode
-                return self._execute_bytecode(bytecode, args)
-            
             result = self._call_fn(callee, args)
             trace('call_end', callee_name, {
                 'callee': callee_name,
@@ -1176,3 +1165,9 @@ class ReturnSignal(Exception):
     def __init__(self, value=None):
         super().__init__()
         self.value = value
+
+class BreakSignal(Exception):
+    pass
+
+class ContinueSignal(Exception):
+    pass

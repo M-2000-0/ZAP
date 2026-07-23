@@ -87,6 +87,8 @@ class TokenType(Enum):
     KW_PERMISSION = auto()
     KW_CONCURRENT = auto()
     KW_CHANNEL = auto()
+    KW_BREAK = auto()
+    KW_CONTINUE = auto()
     KW_GUARANTEES = auto()
     KW_VERSION = auto()
     KW_CHECK = auto()
@@ -128,6 +130,8 @@ KEYWORDS = {
     'permission': TokenType.KW_PERMISSION,
     'concurrent': TokenType.KW_CONCURRENT,
     'channel': TokenType.KW_CHANNEL,
+    'break': TokenType.KW_BREAK,
+    'continue': TokenType.KW_CONTINUE,
     'guarantees': TokenType.KW_GUARANTEES,
     'version': TokenType.KW_VERSION,
     'check': TokenType.KW_CHECK,

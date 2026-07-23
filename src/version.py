@@ -28,6 +28,7 @@ GRAMMAR_0_2_KEYWORDS = frozenset({
     "service", "database", "api", "page", "schema", "model", "expose",
     "requires", "ensures", "invariant", "expect", "permission",
     "concurrent", "channel", "guarantees", "version", "check",
+    "break", "continue",
 })
 
 

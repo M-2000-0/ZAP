@@ -75,6 +75,16 @@ class RetStmt(Node):
         super().__init__(line, col)
         self.value = value
 
+class BreakStmt(Node):
+    __slots__ = ()
+    def __init__(self, line=0, col=0):
+        super().__init__(line, col)
+
+class ContinueStmt(Node):
+    __slots__ = ()
+    def __init__(self, line=0, col=0):
+        super().__init__(line, col)
+
 class FnDef(Node):
     __slots__ = ('name', 'params', 'return_type', 'body', 'is_async', 'decorators', 'contracts')
     def __init__(self, name, params, body, return_type=None, is_async=False, line=0, col=0,
