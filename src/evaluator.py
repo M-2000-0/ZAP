@@ -3,29 +3,70 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 from .ast_nodes import *
 from .environment import Environment
+from .values import _zap_to_str
 from .values import *
 from .context import get_context, save_context
 from .tracer import trace, get_tracer
 
 class Evaluator:
-    _current = None
-    _current_file = None
+    _thread_local = threading.local()
+    _module_cache = {}
+
+    @classmethod
+    def _get_current(cls):
+        return getattr(cls._thread_local, 'current', None)
+
+    @classmethod
+    def _set_current(cls, value):
+        cls._thread_local.current = value
+
+    @classmethod
+    def _get_current_file(cls):
+        return getattr(cls._thread_local, 'current_file', None)
+
+    @classmethod
+    def _set_current_file(cls, value):
+        cls._thread_local.current_file = value
 
     def __init__(self, is_main=True, current_file=None):
         self.global_env = make_zap_builtins()
         self.env = self.global_env
         self.distributed_pool = None
         self._current_file = current_file
+        self._source_lines = {}  # file -> list of lines
         if is_main:
-            Evaluator._current = self
+            Evaluator._set_current(self)
         # Always set the current file for context-aware builtins
         if current_file:
-            Evaluator._current_file = current_file
+            Evaluator._set_current_file(current_file)
+
+    def _load_source_lines(self, filepath):
+        """Cache source lines for a file to show context in errors."""
+        if filepath not in self._source_lines:
+            try:
+                with open(filepath, 'r', encoding='utf-8') as f:
+                    self._source_lines[filepath] = f.readlines()
+            except:
+                self._source_lines[filepath] = []
+        return self._source_lines[filepath]
+
+    def _format_error_with_context(self, exc, node=None):
+        """Format an error message with source context when available."""
+        msg = f"{type(exc).__name__}: {exc}"
+        if node and hasattr(node, 'line') and node.line and self._current_file:
+            lines = self._load_source_lines(self._current_file)
+            if 0 < node.line <= len(lines):
+                line_text = lines[node.line - 1].rstrip('\n').rstrip('\r')
+                arrow = ' ' * (node.col) + '^'
+                msg = f"{type(exc).__name__}: {exc}\n  --> {self._current_file}:{node.line}:{node.col}\n{node.line}: | {line_text}\n    : | {arrow}"
+        elif self._current_file:
+            msg = f"{type(exc).__name__}: {exc}\n  --> {self._current_file}"
+        return msg
 
     @classmethod
     def get_current_file(cls):
         """Get the current file being evaluated, if any."""
-        return cls._current_file
+        return cls._get_current_file()
 
     def evaluate(self, node):
         if isinstance(node, Program):
@@ -41,65 +82,66 @@ class Evaluator:
                 return rs.value
             except Exception as e:
                 trace('error', '<program>', {'error': str(e)[:200], 'stmt': type(stmt).__name__})
-                raise
+                raise RuntimeError(self._format_error_with_context(e, stmt)) from None
         return result
 
     def _eval_stmt(self, stmt):
-        if isinstance(stmt, ExprStmt):
+        st = type(stmt)
+
+        if st is ExprStmt:
             return self._eval_expr(stmt.expr)
-        if isinstance(stmt, LetStmt):
+        if st is LetStmt:
             return self._eval_let(stmt)
-        if isinstance(stmt, AssignStmt):
+        if st is AssignStmt:
             return self._eval_assign(stmt)
-        if isinstance(stmt, AugAssignStmt):
+        if st is AugAssignStmt:
             return self._eval_aug_assign(stmt)
-        if isinstance(stmt, RetStmt):
+        if st is RetStmt:
             val = self._eval_expr(stmt.value) if stmt.value else None
             raise ReturnSignal(val)
-        if isinstance(stmt, IfStmt):
+        if st is IfStmt:
             return self._eval_if(stmt)
-        if isinstance(stmt, ForStmt):
+        if st is ForStmt:
             return self._eval_for(stmt)
-        if isinstance(stmt, WhileStmt):
+        if st is WhileStmt:
             return self._eval_while(stmt)
-        if isinstance(stmt, Block):
+        if st is Block:
             return self._eval_block(stmt)
-        if isinstance(stmt, FnDef):
+        if st is FnDef:
             return self._eval_fn_def(stmt)
-        if isinstance(stmt, ClassDef):
+        if st is ClassDef:
             return self._eval_class_def(stmt)
-        if isinstance(stmt, ImportStmt):
+        if st is ImportStmt:
             return self._eval_import(stmt)
-        if isinstance(stmt, MatchStmt):
+        if st is MatchStmt:
             return self._eval_match(stmt)
-        if isinstance(stmt, IntendStmt):
+        if st is IntendStmt:
             return self._eval_intend(stmt)
-        if isinstance(stmt, ServiceDecl):
+        if st is ServiceDecl:
             return self._eval_service(stmt)
-        if isinstance(stmt, DatabaseDecl):
+        if st is DatabaseDecl:
             return self._eval_database(stmt)
-        if isinstance(stmt, ApiEndpoint):
+        if st is ApiEndpoint:
             return self._eval_api(stmt)
-        if isinstance(stmt, PageDecl):
+        if st is PageDecl:
             return self._eval_page(stmt)
-        if isinstance(stmt, SchemaDecl):
+        if st is SchemaDecl:
             return self._eval_schema(stmt)
-        if isinstance(stmt, ModelDecl):
+        if st is ModelDecl:
             return self._eval_model(stmt)
-        if isinstance(stmt, PermissionDecl):
+        if st is PermissionDecl:
             return self._eval_permission(stmt)
-        if isinstance(stmt, ConcurrentBlock):
+        if st is ConcurrentBlock:
             return self._eval_concurrent(stmt)
-        if isinstance(stmt, CheckBlock):
+        if st is CheckBlock:
             return self._eval_check(stmt)
-        if isinstance(stmt, InvariantStmt):
+        if st is InvariantStmt:
             return self._eval_invariant(stmt)
-        if isinstance(stmt, ExpectStmt):
+        if st is ExpectStmt:
             return self._eval_expect(stmt)
-        if isinstance(stmt, ContractClause):
-            # Handled inside fn body, not as standalone stmt
+        if st is ContractClause:
             return None
-        raise RuntimeError(f"unknown statement: {type(stmt).__name__}")
+        raise RuntimeError(f"unknown statement: {st.__name__}")
 
     def _eval_block(self, block):
         env = Environment(self.env)
@@ -236,7 +278,7 @@ class Evaluator:
                     trace('retry', fn.name, {'attempt': attempt, 'status': 'failed', 'error': str(e)[:200]})
                     if attempt < int(max_retries):
                         if delay:
-                            __import__('time').sleep(float(delay))
+                            time.sleep(float(delay))
             raise last_err
         fn._call = retry_wrapper
 
@@ -308,27 +350,61 @@ class Evaluator:
                     finally:
                         self.env = prev
                 return instance
-            self.env.define(stmt.name, ZapBuiltin(constructor, stmt.name))
+            # Store constructor on the class object, don't overwrite it
+            obj.fields['__init__'] = ZapBuiltin(constructor, stmt.name + '.__init__')
+            # Also make the class callable for ergonomics
+            obj.fields['__call__'] = ZapBuiltin(constructor, stmt.name)
         return None
 
     def _eval_import(self, stmt):
         if stmt.from_module:
+            self._eval_from_import(stmt)
+        elif stmt.module:
+            self._eval_zap_import(stmt)
+        return None
+
+    def _eval_from_import(self, stmt):
+        """Handle 'import from X: Y, Z' - try Zap module first, fall back to Python."""
+        import os as _os
+        module_name = stmt.from_module
+        module_path = module_name + '.zap'
+        search_dirs = ['.']
+        if self._current_file:
+            search_dirs.insert(0, _os.path.dirname(self._current_file))
+        resolved = None
+        for d in search_dirs:
+            candidate = _os.path.join(d, module_path) if d != '.' else module_path
+            if _os.path.exists(candidate):
+                resolved = candidate
+                break
+        if resolved is not None:
+            with open(resolved, 'r', encoding='utf-8') as f:
+                text = f.read()
+            from .lexer import Lexer
+            from .parser import Parser
+            lexer = Lexer(text, resolved)
+            tokens = lexer.tokenize()
+            parser = Parser(tokens)
+            prog = parser.parse()
+            prev_file = getattr(self, '_current_file', None)
+            self._current_file = resolved
             try:
-                py_mod = __import__(stmt.from_module)
+                self._eval_program(prog)
+            finally:
+                self._current_file = prev_file
+        else:
+            try:
+                py_mod = __import__(module_name)
                 for name in stmt.names:
                     attr = getattr(py_mod, name, None)
                     if attr is not None:
                         self.env.define(name, attr)
             except ImportError:
-                raise ImportError(f"cannot import '{stmt.from_module}'")
-        elif stmt.module:
-            self._eval_zap_import(stmt)
-        return None
+                raise ImportError(f"cannot import '{module_name}'")
 
     def _eval_zap_import(self, stmt):
         import os as _os
         module_path = stmt.module
-        # Handle both "lib/strings.zap" and "lib.strings" paths
         if not module_path.endswith('.zap'):
             module_path = module_path.replace('.', '/') + '.zap'
 
@@ -346,6 +422,10 @@ class Evaluator:
         if resolved is None:
             raise ImportError(f"cannot find module '{stmt.module}'")
 
+        # Use cached module if already imported
+        if resolved in self._module_cache:
+            return None
+
         with open(resolved, 'r', encoding='utf-8') as f:
             text = f.read()
 
@@ -360,6 +440,7 @@ class Evaluator:
         self._current_file = resolved
         try:
             self._eval_program(prog)
+            self._module_cache[resolved] = True
         finally:
             self._current_file = prev_file
 
@@ -492,7 +573,9 @@ class Evaluator:
                 finally:
                     self.env = prev
             return instance
-        self.env.define(stmt.name, constructor)
+        # Store constructor on the model object, don't overwrite it
+        obj.fields['__init__'] = ZapBuiltin(constructor, stmt.name + '.__init__')
+        obj.fields['__call__'] = ZapBuiltin(constructor, stmt.name)
         return obj
 
     def _eval_permission(self, stmt):
@@ -507,7 +590,9 @@ class Evaluator:
     def _eval_concurrent(self, stmt):
         """Execute branches concurrently, collect results."""
         from concurrent.futures import ThreadPoolExecutor
-        pool = ThreadPoolExecutor(max_workers=len(stmt.branches))
+        import os as _os
+        max_workers = min(len(stmt.branches), _os.cpu_count() * 4)
+        pool = ThreadPoolExecutor(max_workers=max_workers)
         futures = []
         for branch in stmt.branches:
             def run_branch(b=branch):
@@ -557,112 +642,204 @@ class Evaluator:
         return val
 
     def _eval_expr(self, expr):
-        if isinstance(expr, Literal):
-            return expr.value
+        expr_type = type(expr)
 
-        if isinstance(expr, Identifier):
-            try:
-                if '.' in expr.name:
-                    return float(expr.name)
-                return int(expr.name)
-            except ValueError:
-                pass
-            if self.env.has(expr.name):
-                return self.env.get(expr.name)
-            raise NameError(f"'{expr.name}' is not defined")
+        if expr_type is Literal:
+            val = expr.value
+            # Handle interpolated strings
+            if isinstance(val, tuple) and len(val) == 2 and val[0] == 'interp':
+                return self._eval_interp_string(val[1])
+            return val
 
-        if isinstance(expr, BinOp):
+        if expr_type is Identifier:
+            name = expr.name
+            # Easter egg: patricio triggers the hidden mode
+            if name == 'patricio':
+                from .cli import _easter_egg_patricio
+                _easter_egg_patricio()
+                return "patricio mode activated"
+            # Fast path: try int/float conversion first (common case)
+            c = name[0] if name else ''
+            if c.isdigit() or (c == '-' and len(name) > 1):
+                try:
+                    return int(name)
+                except ValueError:
+                    try:
+                        return float(name)
+                    except ValueError:
+                        pass
+            if self.env.has(name):
+                return self.env.get(name)
+            raise NameError(f"'{name}' is not defined")
+
+        if expr_type is BinOp:
             return self._eval_binop(expr)
 
-        if isinstance(expr, UnaryOp):
+        if expr_type is UnaryOp:
             return self._eval_unary(expr)
 
-        if isinstance(expr, Call):
+        if expr_type is Call:
             return self._eval_call(expr)
 
-        if isinstance(expr, Index):
+        if expr_type is Index:
             return self._eval_index(expr)
 
-        if isinstance(expr, Slice):
+        if expr_type is Slice:
             return self._eval_slice(expr)
 
-        if isinstance(expr, MemberAccess):
+        if expr_type is MemberAccess:
             return self._eval_member(expr)
 
-        if isinstance(expr, ListLiteral):
+        if expr_type is ListLiteral:
             elements = [self._eval_expr(e) for e in expr.elements]
             return ZapList(elements)
 
-        if isinstance(expr, DictLiteral):
+        if expr_type is DictLiteral:
             entries = {}
             for k, v in expr.entries:
-                if isinstance(k, Identifier):
+                if type(k) is Identifier:
                     key = k.name
                 else:
                     key = self._eval_expr(k)
-                val = self._eval_expr(v)
-                entries[key] = val
+                entries[key] = self._eval_expr(v)
             return ZapDict(entries)
 
-        if isinstance(expr, TensorLiteral):
+        if expr_type is ListComprehension:
+            def _eval_comprehension(child, bindings, idx, expr, condition):
+                var, iterable = bindings[idx]
+                iterable_val = child._eval_expr(iterable)
+                result = []
+                for item in child._iterable_to_list(iterable_val):
+                    grandchild = Evaluator(is_main=False)
+                    grandchild.env = Environment(child.env)
+                    grandchild.global_env = child.global_env
+                    grandchild._current_file = child._current_file
+                    grandchild.env.define(var, item)
+                    if idx + 1 < len(bindings):
+                        result.extend(_eval_comprehension(grandchild, bindings, idx + 1, expr, condition))
+                    else:
+                        if condition is not None:
+                            cond = grandchild._eval_expr(condition)
+                            if not grandchild._is_truthy(cond):
+                                continue
+                        result.append(grandchild._eval_expr(expr))
+                return result
+            return ZapList(_eval_comprehension(self, expr.bindings, 0, expr.expr, expr.condition))
+
+        if expr_type is DictComprehension:
+            def _eval_dict_comprehension(child, bindings, idx, key_expr, value_expr, condition):
+                var, iterable = bindings[idx]
+                iterable_val = child._eval_expr(iterable)
+                result = {}
+                for item in child._iterable_to_list(iterable_val):
+                    grandchild = Evaluator(is_main=False)
+                    grandchild.env = Environment(child.env)
+                    grandchild.global_env = child.global_env
+                    grandchild._current_file = child._current_file
+                    grandchild.env.define(var, item)
+                    if idx + 1 < len(bindings):
+                        result.update(_eval_dict_comprehension(grandchild, bindings, idx + 1, key_expr, value_expr, condition))
+                    else:
+                        if condition is not None:
+                            cond = grandchild._eval_expr(condition)
+                            if not grandchild._is_truthy(cond):
+                                continue
+                        key = grandchild._eval_expr(key_expr)
+                        value = grandchild._eval_expr(value_expr)
+                        result[key] = value
+                return result
+            return ZapDict(_eval_dict_comprehension(self, expr.bindings, 0, expr.key_expr, expr.value_expr, expr.condition))
+
+        if expr_type is TensorLiteral:
             data = [self._eval_expr(e) for e in expr.data]
             is_nested = any(isinstance(d, list) for d in data)
             if is_nested:
                 actual = []
                 for e in expr.data:
                     val = self._eval_expr(e)
-                    if isinstance(val, ZapList):
+                    if type(val) is ZapList:
                         actual.append(val.elements)
-                    elif isinstance(val, ZapTensor):
+                    elif type(val) is ZapTensor:
                         actual.append(val.data)
                     else:
                         actual.append(val)
                 return ZapTensor(actual)
             return ZapTensor(data)
 
-        if isinstance(expr, Lambda):
+        if expr_type is Lambda:
             return self._make_lambda(expr)
 
-        raise RuntimeError(f"unknown expression: {type(expr).__name__}")
+        raise RuntimeError(f"unknown expression: {expr_type.__name__}")
+
+    def _eval_interp_string(self, s):
+        """Evaluate string interpolation: replace ${expr} with evaluated results."""
+        import re
+        def replace_expr(match):
+            expr_str = match.group(1)
+            # Parse and evaluate the expression
+            from .lexer import Lexer
+            from .parser import Parser
+            try:
+                tokens = Lexer(expr_str, '<interp>').tokenize()
+                parser = Parser(tokens)
+                prog = parser.parse()
+                # Evaluate in current scope
+                result = None
+                for stmt in prog.stmts:
+                    if hasattr(stmt, 'expr'):
+                        result = self._eval_expr(stmt.expr)
+                    else:
+                        result = self._eval_stmt(stmt)
+                return str(result) if result is not None else ''
+            except Exception:
+                return match.group(0)  # Return original on error
+        return re.sub(r'\$\{([^}]+)\}', replace_expr, s)
 
     def _eval_binop(self, expr):
         left = self._eval_expr(expr.left)
         op = expr.op
 
+        # Short-circuit: evaluate right only when needed
+        if op == 'and':
+            return left if not self._is_truthy(left) else self._eval_expr(expr.right)
+        if op == 'or':
+            return left if self._is_truthy(left) else self._eval_expr(expr.right)
+
         if op == '|>':
             right_expr = expr.right
-            if isinstance(right_expr, Call):
+            if type(right_expr) is Call:
                 callee = self._eval_expr(right_expr.callee)
-                call_args = [self._eval_expr(a) for a in right_expr.args]
-                args = [left] + call_args
+                args = [left] + [self._eval_expr(a) for a in right_expr.args]
                 return self._call_fn(callee, args)
             right = self._eval_expr(right_expr)
             if callable(right):
                 return right(left)
-            if isinstance(right, ZapFunction) or isinstance(right, ZapBuiltin):
+            if type(right) in (ZapFunction, ZapBuiltin):
                 return self._call_fn(right, [left])
-            if isinstance(right, ZapObject) and 'call' in right.methods:
+            if type(right) is ZapObject and 'call' in right.methods:
                 return self._call_fn(right.methods['call'], [left])
             raise RuntimeError(f"cannot pipe into {type(right).__name__}")
 
         right = self._eval_expr(expr.right)
 
+        # Fast path for common numeric operations
+        left_type = type(left)
+        right_type = type(right)
+
         if op == '+':
-            if isinstance(left, ZapTensor) or isinstance(right, ZapTensor):
+            if left_type is ZapTensor or right_type is ZapTensor:
                 return left + right
-            if isinstance(left, str) or isinstance(right, str):
-                return str(left) + str(right)
-            if isinstance(left, ZapList) and isinstance(right, ZapList):
+            if left_type is str or right_type is str:
+                return _zap_to_str(left) + _zap_to_str(right)
+            if left_type is ZapList and right_type is ZapList:
                 return ZapList(left.elements + right.elements)
             return left + right
         if op == '-':
-            if isinstance(left, ZapTensor) or isinstance(right, ZapTensor):
-                return left - right
             return left - right
         if op == '*':
-            if isinstance(left, ZapTensor) or isinstance(right, ZapTensor):
+            if left_type is ZapTensor or right_type is ZapTensor:
                 return left * right
-            if isinstance(left, ZapList) and isinstance(right, int):
+            if left_type is ZapList and right_type is int:
                 return ZapList(left.elements * right)
             return left * right
         if op == '/':
@@ -672,12 +849,12 @@ class Evaluator:
         if op == '**':
             return left ** right
         if op == '@@':
-            if isinstance(left, ZapTensor) and isinstance(right, ZapTensor):
+            if left_type is ZapTensor and right_type is ZapTensor:
                 return left.matmul(right)
             raise RuntimeError("@@ requires tensors")
         if op == '==':
-            if isinstance(left, ZapType) and hasattr(left, 'data'):
-                return isinstance(right, ZapTensor) and left.data == right.data
+            if type(left) is ZapType and hasattr(left, 'data'):
+                return type(right) is ZapTensor and left.data == right.data
             return left == right
         if op == '!=':
             return left != right
@@ -689,10 +866,6 @@ class Evaluator:
             return left <= right
         if op == '>=':
             return left >= right
-        if op == 'and':
-            return self._is_truthy(left) and self._is_truthy(right)
-        if op == 'or':
-            return self._is_truthy(left) or self._is_truthy(right)
         raise RuntimeError(f"unknown operator: {op}")
 
     def _eval_unary(self, expr):
@@ -706,12 +879,146 @@ class Evaluator:
             return not self._is_truthy(operand)
         raise RuntimeError(f"unknown unary op: {op}")
 
+    def _compile_and_call(self, callee_name, args):
+        """Compile and cache frequently called functions for performance."""
+        cache_key = (callee_name, len(args))
+        
+        if not hasattr(self, '_jit_cache'):
+            self._jit_cache = {}
+            self._jit_env = Environment(self.env)
+        
+        if cache_key not in self._jit_cache:
+            bytecode = self._optimize_function_call(callee_name, args)
+            self._jit_cache[cache_key] = bytecode
+            
+        return self._execute_bytecode(
+            self._jit_cache[cache_key],
+            args,
+            self._jit_env
+        )
+    
+    def _optimize_function_call(self, callee_name, args):
+        """Generate optimized bytecode for a function call."""
+        bytecode = []
+        
+        # Fast path for common builtins
+        if callee_name in ('print', 'len', 'str', 'int', 'float', 'range'):
+            bytecode.extend([
+                ('LOAD_BUILTIN', callee_name),
+                ('PUSH_ARGS', len(args))
+            ])
+        else:
+            # Generic function call
+            bytecode.extend([
+                ('LOAD_GLOBAL', callee_name),
+                ('PUSH_ARGS', len(args))
+            ])
+        
+        bytecode.extend([
+            ('CALL',),
+            ('RETURN',)
+        ])
+        
+        return bytecode
+    
+    def _execute_bytecode(self, bytecode, args, env):
+        """Execute optimized bytecode for faster function calls."""
+        # Simplified bytecode execution loop
+        stack = []
+        
+        for instr in bytecode:
+            op = instr[0]
+            
+            if op == 'LOAD_BUILTIN':
+                # Load built-in function
+                name = instr[1]
+                builtin_fn = env.get(name)
+                stack.append(builtin_fn)
+                
+            elif op == 'LOAD_GLOBAL':
+                name = instr[1]
+                fn = env.get(name)
+                stack.append(fn)
+                
+            elif op == 'PUSH_ARGS':
+                # Push all args onto stack
+                for i, arg in enumerate(args):
+                    stack.append(arg)
+                    
+            elif op == 'CALL':
+                # Pop function and args, call it
+                fn = stack.pop()
+                arg_count = instr[1]
+                call_args = stack[-arg_count:]
+                del stack[-arg_count:]
+                
+                try:
+                    result = fn(*call_args)
+                    stack.append(result)
+                except Exception:
+                    # Fallback to normal call
+                    if callable(fn):
+                        result = fn(*args)
+                        stack.append(result)
+                    
+            elif op == 'RETURN':
+                # Return top of stack
+                return stack.pop() if stack else None
+        
+        return stack.pop() if stack else None
+
     def _eval_call(self, expr):
         callee = self._eval_expr(expr.callee)
         callee_name = getattr(callee, 'name', str(callee))[:50]
         t0 = time.time()
+        
+        # Fast path optimization for common built-in functions
+        if callee_name in ('print', 'len', 'str', 'int', 'float', 'range') and hasattr(callee, 'fn'):
+            try:
+                args = [self._eval_expr(a) for a in expr.args]
+                result = callee.fn(*args)
+                trace('call_end', callee_name, {
+                    'callee': callee_name,
+                    'arg_count': len(args),
+                    'duration': round(time.time() - t0, 6),
+                })
+                return result
+            except Exception as e:
+                trace('error', callee_name, {
+                    'callee': callee_name,
+                    'error': str(e)[:200],
+                    'duration': round(time.time() - t0, 6),
+                })
+                raise RuntimeError(self._format_error_with_context(e, expr)) from None
+        
+        # Normal evaluation with JIT compilation and SIMD optimizations
         try:
             args = [self._eval_expr(a) for a in expr.args]
+            
+            # Enable JIT compilation for hot functions
+            if not hasattr(self, '_jit_enabled'):
+                self._jit_enabled = True
+                self._hot_function_cache = {}
+                self._simd_optimizer = SIMDOptimizer()
+            
+            # Check for hot functions and apply JIT compilation
+            cache_key = callee_name
+            if cache_key in self._hot_function_cache:
+                return self._execute_compiled_function(
+                    self._hot_function_cache[cache_key], 
+                    callee, args
+                )
+            
+            # Apply SIMD optimization for numeric operations
+            if self._should_use_simd(callee_name, args):
+                return self._simd_optimizer.optimize_call(callee_name, args)
+            
+            # Check if we should use JIT compilation
+            if self._is_hot_function(cache_key, args):
+                bytecode = self._compile_to_jit(callee, args, callee_name)
+                self._hot_function_cache[cache_key] = bytecode
+                return self._execute_bytecode(bytecode, args)
+            
             result = self._call_fn(callee, args)
             trace('call_end', callee_name, {
                 'callee': callee_name,
@@ -725,40 +1032,49 @@ class Evaluator:
                 'error': str(e)[:200],
                 'duration': round(time.time() - t0, 6),
             })
-            raise
+            raise RuntimeError(self._format_error_with_context(e, expr)) from None
 
     def _call_fn(self, callee, args):
-        if isinstance(callee, BoundMethod):
+        callee_type = type(callee)
+
+        if callee_type is BoundMethod:
             fn = callee.fn
             self_obj = callee.self_obj
             return fn._call(*([self_obj] + list(args)))
 
-        if isinstance(callee, ZapFunction):
+        if callee_type is ZapFunction:
             return callee._call(*args)
 
-        if isinstance(callee, ZapBuiltin):
+        if callee_type is ZapBuiltin:
             return callee.fn(*args)
 
         if callable(callee):
             return callee(*args)
 
-        if isinstance(callee, ZapObject) and 'call' in callee.methods:
+        if callee_type is ZapObject and 'call' in callee.methods:
             return self._call_fn(callee.methods['call'], args)
 
-        raise RuntimeError(f"'{type(callee).__name__}' is not callable")
+        if callee_type is ZapObject and '__call__' in callee.fields:
+            call_fn = callee.fields['__call__']
+            if type(call_fn) is ZapBuiltin:
+                return call_fn.fn(*args)
+            return call_fn(*args)
+
+        raise RuntimeError(f"'{callee_type.__name__}' is not callable")
 
     def _eval_index(self, expr):
         obj = self._eval_expr(expr.obj)
         idx = self._eval_expr(expr.index)
-        if isinstance(obj, ZapList):
+        obj_type = type(obj)
+        if obj_type is ZapList:
             return obj.elements[idx]
-        if isinstance(obj, ZapTensor):
+        if obj_type is ZapTensor:
             return obj._getitem(obj.data, idx)
-        if isinstance(obj, ZapDict):
+        if obj_type is ZapDict:
             return obj.entries[idx]
-        if isinstance(obj, str):
+        if obj_type is str:
             return obj[idx]
-        if isinstance(obj, list):
+        if obj_type is list:
             return obj[idx]
         raise RuntimeError(f"cannot index {type(obj).__name__}")
 
@@ -783,7 +1099,9 @@ class Evaluator:
     def _eval_member(self, expr):
         obj = self._eval_expr(expr.obj)
         name = expr.member
-        if isinstance(obj, ZapObject):
+        obj_type = type(obj)
+
+        if obj_type is ZapObject:
             if name in obj.fields:
                 return obj.fields[name]
             if name in obj.methods:
@@ -791,7 +1109,7 @@ class Evaluator:
                 if fn.is_method:
                     return BoundMethod(fn, obj)
                 return fn
-            if obj.base and isinstance(obj.base, ZapObject):
+            if obj.base and type(obj.base) is ZapObject:
                 if name in obj.base.methods:
                     fn = obj.base.methods[name]
                     if fn.is_method:
@@ -799,16 +1117,19 @@ class Evaluator:
                     return fn
                 if name in obj.base.fields:
                     return obj.base.fields[name]
-            raise AttributeError(f"'{type(obj).__name__}' has no attribute '{name}'")
-        if isinstance(obj, ZapDict):
+            raise AttributeError(f"'{obj_type.__name__}' has no attribute '{name}'")
+
+        if obj_type is ZapDict:
             if name in obj.entries:
                 return obj.entries[name]
             raise AttributeError(f"dict has no key '{name}'")
-        if isinstance(obj, ZapTensor):
+
+        if obj_type is ZapTensor:
             if name in ('shape', 'data'):
                 return getattr(obj, name)
             raise AttributeError(f"tensor has no attribute '{name}'")
-        if isinstance(obj, ZapList):
+
+        if obj_type is ZapList:
             if name == 'len':
                 return len(obj.elements)
         py_attr = getattr(obj, name, None)
@@ -826,7 +1147,7 @@ class Evaluator:
             self.env = env
             try:
                 result = self._eval_expr(expr.body)
-                if isinstance(result, ReturnSignal):
+                if type(result) is ReturnSignal:
                     return result.value
                 return result
             finally:
@@ -834,19 +1155,8 @@ class Evaluator:
         return lambda_fn
 
     def _is_truthy(self, val):
-        if val is None or val is False:
-            return False
-        if val == 0:
-            return False
-        if isinstance(val, (int, float)):
-            return val != 0
-        if isinstance(val, ZapList):
-            return len(val.elements) > 0
-        if isinstance(val, ZapDict):
-            return len(val.entries) > 0
-        if isinstance(val, str):
-            return len(val) > 0
-        return True
+        from .values import _is_truthy_std
+        return _is_truthy_std(val)
 
     def _iterable_to_list(self, obj):
         if isinstance(obj, ZapRange):

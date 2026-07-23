@@ -57,11 +57,15 @@ class Lexer:
         start = self.pos
         self.pos += 1  # skip opening quote
         s = ''
+        has_interp = False
         while self.pos < len(self.source):
             ch = self.source[self.pos]
             self.pos += 1
             self.col += 1
             if ch == quote:
+                if has_interp:
+                    # Return as interpolated string ( evaluator handles it)
+                    return Token(TokenType.STRING, ('interp', s), self.line, start)
                 return Token(TokenType.STRING, s, self.line, start)
             if ch == '\\':
                 esc = self.source[self.pos]
@@ -70,6 +74,31 @@ class Lexer:
                 esc_map = {'n': '\n', 't': '\t', 'r': '\r', '0': '\0',
                           "'": "'", '"': '"', '\\': '\\'}
                 s += esc_map.get(esc, esc)
+            elif ch == '$' and self.peek() == '{':
+                # String interpolation: ${expr}
+                has_interp = True
+                self.pos += 1  # skip {
+                self.col += 1
+                expr = ''
+                depth = 1
+                while self.pos < len(self.source) and depth > 0:
+                    c = self.source[self.pos]
+                    if c == '{':
+                        depth += 1
+                    elif c == '}':
+                        depth -= 1
+                    if depth > 0:
+                        expr += c
+                    self.pos += 1
+                    self.col += 1
+                s += '${' + expr + '}'
+            elif ch == '$' and self.peek().isalpha():
+                # Simple $var interpolation
+                has_interp = True
+                var = ''
+                while self.peek().isalnum() or self.peek() == '_':
+                    var += self.advance()
+                s += '${' + var + '}'
             else:
                 s += ch
         self.error("unterminated string")
@@ -81,11 +110,6 @@ class Lexer:
         word = self.source[start:self.pos]
         tok_type = KEYWORDS.get(word, TokenType.IDENTIFIER)
         return Token(tok_type, word, self.line, start)
-
-    def handle_newline(self):
-        self.line += 1
-        self.col = 1
-        return Token(TokenType.NEWLINE, '\n', self.line - 1, 0)
 
     def handle_indent(self, start_col):
         if start_col > self.indent_stack[-1]:

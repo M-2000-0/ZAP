@@ -23,6 +23,8 @@ import os
 import sys
 import traceback
 
+from .version import VERSION, GRAMMAR_VERSION
+
 # Force UTF-8 stdout/stderr on Windows so ANSI color codes work in pipes.
 try:
     sys.stdout.reconfigure(encoding="utf-8")
@@ -248,6 +250,97 @@ def build_file(filepath: str, *, diag_format: str = "text"):
 
 
 # ---------------------------------------------------------------------------
+# Easter Egg
+# ---------------------------------------------------------------------------
+
+def _easter_egg_patricio():
+    import time, sys, random
+    colors = ['\033[91m', '\033[93m', '\033[92m', '\033[96m', '\033[95m', '\033[94m']
+    reset = '\033[0m'
+    bold = '\033[1m'
+    dim = '\033[2m'
+
+    # Patrick Star ASCII art
+    patrick = [
+        "           ,---.           ,---.",
+        "        ,--.' |         ,--.' |",
+        "        |  |  :         |  |  :",
+        "        :  :  :         :  :  :",
+        "        |  |  |,--.     |  |  |,---.  ,--.",
+        "        |  |  /`--,'    |  |  /`--,' /`--.'",
+        "        |  |  |`---'    |  |  |`---' |`---'",
+        "        :  |  |         :  |  |      |\\",
+        "        |  :  ;         |  :  ;      | `---.",
+        "        |  |,'          |  |,'       |     :|",
+        "        `--'            `--'         `--.' /",
+        "                                     ,--.'",
+        "                                    |  |",
+        "                                    :  ;",
+        "                                    |  |",
+        "                                    :  ;",
+        "                                    |  |",
+        "                                    `--'",
+    ]
+
+    messages = [
+        "PATRICIO IS THE GOAT!",
+        "ZAP x PATRICIO = LEGENDARY",
+        "El mejor programador del mundo!",
+        "Patricio > Todos los demas",
+        "ZAP was built for Patricio",
+        "Patricio invented WiFi (probably)",
+    ]
+
+    # Phase 1: Glitch effect
+    print()
+    for _ in range(8):
+        sys.stdout.write('\r')
+        glitch = ''.join(random.choice('ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%&*0123456789') for _ in range(50))
+        color = random.choice(colors)
+        sys.stdout.write(f"{color}{glitch}{reset}")
+        sys.stdout.flush()
+        time.sleep(0.05)
+
+    # Phase 2: Patrick appears
+    print('\r')
+    for line in patrick:
+        color = random.choice(colors)
+        print(f"{color}{line}{reset}")
+        time.sleep(0.05)
+
+    # Phase 3: Rainbow message
+    print()
+    msg = random.choice(messages)
+    rainbow = ['\033[91m', '\033[93m', '\033[92m', '\033[96m', '\033[95m', '\033[94m']
+    for i, ch in enumerate(msg):
+        color = rainbow[i % len(rainbow)]
+        sys.stdout.write(f"{color}{bold}{ch}{reset}")
+        sys.stdout.flush()
+        time.sleep(0.03)
+    print()
+    print()
+
+    # Phase 4: Stars
+    for _ in range(20):
+        x = random.randint(0, 60)
+        y = random.randint(0, 5)
+        color = random.choice(colors)
+        stars = ['*', '+', '.', 'o', 'O', '@', '#']
+        sys.stdout.write(f"\033[{y};{x}H{color}{random.choice(stars)}{reset}")
+    sys.stdout.flush()
+    time.sleep(0.5)
+
+    # Phase 5: Final message
+    print(f"\033[1;93m{'='*50}{reset}")
+    print(f"\033[1;95m  PATRICIO MODE ACTIVATED{reset}")
+    print(f"\033[1;93m  You are now a Zap VIP.{reset}")
+    print(f"\033[1;93m{'='*50}{reset}")
+    print()
+    print(f"{dim}  (hint: you can also run 'zap patricio'){reset}")
+    print()
+
+
+# ---------------------------------------------------------------------------
 # REPL
 # ---------------------------------------------------------------------------
 
@@ -286,6 +379,11 @@ def repl():
 
         if line.strip() == "exit":
             break
+
+        if line.strip() == "patricio":
+            _easter_egg_patricio()
+            buffer = ""
+            continue
 
         buffer = (buffer + "\n" + line) if buffer else line
 
@@ -482,7 +580,7 @@ main()
         "name": name,
         "version": "0.1.0",
         "entrypoint": "main.zap",
-        "grammar": "2026.07",
+        "grammar": GRAMMAR_VERSION,
         "dependencies": {}
     }
     import json as _json
@@ -524,6 +622,7 @@ Usage:
   zap init [name]             scaffold a new Zap project
   zap install                 install dependencies from zap.json
   zap add <spec>              add and install a dependency
+  zap ai                      Zap AI — build, train, deploy AI models
   zap help                    this message
 
 Common flags:
@@ -538,8 +637,177 @@ Examples:
   zap run .                   # run current folder (finds main.zap, index.zap, etc.)
   zap run ./my-app            # run folder ./my-app
   zap init my-api             # create new project in ./my-api
+  zap ai init my-model        # create new AI project
+  zap ai scan                 # scan WiFi networks
   zap check main.zap --format=json  # machine-readable diagnostics for AI
 """
+
+AI_HELP_TEXT = """Zap AI — Build AI models for free, fast, cheap
+
+Usage:
+  zap ai init [name]          scaffold a new AI project
+  zap ai train [file.zap]     run training script
+  zap ai wifi <ssid> [pass]   connect to WiFi
+  zap ai scan                 scan for WiFi networks
+  zap ai status               show WiFi status
+  zap ai fetch <url>          fetch data from URL
+  zap ai help                 this message
+
+Examples:
+  zap ai init my-model        # create project with model scaffold
+  zap ai scan                 # list available WiFi networks
+  zap ai wifi MyNetwork pass  # connect to WiFi
+  zap ai fetch https://...    # fetch data from URL
+  zap ai train main.zap       # run training
+"""
+
+
+# ---------------------------------------------------------------------------
+# Zap AI commands
+# ---------------------------------------------------------------------------
+
+def ai_command(args, diag_format="text"):
+    """Handle 'zap ai' subcommands: init, train, evaluate, wifi, scan."""
+    if not args:
+        print(AI_HELP_TEXT, file=sys.stderr)
+        sys.exit(1)
+
+    sub = args[0]
+    sub_args = args[1:]
+
+    if sub == "init":
+        _ai_init(sub_args)
+    elif sub == "train":
+        _ai_train(sub_args, diag_format)
+    elif sub == "wifi":
+        _ai_wifi(sub_args)
+    elif sub == "scan":
+        _ai_scan()
+    elif sub == "status":
+        _ai_wifi_status()
+    elif sub == "fetch":
+        _ai_fetch(sub_args)
+    elif sub in ("help", "--help", "-h"):
+        print(AI_HELP_TEXT)
+    else:
+        print(f"unknown ai subcommand: {sub}\n\n{AI_HELP_TEXT}", file=sys.stderr)
+        sys.exit(1)
+
+
+def _ai_init(args):
+    """Create a new Zap AI project scaffold."""
+    name = args[0] if args else "my-ai-model"
+    os.makedirs(name, exist_ok=True)
+
+    # main.zap — AI training script
+    main_zap = f'''# {name} — Zap AI Project
+import "lib/zap_ai.zap"
+
+# Load your dataset
+# let data = load_csv("data/dataset.csv")
+# let x = ...  # features
+# let y = ...  # labels
+
+# Build a model
+let m = classifier(784, 10, h1=128, h2=64)
+
+# Train
+# let trained = train(m, x, y, epochs=100)
+
+# Evaluate
+# let result = evaluate(trained, x_test, y_test)
+
+# Save
+# save(trained, "model.json")
+
+print("Zap AI project ready!")
+'''
+
+    with open(os.path.join(name, "main.zap"), "w") as f:
+        f.write(main_zap)
+
+    # data/ directory
+    os.makedirs(os.path.join(name, "data"), exist_ok=True)
+
+    # Create sample dataset
+    sample_csv = "x1,x2,label\n1.0,2.0,0\n3.0,4.0,1\n5.0,6.0,1\n0.0,1.0,0\n"
+    with open(os.path.join(name, "data", "sample.csv"), "w") as f:
+        f.write(sample_csv)
+
+    # zap.json
+    import json
+    zap_json = {"name": name, "version": "1.0.0", "type": "ai"}
+    with open(os.path.join(name, "zap.json"), "w") as f:
+        json.dump(zap_json, f, indent=2)
+
+    print(f"  Zap AI project '{name}' created!")
+    print(f"  cd {name} && zap run main.zap")
+
+
+def _ai_train(args, diag_format):
+    """Run a training script."""
+    if not args:
+        # Default to main.zap
+        target = "main.zap"
+    else:
+        target = args[0]
+    run_path(target, diag_format=diag_format)
+
+
+def _ai_wifi(args):
+    """Connect to WiFi."""
+    from .values import _stdlib_wifi_connect
+    if not args:
+        print("usage: zap ai wifi <ssid> [password]", file=sys.stderr)
+        sys.exit(1)
+    ssid = args[0]
+    password = args[1] if len(args) > 1 else None
+    ok = _stdlib_wifi_connect(ssid, password)
+    if ok:
+        print(f"Connected to {ssid}")
+    else:
+        print(f"Failed to connect to {ssid}", file=sys.stderr)
+        sys.exit(1)
+
+
+def _ai_scan():
+    """Scan for WiFi networks."""
+    from .values import _stdlib_wifi_scan
+    networks = _stdlib_wifi_scan()
+    if hasattr(networks, 'elements'):
+        for net in networks.elements:
+            if hasattr(net, 'entries'):
+                ssid = net.entries.get('ssid', '?')
+                signal = net.entries.get('signal', '?')
+                security = net.entries.get('security', '?')
+                print(f"  {ssid:30s} {signal:6s} {security}")
+            else:
+                print(f"  {net}")
+    else:
+        print("No networks found")
+
+
+def _ai_wifi_status():
+    """Show WiFi status."""
+    from .values import _stdlib_wifi_status
+    status = _stdlib_wifi_status()
+    if hasattr(status, 'entries'):
+        for k, v in status.entries.items():
+            print(f"  {k}: {v}")
+    else:
+        print("  Unknown status")
+
+
+def _ai_fetch(args):
+    """Fetch data from URL."""
+    from .values import _stdlib_web_fetch
+    if not args:
+        print("usage: zap ai fetch <url>", file=sys.stderr)
+        sys.exit(1)
+    url = args[0]
+    data = _stdlib_web_fetch(url, as_json=True)
+    from .values import _stdlib_json_stringify
+    print(_stdlib_json_stringify(data, indent=2))
 
 
 # ---------------------------------------------------------------------------
@@ -629,6 +897,10 @@ def main(argv=None):
     elif cmd == "add":
         from .pkg import add
         add(args, diag_format=diag_format)
+    elif cmd == "ai":
+        ai_command(args, diag_format=diag_format)
+    elif cmd == "patricio":
+        _easter_egg_patricio()
     elif cmd in ("help", "--help", "-h"):
         print(HELP_TEXT)
     else:

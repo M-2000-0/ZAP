@@ -27,7 +27,6 @@ import os
 import sys
 import json
 import time
-import traceback
 from dataclasses import dataclass, field
 
 from .ast_nodes import (
@@ -230,6 +229,24 @@ def _evaluate_with_capture(source: str, filepath: str):
                 self._record_expect(stmt, False, error=f"{type(e).__name__}: {e}")
                 return None
 
+        def _record_check(self, assertion, passed: bool, error: str | None = None, prefix: str = ""):
+            if isinstance(assertion, ExpectStmt):
+                name = _condition_repr(assertion.condition)
+                if assertion.message:
+                    name += f'  // "{assertion.message}"'
+            else:
+                name = f"check expression@L{assertion.line}:{getattr(assertion, 'col', '?')}"
+            if prefix:
+                name = f"{prefix}{name}"
+            self.tests.append(TestResult(
+                name=name,
+                file=filepath,
+                line=assertion.line,
+                passed=passed,
+                message=assertion.message if isinstance(assertion, ExpectStmt) else "",
+                error=error,
+            ))
+
         def _eval_check(self, stmt: CheckBlock):
             results = []
             for idx, assertion in enumerate(stmt.assertions):
@@ -237,31 +254,26 @@ def _evaluate_with_capture(source: str, filepath: str):
                 if isinstance(assertion, ExpectStmt):
                     try:
                         val = super()._eval_expect(assertion)
-                        self._record_expect(assertion, True, prefix=prefix)
+                        self._record_check(assertion, True, prefix=prefix)
                         results.append(val)
                     except Exception as e:
-                        self._record_expect(assertion, False, error=f"{type(e).__name__}: {e}", prefix=prefix)
+                        self._record_check(assertion, False, error=f"{type(e).__name__}: {e}", prefix=prefix)
                         results.append(None)
                 else:
                     try:
                         val = self._eval_expr(assertion)
-                        if not self._is_truthy(val):
-                            self.tests.append(TestResult(
-                                name=f"check[{idx}]: expression@L{assertion.line}",
-                                file=filepath,
-                                line=assertion.line,
-                                passed=False,
-                                error="check expression evaluated to false",
-                            ))
+                        passed = self._is_truthy(val)
+                        if passed:
+                            self._record_check(assertion, True, prefix=prefix)
+                        else:
+                            self._record_check(assertion, False,
+                                               error="check expression evaluated to false",
+                                               prefix=prefix)
                         results.append(val)
                     except Exception as e:
-                        self.tests.append(TestResult(
-                            name=f"check[{idx}]: expression@L{assertion.line}",
-                            file=filepath,
-                            line=assertion.line,
-                            passed=False,
-                            error=f"{type(e).__name__}: {e}",
-                        ))
+                        self._record_check(assertion, False,
+                                           error=f"{type(e).__name__}: {e}",
+                                           prefix=prefix)
                         results.append(None)
             return results
 

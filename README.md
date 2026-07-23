@@ -265,6 +265,29 @@ zap repl
 >>> ret data
 ```
 
+### Zap AI — Build AI Models for Free
+
+```bash
+zap ai init my-model     # scaffold AI project
+zap ai scan              # scan WiFi networks
+zap ai wifi MySSID pass  # connect to WiFi
+zap ai train main.zap    # train a model
+```
+
+```zap
+import "lib/zap_ai.zap"
+
+# Load data
+let data = csv_load("dataset.csv")
+let x = normalize(data features, "minmax")
+let y = data labels
+
+# Build model in 3 lines
+let m = classifier(784, 10, 128, 64)
+let trained = train(m, x, y, 100, 32, true)
+save(trained, "model.json")
+```
+
 ## Tour
 
 ### Variables & types
@@ -583,12 +606,16 @@ the Zap stdlib grows to replace the need for external dependencies.
 Zap is in active alpha. Everything here works today:
 - Parser with error recovery
 - Type checker with full type inference
-- Evaluator with all builtins
+- Evaluator with all builtins (248+)
 - Module system
 - CLI with REPL
 - LSP with diagnostics
 - HTML/CSS frontend DSL
 - JSON, HTTP, crypto, file I/O, collections
+- **Zap AI** — neural networks, training, WiFi, data loading
+- **Auth** — JWT, password hashing, basic auth, sessions
+- **Background Jobs** — queues, cron, workers
+- **AI Primitives** — prompt templates, LLM integration, RAG
 
 ## Roadmap
 
@@ -596,12 +623,19 @@ Zap is in active alpha. Everything here works today:
 - [x] Rich stdlib
 - [x] Frontend DSL
 - [x] Module system
-- [ ] `zap test` — test runner
+- [x] `zap test` — test runner
+- [x] HTTP server builtin
+- [x] Zap AI — neural networks + training
+- [x] WiFi connectivity
+- [x] Auth primitives (JWT, sessions)
+- [x] Background jobs (cron, queues)
+- [x] AI primitives (prompts, LLM, RAG)
 - [ ] `zap doc` — documentation generator
-- [ ] HTTP server builtin
+- [ ] Package registry (`zap publish`)
+- [ ] Frontend/WASM compile target
 - [ ] Self-hosting evaluator
 - [ ] Native compilation via LLVM
 
 ---
 
-**Zap** — one language from database to DOM.
+**Zap** — one language from database to DOM. **Zap AI** — build AI models for free, fast, cheap.

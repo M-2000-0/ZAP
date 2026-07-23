@@ -217,6 +217,25 @@ class Lambda(Node):
         self.params = params
         self.body = body
 
+class ListComprehension(Node):
+    """[expr for item in iterable] or [expr for item in iterable if condition]"""
+    __slots__ = ('expr', 'bindings', 'condition')
+    def __init__(self, expr, bindings, condition=None, line=0, col=0):
+        super().__init__(line, col)
+        self.expr = expr
+        self.bindings = bindings  # list of (var, iterable) tuples
+        self.condition = condition
+
+class DictComprehension(Node):
+    """{key: value for item in iterable}"""
+    __slots__ = ('key_expr', 'value_expr', 'bindings', 'condition')
+    def __init__(self, key_expr, value_expr, bindings, condition=None, line=0, col=0):
+        super().__init__(line, col)
+        self.key_expr = key_expr
+        self.value_expr = value_expr
+        self.bindings = bindings
+        self.condition = condition
+
 # ---- Native constructs ----
 
 class ServiceDecl(Node):

@@ -96,6 +96,7 @@ KEYWORDS = {
     'let': TokenType.KW_LET,
     'if': TokenType.KW_IF,
     'el': TokenType.KW_EL,
+    'else': TokenType.KW_EL,
     'for': TokenType.KW_FOR,
     'in': TokenType.KW_IN,
     'while': TokenType.KW_WHILE,

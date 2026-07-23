@@ -1,6 +1,6 @@
 # ═══════════════════════════════════════════════════════════════════
-# ZAP PHYSICS & CHEMISTRY ENGINE
-# The first physics+chemistry simulation built entirely in Zap
+# ZapPhysics
+# Physics & Chemistry simulation engine built in Zap
 # ═══════════════════════════════════════════════════════════════════
 
 # ── VECTOR2D ──────────────────────────────────────────────────────
@@ -485,9 +485,9 @@ fn demo_springs()
   let world = World()
   world.has_gravity = false
 
-  let anchor = Particle("Anchor", 100, Vec2(0, 0), Vec2(0, 0))
-  let mass1 = Particle("Mass-1", 1, Vec2(3, 0), Vec2(0, 0))
-  let mass2 = Particle("Mass-2", 1, Vec2(6, 0), Vec2(0, 0))
+  let anchor = Particle("Anchor", 10000, Vec2(0, 0), Vec2(0, 0))
+  let mass1 = Particle("Mass-1", 1, Vec2(3, 0), Vec2(0, 2))
+  let mass2 = Particle("Mass-2", 1, Vec2(5, 0), Vec2(0, -1))
 
   world.add(anchor)
   world.add(mass1)
@@ -496,18 +496,17 @@ fn demo_springs()
   say("")
   say("-- Simulating spring oscillations --")
   for step in range(30):
-    let f1 = spring_force(world.particles[0], world.particles[1], 20, 2)
-    let f2 = spring_force(world.particles[1], world.particles[2], 20, 2)
-    world.particles[0].apply_force(f1.scale(-1))
+    let f1 = spring_force(world.particles[0], world.particles[1], 8, 2)
+    let f2 = spring_force(world.particles[1], world.particles[2], 8, 2)
     world.particles[1].apply_force(f1)
     world.particles[1].apply_force(f2.scale(-1))
     world.particles[2].apply_force(f2)
-    world.particles[1].apply_force(drag_force(world.particles[1].vel, 0.05))
-    world.particles[2].apply_force(drag_force(world.particles[2].vel, 0.05))
-    world.step(0.05)
+    world.particles[1].apply_force(drag_force(world.particles[1].vel, 0.1))
+    world.particles[2].apply_force(drag_force(world.particles[2].vel, 0.1))
+    world.step(0.02)
 
   world.summary()
-  say("Spring oscillations converge to rest!")
+  say("Spring oscillations converge toward rest!")
 
 # ── PHYSICS DEMO: Collision ───────────────────────────────────────
 
@@ -528,7 +527,7 @@ fn demo_collisions()
 
   say("")
   say("-- Simulating collisions --")
-  for step in range(80):
+  for step in range(20):
     for i in range(1, len(world.particles)):
       for j in range(i + 1, len(world.particles)):
         collide(world.particles[i], world.particles[j])
@@ -592,12 +591,16 @@ fn demo_chemistry()
   let P = ideal_gas_pressure(1, T, 0.0224)
   say("  1 mol ideal gas at STP: " + str(round(P, 1)) + " Pa")
 
-  let dS = entropy_change(-890.4, T)
-  say("  Combustion entropy change: " + str(round(dS, 4)) + " kJ/(mol*K)")
-
-  let G = gibbs_free_energy(-890.4, dS, T)
-  say("  Gibbs free energy: " + str(round(G, 2)) + " kJ/mol")
-  say("  Spontaneous? " + str(G < 0))
+  # methane combustion: dH = -890.4 kJ/mol, dS = -0.242 kJ/(mol*K)
+  let dH = -890.4
+  let dS = -0.242
+  let G = gibbs_free_energy(dH, dS, T)
+  say("  Methane combustion:")
+  say("    dH = " + str(dH) + " kJ/mol")
+  say("    dS = " + str(dS) + " kJ/(mol*K)")
+  say("    T  = " + str(round(T, 2)) + " K")
+  say("    Gibbs free energy: " + str(round(G, 2)) + " kJ/mol")
+  say("    Spontaneous at 25C? " + str(G < 0))
 
 # ── TENSOR PHYSICS: N-body with matrix ops ────────────────────────
 
@@ -635,7 +638,7 @@ fn demo_tensor_physics()
         let dx = positions.data[j][0] - positions.data[i][0]
         let dy = positions.data[j][1] - positions.data[i][1]
         let dist = sqrt(dx * dx + dy * dy)
-        let force = G_val * masses.data[i] * masses.data[j] / max(dist * dist, 0.01)
+        let force = G_val * masses.data[i][0] * masses.data[j][0] / max(dist * dist, 0.01)
         row = row + str(round(force, 2)) + "  "
     say("    " + row)
 
@@ -648,8 +651,8 @@ fn demo_tensor_physics()
 
 fn main()
   say("==============================================")
-  say("  ZAP PHYSICS & CHEMISTRY ENGINE v1.0")
-  say("  Built entirely in the Zap programming language")
+  say("  ZapPhysics v1.0")
+  say("  Physics & Chemistry engine for Zap")
   say("==============================================")
 
   demo_physics()

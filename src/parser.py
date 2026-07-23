@@ -1006,7 +1006,23 @@ class Parser:
         if tok.type == TokenType.LBRACKET:
             elements = []
             if self.peek().type != TokenType.RBRACKET:
-                elements.append(self.parse_expr())
+                first = self.parse_expr()
+                # Check for list comprehension: [expr for item in iterable]
+                if self.peek().type == TokenType.KW_FOR:
+                    bindings = []
+                    while self.peek().type == TokenType.KW_FOR:
+                        self.advance()  # consume 'for'
+                        var = self.expect(TokenType.IDENTIFIER).value
+                        self.expect(TokenType.KW_IN)
+                        iterable = self.parse_expr()
+                        bindings.append((var, iterable))
+                    condition = None
+                    if self.peek().type == TokenType.KW_IF:
+                        self.advance()
+                        condition = self.parse_expr()
+                    self.expect(TokenType.RBRACKET)
+                    return ListComprehension(first, bindings, condition, tok.line, tok.col)
+                elements.append(first)
                 while self.match(TokenType.COMMA):
                     if self.peek().type == TokenType.RBRACKET:
                         break
@@ -1017,17 +1033,33 @@ class Parser:
         if tok.type == TokenType.LBRACE:
             entries = []
             if self.peek().type != TokenType.RBRACE:
-                key = self.parse_expr()
-                self.expect(TokenType.COLON)
-                value = self.parse_expr()
-                entries.append((key, value))
-                while self.match(TokenType.COMMA):
-                    if self.peek().type == TokenType.RBRACE:
-                        break
-                    key = self.parse_expr()
-                    self.expect(TokenType.COLON)
-                    value = self.parse_expr()
-                    entries.append((key, value))
+                # Parse first key-value pair (or dict comprehension)
+                key_expr = self.parse_expr()
+                if self.peek().type == TokenType.COLON:
+                    self.advance()  # consume ':'
+                    value_expr = self.parse_expr()
+                    if self.peek().type == TokenType.KW_FOR:
+                        bindings = []
+                        while self.peek().type == TokenType.KW_FOR:
+                            self.advance()  # consume 'for'
+                            var = self.expect(TokenType.IDENTIFIER).value
+                            self.expect(TokenType.KW_IN)
+                            iterable = self.parse_expr()
+                            bindings.append((var, iterable))
+                        condition = None
+                        if self.peek().type == TokenType.KW_IF:
+                            self.advance()
+                            condition = self.parse_expr()
+                        self.expect(TokenType.RBRACE)
+                        return DictComprehension(key_expr, value_expr, bindings, condition, tok.line, tok.col)
+                    entries.append((key_expr, value_expr))
+                    while self.match(TokenType.COMMA):
+                        if self.peek().type == TokenType.RBRACE:
+                            break
+                        key = self.parse_expr()
+                        self.expect(TokenType.COLON)
+                        value = self.parse_expr()
+                        entries.append((key, value))
             self.expect(TokenType.RBRACE)
             return DictLiteral(entries, tok.line, tok.col)
 

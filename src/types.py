@@ -378,6 +378,17 @@ class TypeChecker:
             'par_map': FunctionType([FunctionType([ANY], ANY), ListType(ANY), INT], ListType(ANY)),
             'par_filter': FunctionType([FunctionType([ANY], BOOL), ListType(ANY), INT], ListType(ANY)),
             'par_for': FunctionType([ListType(ANY), FunctionType([ANY], NONE), INT], BOOL),
+
+            # Database / SQLite
+            'db_open': FunctionType([STR, STR], BOOL),
+            'db_close': FunctionType([STR], BOOL),
+            'db_exec': FunctionType([STR, STR, ANY], INT),
+            'db_query': FunctionType([STR, STR, ANY], ListType(DictType(STR, ANY))),
+            'db_query_one': FunctionType([STR, STR, ANY], DictType(STR, ANY)),
+            'db_transaction': FunctionType([STR, FunctionType([], ANY)], ANY),
+            'db_migrate': FunctionType([STR, ListType(ANY)], BOOL),
+            'db_tables': FunctionType([STR], ListType(STR)),
+            'db_schema': FunctionType([STR, STR], ListType(DictType(STR, ANY))),
         }
         for name, typ in builtins.items():
             self.env.set(name, typ, mutable=False)
