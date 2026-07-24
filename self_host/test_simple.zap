@@ -1,0 +1,3 @@
+# Simple test
+let x = 42
+print(x)
