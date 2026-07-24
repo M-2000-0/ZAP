@@ -413,6 +413,48 @@ fn test_ast():
   print("LetStmt name: " + let_stmt.name)
   
   let fn_def = FnDef("add", ["a", "b"], Block([], 1, 0), none, false, 1, 0)
+
+class TypeAliasDecl(Node):
+  __slots__ = ("name", "type_expr")
+  fn init(self, name, type_expr, line=0, col=0):
+    super().__init__(line, col)
+    self.name = name
+    self.type_expr = type_expr
+
+class TestGroupDecl(Node):
+  __slots__ = ("name", "body")
+  fn init(self, name, body, line=0, col=0):
+    super().__init__(line, col)
+    self.name = name
+    self.body = body
+
+class DocStmt(Node):
+  __slots__ = ("text",)
+  fn init(self, text, line=0, col=0):
+    super().__init__(line, col)
+    self.text = text
+
+class TryStmt(Node):
+  __slots__ = ("body", "catch_var", "catch_body")
+  fn init(self, body, catch_var=none, catch_body=none, line=0, col=0):
+    super().__init__(line, col)
+    self.body = body
+    self.catch_var = catch_var
+    self.catch_body = catch_body
+
+class ThrowStmt(Node):
+  __slots__ = ("value",)
+  fn init(self, value, line=0, col=0):
+    super().__init__(line, col)
+    self.value = value
+
+class EnumDecl(Node):
+  __slots__ = ("name", "cases")
+  fn init(self, name, cases, line=0, col=0):
+    super().__init__(line, col)
+    self.name = name
+    self.cases = cases
+
   print("FnDef name: " + fn_def.name)
   print("FnDef params count: " + str(len(fn_def.params)))
   

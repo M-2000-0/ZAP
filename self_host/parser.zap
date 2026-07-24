@@ -1,4 +1,4 @@
-# parser.zap — Core recursive-descent parser for Zap
+# parser.zap â€” Core recursive-descent parser for Zap
 # Token types match tokens.zap UPPERCASE format (KW_FN, KW_LET, etc.)
 
 import "self_host/ast_nodes.zap"
@@ -71,12 +71,12 @@ class Parser:
         ret self.advance()
 
     fn try_match(self, type_val):
-        if self.peek(0).type == type_val:
+        if self.peek(0).typ == type_val:
             ret self.advance()
         ret none
 
     fn skip_newlines(self):
-        while self.peek(0).type == "NEWLINE":
+        while self.peek(0).typ == "NEWLINE":
             self.advance()
 
     fn parse(self):
@@ -86,12 +86,12 @@ class Parser:
     fn parse_top_block(self):
         stmts = []
         self.skip_newlines()
-        while self.peek(0).type != "EOF" and self.peek(0).type != "DEDENT":
+        while self.peek(0).typ != "EOF" and self.peek(0).typ != "DEDENT":
             stmt = self.parse_stmt()
             if stmt != none:
                 stmts.append(stmt)
             self.skip_newlines()
-            if self.peek(0).type == "DEDENT" or self.peek(0).type == "EOF":
+            if self.peek(0).typ == "DEDENT" or self.peek(0).typ == "EOF":
                 break
         ret stmts
 
@@ -114,14 +114,14 @@ class Parser:
         self._indent_push(indent_tok.value)
         stmts = []
         self.skip_newlines()
-        while self.peek(0).type != "DEDENT" and self.peek(0).type != "EOF":
+        while self.peek(0).typ != "DEDENT" and self.peek(0).typ != "EOF":
             stmt = self.parse_stmt()
             if stmt != none:
                 stmts.append(stmt)
             self.skip_newlines()
-            if self.peek(0).type == "DEDENT" or self.peek(0).type == "EOF":
+            if self.peek(0).typ == "DEDENT" or self.peek(0).typ == "EOF":
                 break
-        while self.peek(0).type == "DEDENT":
+        while self.peek(0).typ == "DEDENT":
             d = self.advance()
             target = self._indent_top()
             if d.value == target:
@@ -168,11 +168,11 @@ class Parser:
         name_tok = self._expect_name()
         name = str(name_tok.value)
         type_ann = none
-        if self.peek(0).type == "COLON":
+        if self.peek(0).typ == "COLON":
             self.advance()
             type_ann = self.require_token("IDENTIFIER").value
         value = none
-        if self.peek(0).type == "EQ":
+        if self.peek(0).typ == "EQ":
             self.advance()
             value = self.parse_expr()
         ret LetStmt(name, value, type_ann, tok.line, tok.col)
@@ -194,7 +194,7 @@ class Parser:
 
     fn parse_async_fn(self):
         tok = self.advance()
-        if self.peek(0).type == "KW_FN":
+        if self.peek(0).typ == "KW_FN":
             self.advance()
         name = self.require_token("IDENTIFIER")
         ret self.parse_fn_body(name.value, true, tok)
@@ -204,27 +204,27 @@ class Parser:
         col = tok.col
         self.require_token("LPAREN")
         params = []
-        if self.peek(0).type != "RPAREN":
+        if self.peek(0).typ != "RPAREN":
             params.append(self.parse_param())
-            while self.peek(0).type == "COMMA":
+            while self.peek(0).typ == "COMMA":
                 self.advance()
-                if self.peek(0).type == "RPAREN":
+                if self.peek(0).typ == "RPAREN":
                     break
                 params.append(self.parse_param())
         self.require_token("RPAREN")
         ret_type = none
-        if self.peek(0).type == "ARROW":
+        if self.peek(0).typ == "ARROW":
             self.advance()
             ret_type = self.require_token("IDENTIFIER").value
 
-        if self.peek(0).type == "COLON":
+        if self.peek(0).typ == "COLON":
             self.advance()
             self.require_token("NEWLINE")
             body_stmts = self.parse_block()
             body = Block(body_stmts, line, col)
             ret FnDef(name, params, body, ret_type, is_async, line, col)
 
-        if self.peek(0).type == "NEWLINE":
+        if self.peek(0).typ == "NEWLINE":
             self.advance()
             self.skip_newlines()
             indent_tok = self.require_token("INDENT")
@@ -233,15 +233,15 @@ class Parser:
             self.skip_newlines()
 
             stmts = []
-            while self.peek(0).type != "DEDENT" and self.peek(0).type != "EOF":
+            while self.peek(0).typ != "DEDENT" and self.peek(0).typ != "EOF":
                 stmt = self.parse_stmt()
                 if stmt != none:
                     stmts.append(stmt)
                 self.skip_newlines()
-                if self.peek(0).type == "DEDENT" or self.peek(0).type == "EOF":
+                if self.peek(0).typ == "DEDENT" or self.peek(0).typ == "EOF":
                     break
             self.skip_newlines()
-            while self.peek(0).type == "DEDENT":
+            while self.peek(0).typ == "DEDENT":
                 d = self.advance()
                 if d.value == fn_indent:
                     break
@@ -252,7 +252,7 @@ class Parser:
             body = Block(stmts, line, col)
             ret FnDef(name, params, body, ret_type, is_async, line, col)
 
-        if self.peek(0).type == "KW_RET":
+        if self.peek(0).typ == "KW_RET":
             body = Block([self.parse_ret()], line, col)
             ret FnDef(name, params, body, ret_type, is_async, line, col)
 
@@ -262,11 +262,11 @@ class Parser:
     fn parse_param(self):
         name = self.require_token("IDENTIFIER")
         type_ann = none
-        if self.peek(0).type == "COLON":
+        if self.peek(0).typ == "COLON":
             self.advance()
             type_ann = self.require_token("IDENTIFIER").value
         default = none
-        if self.peek(0).type == "EQ":
+        if self.peek(0).typ == "EQ":
             self.advance()
             default = self.parse_expr()
         ret {"name": name.value, "type": type_ann, "default": default}
@@ -279,9 +279,9 @@ class Parser:
         body_stmts = self.parse_block()
         body = Block(body_stmts, tok.line, tok.col)
         else_body = none
-        if self.peek(0).type == "KW_EL":
+        if self.peek(0).typ == "KW_EL":
             self.advance()
-            if self.peek(0).type == "KW_IF":
+            if self.peek(0).typ == "KW_IF":
                 self.advance()
                 else_body = self.parse_if()
             else:
@@ -313,7 +313,7 @@ class Parser:
 
     fn parse_ret(self):
         tok = self.advance()
-        if self.peek(0).type == "NEWLINE" or self.peek(0).type == "DEDENT" or self.peek(0).type == "EOF":
+        if self.peek(0).typ == "NEWLINE" or self.peek(0).typ == "DEDENT" or self.peek(0).typ == "EOF":
             ret RetStmt(none, tok.line, tok.col)
         value = self.parse_expr()
         ret RetStmt(value, tok.line, tok.col)
@@ -328,7 +328,7 @@ class Parser:
 
     fn parse_import(self):
         tok = self.advance()
-        if self.peek(0).type == "STRING":
+        if self.peek(0).typ == "STRING":
             module = self.advance().value
             ret ImportStmt(module, none, tok.line, tok.col)
         module = self.require_token("IDENTIFIER").value
@@ -339,7 +339,7 @@ class Parser:
         tok = self.advance()
         name = self.require_token("IDENTIFIER").value
         base = none
-        if self.peek(0).type == "LPAREN":
+        if self.peek(0).typ == "LPAREN":
             self.advance()
             base = self.require_token("IDENTIFIER").value
             self.require_token("RPAREN")
@@ -349,13 +349,13 @@ class Parser:
         indent_tok = self.require_token("INDENT")
         self._indent_push(indent_tok.value)
         methods = []
-        while self.peek(0).type != "DEDENT" and self.peek(0).type != "EOF":
-            if self.peek(0).type == "KW_FN":
+        while self.peek(0).typ != "DEDENT" and self.peek(0).typ != "EOF":
+            if self.peek(0).typ == "KW_FN":
                 fn_def = self.parse_fn_def()
                 methods.append(fn_def)
             else:
                 break
-        while self.peek(0).type == "DEDENT":
+        while self.peek(0).typ == "DEDENT":
             d = self.advance()
             if d.value == self._indent_top():
                 break
@@ -375,16 +375,16 @@ class Parser:
         pattern_indent = indent_tok.value
         self._indent_push(indent_tok.value)
         cases = []
-        while self.peek(0).type != "EOF":
-            while self.peek(0).type == "DEDENT":
+        while self.peek(0).typ != "EOF":
+            while self.peek(0).typ == "DEDENT":
                 d = self.advance()
                 if d.value <= pattern_indent:
                     while self._indent_size() > 0 and self._indent_top() >= d.value:
                         self._indent_pop()
                     break
-            if self.peek(0).type == "DEDENT" or self.peek(0).type == "EOF":
+            if self.peek(0).typ == "DEDENT" or self.peek(0).typ == "EOF":
                 break
-            if self.peek(0).type == "KW_EL":
+            if self.peek(0).typ == "KW_EL":
                 self.advance()
                 self.require_token("COLON")
                 self.require_token("NEWLINE")
@@ -398,26 +398,26 @@ class Parser:
             body_stmts = self.parse_block()
             body = Block(body_stmts, 1, 1)
             cases.append(make_case(pattern, body))
-        while self.peek(0).type == "DEDENT":
+        while self.peek(0).typ == "DEDENT":
             self.advance()
         ret MatchStmt(value, cases, tok.line, tok.col)
 
     fn parse_expr_stmt(self):
         tok = self.peek(0)
         if tok.typ == "NUMBER" or tok.typ == "FLOAT":
-            if self.peek(1).type == "EQ":
+            if self.peek(1).typ == "EQ":
                 name_tok = self.advance()
                 self.advance()
                 value = self.parse_expr()
                 ret AssignStmt(Identifier(str(name_tok.value), name_tok.line, name_tok.col), value, name_tok.line, name_tok.col)
         if tok.typ == "IDENTIFIER":
-            if self.peek(1).type == "EQ":
+            if self.peek(1).typ == "EQ":
                 name_tok = self.advance()
                 self.advance()
                 value = self.parse_expr()
                 ret AssignStmt(Identifier(str(name_tok.value), name_tok.line, name_tok.col), value, name_tok.line, name_tok.col)
         expr = self.parse_expr()
-        if self.peek(0).type == "EQ":
+        if self.peek(0).typ == "EQ":
             self.advance()
             value = self.parse_expr()
             ret AssignStmt(expr, value, expr.line, expr.col)
@@ -428,7 +428,7 @@ class Parser:
 
     fn parse_or(self):
         left = self.parse_and()
-        while self.peek(0).type == "OR" or self.peek(0).type == "KW_OR":
+        while self.peek(0).typ == "OR" or self.peek(0).typ == "KW_OR":
             self.advance()
             right = self.parse_and()
             left = BinOp(left, "or", right, left.line, left.col)
@@ -436,21 +436,21 @@ class Parser:
 
     fn parse_and(self):
         left = self.parse_not()
-        while self.peek(0).type == "AND" or self.peek(0).type == "KW_AND":
+        while self.peek(0).typ == "AND" or self.peek(0).typ == "KW_AND":
             self.advance()
             right = self.parse_not()
             left = BinOp(left, "and", right, left.line, left.col)
         ret left
 
     fn parse_not(self):
-        if self.peek(0).type == "KW_NOT" or self.peek(0).type == "NOT":
+        if self.peek(0).typ == "KW_NOT" or self.peek(0).typ == "NOT":
             op = self.advance()
             ret UnaryOp("not", self.parse_not(), op.line, op.col)
         ret self.parse_comparison()
 
     fn parse_comparison(self):
         left = self.parse_addition()
-        while self.peek(0).type == "EQEQ" or self.peek(0).type == "NEQ" or self.peek(0).type == "LT" or self.peek(0).type == "GT" or self.peek(0).type == "LTE" or self.peek(0).type == "GTE":
+        while self.peek(0).typ == "EQEQ" or self.peek(0).typ == "NEQ" or self.peek(0).typ == "LT" or self.peek(0).typ == "GT" or self.peek(0).typ == "LTE" or self.peek(0).typ == "GTE":
             op = self.advance()
             right = self.parse_addition()
             left = BinOp(left, op.value, right, left.line, left.col)
@@ -458,7 +458,7 @@ class Parser:
 
     fn parse_addition(self):
         left = self.parse_multiplication()
-        while self.peek(0).type == "PLUS" or self.peek(0).type == "MINUS":
+        while self.peek(0).typ == "PLUS" or self.peek(0).typ == "MINUS":
             op = self.advance()
             right = self.parse_multiplication()
             left = BinOp(left, op.value, right, left.line, left.col)
@@ -466,14 +466,14 @@ class Parser:
 
     fn parse_multiplication(self):
         left = self.parse_unary()
-        while self.peek(0).type == "STAR" or self.peek(0).type == "SLASH" or self.peek(0).type == "PERCENT":
+        while self.peek(0).typ == "STAR" or self.peek(0).typ == "SLASH" or self.peek(0).typ == "PERCENT":
             op = self.advance()
             right = self.parse_unary()
             left = BinOp(left, op.value, right, left.line, left.col)
         ret left
 
     fn parse_unary(self):
-        if self.peek(0).type == "MINUS":
+        if self.peek(0).typ == "MINUS":
             next_tok = self.peek(1)
             if next_tok.typ == "NEWLINE" or next_tok.typ == "DEDENT" or next_tok.typ == "EOF" or next_tok.typ == "RPAREN" or next_tok.typ == "RBRACKET" or next_tok.typ == "RBRACE" or next_tok.typ == "COMMA" or next_tok.typ == "COLON" or next_tok.typ == "EQ":
                 tok = self.advance()
@@ -484,14 +484,14 @@ class Parser:
 
     fn parse_power(self):
         left = self.parse_call()
-        if self.peek(0).type == "POW":
+        if self.peek(0).typ == "POW":
             self.advance()
             right = self.parse_unary()
             left = BinOp(left, "**", right, left.line, left.col)
         ret left
 
     fn _is_postfix_op(self):
-        t = self.peek(0).type
+        t = self.peek(0).typ
         is_lparen = t == "LPAREN"
         is_lbracket = t == "LBRACKET"
         is_dot = t == "DOT"
@@ -500,15 +500,15 @@ class Parser:
     fn parse_call(self):
         left = self.parse_primary()
         while self._is_postfix_op():
-            tok_type = self.peek(0).type
+            tok_type = self.peek(0).typ
             if tok_type == "LPAREN":
                 self.advance()
                 args = []
-                if self.peek(0).type != "RPAREN":
+                if self.peek(0).typ != "RPAREN":
                     args.append(self.parse_expr())
-                    while self.peek(0).type == "COMMA":
+                    while self.peek(0).typ == "COMMA":
                         self.advance()
-                        if self.peek(0).type == "RPAREN":
+                        if self.peek(0).typ == "RPAREN":
                             break
                         args.append(self.parse_expr())
                 self.require_token("RPAREN")
@@ -540,7 +540,7 @@ class Parser:
             ret Literal(none, tok.line, tok.col)
 
         if tok.typ == "IDENTIFIER":
-            if self.peek(0).type == "ARROW":
+            if self.peek(0).typ == "ARROW":
                 params = [{"name": tok.value}]
                 self.advance()
                 body = self.parse_expr()
@@ -548,9 +548,9 @@ class Parser:
             ret Identifier(tok.value, tok.line, tok.col)
 
         if tok.typ == "LPAREN":
-            if self.peek(0).type == "RPAREN":
+            if self.peek(0).typ == "RPAREN":
                 self.advance()
-                if self.peek(0).type == "ARROW":
+                if self.peek(0).typ == "ARROW":
                     self.advance()
                     body = self.parse_expr()
                     ret Lambda([], body, tok.line, tok.col)
@@ -561,26 +561,26 @@ class Parser:
 
         if tok.typ == "LBRACKET":
             elements = []
-            if self.peek(0).type != "RBRACKET":
+            if self.peek(0).typ != "RBRACKET":
                 first = self.parse_expr()
-                if self.peek(0).type == "KW_FOR":
+                if self.peek(0).typ == "KW_FOR":
                     bindings = []
-                    while self.peek(0).type == "KW_FOR":
+                    while self.peek(0).typ == "KW_FOR":
                         self.advance()
                         var = self.require_token("IDENTIFIER").value
                         self.require_token("KW_IN")
                         iterable = self.parse_expr()
                         bindings.append({"var": var, "iterable": iterable})
                     condition = none
-                    if self.peek(0).type == "KW_IF":
+                    if self.peek(0).typ == "KW_IF":
                         self.advance()
                         condition = self.parse_expr()
                     self.require_token("RBRACKET")
                     ret ListComprehension(first, bindings, condition, tok.line, tok.col)
                 elements.append(first)
-                while self.peek(0).type == "COMMA":
+                while self.peek(0).typ == "COMMA":
                     self.advance()
-                    if self.peek(0).type == "RBRACKET":
+                    if self.peek(0).typ == "RBRACKET":
                         break
                     elements.append(self.parse_expr())
             self.require_token("RBRACKET")
@@ -588,38 +588,58 @@ class Parser:
 
         if tok.typ == "LBRACE":
             entries = []
-            if self.peek(0).type != "RBRACE":
+            if self.peek(0).typ != "RBRACE":
                 key_expr = self.parse_expr()
-                if self.peek(0).type == "COLON":
+                if self.peek(0).typ == "COLON":
                     self.advance()
                     value_expr = self.parse_expr()
-                    if self.peek(0).type == "KW_FOR":
+                    if self.peek(0).typ == "KW_FOR":
                         bindings = []
-                        while self.peek(0).type == "KW_FOR":
+                        while self.peek(0).typ == "KW_FOR":
                             self.advance()
                             var = self.require_token("IDENTIFIER").value
                             self.require_token("KW_IN")
                             iterable = self.parse_expr()
                             bindings.append({"var": var, "iterable": iterable})
                         condition = none
-                        if self.peek(0).type == "KW_IF":
+                        if self.peek(0).typ == "KW_IF":
                             self.advance()
                             condition = self.parse_expr()
                         self.require_token("RBRACE")
                         ret DictComprehension(key_expr, value_expr, bindings, condition, tok.line, tok.col)
                     entries.append({"key": key_expr, "value": value_expr})
-                    while self.peek(0).type == "COMMA":
+                    while self.peek(0).typ == "COMMA":
                         self.advance()
-                        if self.peek(0).type == "RBRACE":
+                        if self.peek(0).typ == "RBRACE":
                             break
                         key = self.parse_expr()
                         self.require_token("COLON")
                         value = self.parse_expr()
-                        entries.append({"key": key, "value": value})
-            self.require_token("RBRACE")
-            ret DictLiteral(entries, tok.line, tok.col)
+                        entries.append({"key": key, "value": value
+  fn parse_type_alias(self):
+    tok = self.advance()
+    name = self.require_token(TokenType.IDENTIFIER).value
+    self.require_token(TokenType.EQ)
+    type_expr = self.parse_expr()
+    ret TypeAliasDecl(name, type_expr, tok.line, tok.col)
 
-        if tok.typ == "MINUS":
-            ret UnaryOp("-", self.parse_unary(), tok.line, tok.col)
+  fn parse_test_group(self):
+    tok = self.advance()
+    name = ''
+    if self.peek().typ == TokenType.STRING:
+      name = self.advance().value
+    self.expect_colon()
+    self.expect(TokenType.NEWLINE)
+    body = Block(self.parse_block(), tok.line, tok.col)
+    ret TestGroupDecl(name, body, tok.line, tok.col)
 
-        self.error("unexpected token: " + tok.typ + " ('" + str(tok.value) + "')")
+  fn parse_doc(self):
+    tok = self.advance()
+    text = ''
+    if self.peek().typ == TokenType.STRING:
+      text = self.advance().value
+    if self.peek().typ == TokenType.NEWLINE:
+      self.advance()
+    ret DocStmt(text, tok.line, tok.col)
+
+  }

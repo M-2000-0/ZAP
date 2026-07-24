@@ -54,6 +54,13 @@ let TokenType = {
   "KW_CLASS": "KW_CLASS",
   "KW_BREAK": "KW_BREAK",
   "KW_CONTINUE": "KW_CONTINUE",
+  "KW_TYPE": "KW_TYPE",
+  "KW_TEST": "KW_TEST",
+  "KW_DOC": "KW_DOC",
+  "KW_TRY": "KW_TRY",
+  "KW_CATCH": "KW_CATCH",
+  "KW_THROW": "KW_THROW",
+  "KW_ENUM": "KW_ENUM",
 }
 
 let KEYWORDS = {
@@ -76,6 +83,13 @@ let KEYWORDS = {
   "class": TokenType.KW_CLASS,
   "break": TokenType.KW_BREAK,
   "continue": TokenType.KW_CONTINUE,
+  "type": TokenType.KW_TYPE,
+  "test": TokenType.KW_TEST,
+  "doc": TokenType.KW_DOC,
+  "try": TokenType.KW_TRY,
+  "catch": TokenType.KW_CATCH,
+  "throw": TokenType.KW_THROW,
+  "enum": TokenType.KW_ENUM,
 }
 
 # Escape sequence lookup
