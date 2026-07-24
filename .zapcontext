@@ -1,0 +1,76 @@
+{
+  "project": {
+    "name": "Zap NextGen",
+    "description": "",
+    "version": "0.2"
+  },
+  "intents": [
+    {
+      "text": "build a customer dashboard with auth and analytics",
+      "status": "pending"
+    },
+    {
+      "text": "add self-healing capabilities to all API endpoints",
+      "status": "pending"
+    }
+  ],
+  "decisions": [
+    "use tensor @@ for matrix multiply"
+  ],
+  "conventions": [
+    "functions should be pure when possible"
+  ],
+  "apis": [
+    {
+      "name": "TaskService",
+      "description": "service with 6 methods",
+      "endpoints": [
+        "list_all",
+        "get_by_id",
+        "create",
+        "mark_done",
+        "remove",
+        "search"
+      ]
+    },
+    {
+      "name": "UserService",
+      "description": "service with 5 methods",
+      "endpoints": [
+        "create_user",
+        "get_user",
+        "list_user",
+        "update_user",
+        "delete_user"
+      ]
+    },
+    {
+      "name": "ProductService",
+      "description": "service with 5 methods",
+      "endpoints": [
+        "create_product",
+        "get_product",
+        "list_product",
+        "update_product",
+        "delete_product"
+      ]
+    },
+    {
+      "name": "PaymentService",
+      "description": "service with 1 methods",
+      "endpoints": [
+        "process_payment"
+      ]
+    },
+    {
+      "name": "Simple",
+      "description": "service with 1 methods",
+      "endpoints": [
+        "do_stuff"
+      ]
+    }
+  ],
+  "schemas": [],
+  "services": [],
+  "author": "AI Collaboration"
+}
