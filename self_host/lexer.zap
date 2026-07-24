@@ -184,7 +184,7 @@ let SINGLE_CHAR_OPS = {
 
 class Token:
   fn init(self, typ, val, ln, cl):
-    self.type = typ
+    self.typ = typ
     self.value = val
     self.line = ln
     self.col = cl
@@ -448,7 +448,7 @@ fn test_lexer():
   let i = 0
   while i < len(toks):
     let tok = toks[i]
-    print(tok.type + ": " + str(tok.value))
+    print(tok.typ + ": " + str(tok.value))
     i = i + 1
   print("Lexer test passed!")
 

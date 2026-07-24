@@ -367,7 +367,7 @@ fn test_tokenizer():
   let i = 0
   while i < len(toks):
     let tok = toks[i]
-    print("  " + str(tok.type) + " = " + str(tok.value))
+    print("  " + str(tok.typ) + " = " + str(tok.value))
     i = i + 1
   print("Tokenizer test passed!")
 

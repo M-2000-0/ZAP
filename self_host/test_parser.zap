@@ -10,7 +10,7 @@ toks = tokenize(test_code, "<test>")
 print("Tokens:", len(toks))
 
 for t in toks:
-    print("  " + str(t.type) + ": " + str(t.value))
+    print("  " + str(t.typ) + ": " + str(t.value))
 
 # Parse it
 p = Parser(toks)

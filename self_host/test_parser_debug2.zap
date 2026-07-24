@@ -17,7 +17,7 @@ fn main():
     let i = 0
     while i < len(toks2):
         let t = toks2[i]
-        print("tok: " + str(t.type) + " = " + str(t.value))
+        print("tok: " + str(t.typ) + " = " + str(t.value))
         i = i + 1
 
     print("done")

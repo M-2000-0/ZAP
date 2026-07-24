@@ -35,16 +35,16 @@ class Parser:
         depth = 0
         while self.pos < len(self.tokens):
             tok = self.peek(0)
-            if target_indent != none and tok.type == "DEDENT" and tok.value <= target_indent:
+            if target_indent != none and tok.typ == "DEDENT" and tok.value <= target_indent:
                 ret
-            if depth == 0 and STMT_START[tok.type]:
+            if depth == 0 and STMT_START[tok.typ]:
                 ret
-            if tok.type == "EOF":
+            if tok.typ == "EOF":
                 ret
-            if tok.type == "INDENT":
+            if tok.typ == "INDENT":
                 depth = depth + 1
             el:
-                if tok.type == "DEDENT":
+                if tok.typ == "DEDENT":
                     depth = depth - 1
                     if depth < 0:
                         depth = 0
@@ -65,8 +65,8 @@ class Parser:
 
     fn require_token(self, type_val):
         tok = self.peek(0)
-        if tok.type != type_val:
-            msg = "expected " + type_val + ", got " + tok.type
+        if tok.typ != type_val:
+            msg = "expected " + type_val + ", got " + tok.typ
             self.error(msg)
         ret self.advance()
 
@@ -134,31 +134,31 @@ class Parser:
 
     fn parse_stmt(self):
         tok = self.peek(0)
-        if tok.type == "KW_LET":
+        if tok.typ == "KW_LET":
             ret self.parse_let()
-        if tok.type == "KW_FN":
+        if tok.typ == "KW_FN":
             ret self.parse_fn_def()
-        if tok.type == "KW_IF":
+        if tok.typ == "KW_IF":
             ret self.parse_if()
-        if tok.type == "KW_FOR":
+        if tok.typ == "KW_FOR":
             ret self.parse_for()
-        if tok.type == "KW_WHILE":
+        if tok.typ == "KW_WHILE":
             ret self.parse_while()
-        if tok.type == "KW_RET":
+        if tok.typ == "KW_RET":
             ret self.parse_ret()
-        if tok.type == "KW_IMPORT":
+        if tok.typ == "KW_IMPORT":
             ret self.parse_import()
-        if tok.type == "KW_CLASS":
+        if tok.typ == "KW_CLASS":
             ret self.parse_class()
-        if tok.type == "KW_MATCH":
+        if tok.typ == "KW_MATCH":
             ret self.parse_match()
-        if tok.type == "KW_ASYNC":
+        if tok.typ == "KW_ASYNC":
             ret self.parse_async_fn()
-        if tok.type == "KW_BREAK":
+        if tok.typ == "KW_BREAK":
             ret self.parse_break()
-        if tok.type == "KW_CONTINUE":
+        if tok.typ == "KW_CONTINUE":
             ret self.parse_continue()
-        if tok.type == "NEWLINE":
+        if tok.typ == "NEWLINE":
             self.advance()
             ret none
         ret self.parse_expr_stmt()
@@ -179,10 +179,10 @@ class Parser:
 
     fn _expect_name(self):
         tok = self.peek(0)
-        if tok.type == "IDENTIFIER":
+        if tok.typ == "IDENTIFIER":
             self.pos = self.pos + 1
             ret tok
-        if len(tok.type) > 3 and tok.type[0:3] == "KW_":
+        if len(tok.typ) > 3 and tok.typ[0:3] == "KW_":
             self.pos = self.pos + 1
             ret tok
         ret self.require_token("IDENTIFIER")
@@ -404,13 +404,13 @@ class Parser:
 
     fn parse_expr_stmt(self):
         tok = self.peek(0)
-        if tok.type == "NUMBER" or tok.type == "FLOAT":
+        if tok.typ == "NUMBER" or tok.typ == "FLOAT":
             if self.peek(1).type == "EQ":
                 name_tok = self.advance()
                 self.advance()
                 value = self.parse_expr()
                 ret AssignStmt(Identifier(str(name_tok.value), name_tok.line, name_tok.col), value, name_tok.line, name_tok.col)
-        if tok.type == "IDENTIFIER":
+        if tok.typ == "IDENTIFIER":
             if self.peek(1).type == "EQ":
                 name_tok = self.advance()
                 self.advance()
@@ -475,7 +475,7 @@ class Parser:
     fn parse_unary(self):
         if self.peek(0).type == "MINUS":
             next_tok = self.peek(1)
-            if next_tok.type == "NEWLINE" or next_tok.type == "DEDENT" or next_tok.type == "EOF" or next_tok.type == "RPAREN" or next_tok.type == "RBRACKET" or next_tok.type == "RBRACE" or next_tok.type == "COMMA" or next_tok.type == "COLON" or next_tok.type == "EQ":
+            if next_tok.typ == "NEWLINE" or next_tok.typ == "DEDENT" or next_tok.typ == "EOF" or next_tok.typ == "RPAREN" or next_tok.typ == "RBRACKET" or next_tok.typ == "RBRACE" or next_tok.typ == "COMMA" or next_tok.typ == "COLON" or next_tok.typ == "EQ":
                 tok = self.advance()
                 ret Identifier(str(tok.value), tok.line, tok.col)
             op = self.advance()
@@ -526,20 +526,20 @@ class Parser:
 
     fn parse_primary(self):
         tok = self.advance()
-        if tok.type == "NUMBER":
+        if tok.typ == "NUMBER":
             ret Literal(tok.value, tok.line, tok.col)
-        if tok.type == "FLOAT":
+        if tok.typ == "FLOAT":
             ret Literal(tok.value, tok.line, tok.col)
-        if tok.type == "STRING":
+        if tok.typ == "STRING":
             ret Literal(tok.value, tok.line, tok.col)
-        if tok.type == "KW_TRUE":
+        if tok.typ == "KW_TRUE":
             ret Literal(true, tok.line, tok.col)
-        if tok.type == "KW_FALSE":
+        if tok.typ == "KW_FALSE":
             ret Literal(false, tok.line, tok.col)
-        if tok.type == "KW_NONE":
+        if tok.typ == "KW_NONE":
             ret Literal(none, tok.line, tok.col)
 
-        if tok.type == "IDENTIFIER":
+        if tok.typ == "IDENTIFIER":
             if self.peek(0).type == "ARROW":
                 params = [{"name": tok.value}]
                 self.advance()
@@ -547,7 +547,7 @@ class Parser:
                 ret Lambda(params, body, tok.line, tok.col)
             ret Identifier(tok.value, tok.line, tok.col)
 
-        if tok.type == "LPAREN":
+        if tok.typ == "LPAREN":
             if self.peek(0).type == "RPAREN":
                 self.advance()
                 if self.peek(0).type == "ARROW":
@@ -559,7 +559,7 @@ class Parser:
             self.require_token("RPAREN")
             ret expr
 
-        if tok.type == "LBRACKET":
+        if tok.typ == "LBRACKET":
             elements = []
             if self.peek(0).type != "RBRACKET":
                 first = self.parse_expr()
@@ -586,7 +586,7 @@ class Parser:
             self.require_token("RBRACKET")
             ret ListLiteral(elements, tok.line, tok.col)
 
-        if tok.type == "LBRACE":
+        if tok.typ == "LBRACE":
             entries = []
             if self.peek(0).type != "RBRACE":
                 key_expr = self.parse_expr()
@@ -619,7 +619,7 @@ class Parser:
             self.require_token("RBRACE")
             ret DictLiteral(entries, tok.line, tok.col)
 
-        if tok.type == "MINUS":
+        if tok.typ == "MINUS":
             ret UnaryOp("-", self.parse_unary(), tok.line, tok.col)
 
-        self.error("unexpected token: " + tok.type + " ('" + str(tok.value) + "')")
+        self.error("unexpected token: " + tok.typ + " ('" + str(tok.value) + "')")

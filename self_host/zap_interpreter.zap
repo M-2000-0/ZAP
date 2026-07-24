@@ -289,7 +289,7 @@ fn parse(tokens) {
     
     while pos < len(tokens) {
         let tok = tokens[pos]
-        if tok.type == "EOF" {
+        if tok.typ == "EOF" {
             break
         }
         
@@ -304,28 +304,28 @@ fn parse(tokens) {
 fn parse_stmt(tokens, pos) {
     let tok = tokens[pos]
     
-    if tok.type == "LET" {
+    if tok.typ == "LET" {
         return parse_let(tokens, pos)
     }
-    if tok.type == "FN" {
+    if tok.typ == "FN" {
         return parse_fn(tokens, pos)
     }
-    if tok.type == "IF" {
+    if tok.typ == "IF" {
         return parse_if(tokens, pos)
     }
-    if tok.type == "WHILE" {
+    if tok.typ == "WHILE" {
         return parse_while(tokens, pos)
     }
-    if tok.type == "FOR" {
+    if tok.typ == "FOR" {
         return parse_for(tokens, pos)
     }
-    if tok.type == "RETURN" {
+    if tok.typ == "RETURN" {
         return parse_return(tokens, pos)
     }
-    if tok.type == "BREAK" {
+    if tok.typ == "BREAK" {
         return {"node": {"type": "Break"}, "pos": pos + 1}
     }
-    if tok.type == "CONTINUE" {
+    if tok.typ == "CONTINUE" {
         return {"node": {"type": "Continue"}, "pos": pos + 1}
     }
     
@@ -476,7 +476,7 @@ fn parse_comparison(tokens, pos) {
     
     while left.pos < len(tokens) {
         let tok = tokens[left.pos]
-        if tok.type == "EQ" || tok.type == "NEQ" || tok.type == "LT" || tok.type == "GT" || tok.type == "LTE" || tok.type == "GTE" {
+        if tok.typ == "EQ" || tok.typ == "NEQ" || tok.typ == "LT" || tok.typ == "GT" || tok.typ == "LTE" || tok.typ == "GTE" {
             let right = parse_addition(tokens, left.pos + 1)
             left = {"node": {"type": "BinOp", "op": tok.value, "left": left.node, "right": right.node}, "pos": right.pos}
         } else {
@@ -492,7 +492,7 @@ fn parse_addition(tokens, pos) {
     
     while left.pos < len(tokens) {
         let tok = tokens[left.pos]
-        if tok.type == "PLUS" || tok.type == "MINUS" {
+        if tok.typ == "PLUS" || tok.typ == "MINUS" {
             let right = parse_multiplication(tokens, left.pos + 1)
             left = {"node": {"type": "BinOp", "op": tok.value, "left": left.node, "right": right.node}, "pos": right.pos}
         } else {
@@ -508,7 +508,7 @@ fn parse_multiplication(tokens, pos) {
     
     while left.pos < len(tokens) {
         let tok = tokens[left.pos]
-        if tok.type == "STAR" || tok.type == "SLASH" || tok.type == "PERCENT" {
+        if tok.typ == "STAR" || tok.typ == "SLASH" || tok.typ == "PERCENT" {
             let right = parse_unary(tokens, left.pos + 1)
             left = {"node": {"type": "BinOp", "op": tok.value, "left": left.node, "right": right.node}, "pos": right.pos}
         } else {
@@ -522,11 +522,11 @@ fn parse_multiplication(tokens, pos) {
 fn parse_unary(tokens, pos) {
     let tok = tokens[pos]
     
-    if tok.type == "MINUS" {
+    if tok.typ == "MINUS" {
         let result = parse_primary(tokens, pos + 1)
         return {"node": {"type": "UnaryOp", "op": "-", "operand": result.node}, "pos": result.pos}
     }
-    if tok.type == "NOT" {
+    if tok.typ == "NOT" {
         let result = parse_primary(tokens, pos + 1)
         return {"node": {"type": "UnaryOp", "op": "not", "operand": result.node}, "pos": result.pos}
     }
@@ -538,27 +538,27 @@ fn parse_primary(tokens, pos) {
     let tok = tokens[pos]
     
     // Literals
-    if tok.type == "NUMBER" {
+    if tok.typ == "NUMBER" {
         return {"node": {"type": "Number", "value": tok.value}, "pos": pos + 1}
     }
-    if tok.type == "FLOAT" {
+    if tok.typ == "FLOAT" {
         return {"node": {"type": "Float", "value": tok.value}, "pos": pos + 1}
     }
-    if tok.type == "STRING" {
+    if tok.typ == "STRING" {
         return {"node": {"type": "String", "value": tok.value}, "pos": pos + 1}
     }
-    if tok.type == "TRUE" {
+    if tok.typ == "TRUE" {
         return {"node": {"type": "Boolean", "value": true}, "pos": pos + 1}
     }
-    if tok.type == "FALSE" {
+    if tok.typ == "FALSE" {
         return {"node": {"type": "Boolean", "value": false}, "pos": pos + 1}
     }
-    if tok.type == "NONE" {
+    if tok.typ == "NONE" {
         return {"node": {"type": "None"}, "pos": pos + 1}
     }
     
     // Identifier or function call
-    if tok.type == "IDENTIFIER" {
+    if tok.typ == "IDENTIFIER" {
         // Check for function call
         if pos + 1 < len(tokens) && tokens[pos + 1].type == "LPAREN" {
             return parse_call(tokens, pos)
@@ -567,18 +567,18 @@ fn parse_primary(tokens, pos) {
     }
     
     // Parenthesized expression
-    if tok.type == "LPAREN" {
+    if tok.typ == "LPAREN" {
         let result = parse_expr(tokens, pos + 1)
         return {"node": result.node, "pos": result.pos + 1}  // skip ')'
     }
     
     // List literal
-    if tok.type == "LBRACKET" {
+    if tok.typ == "LBRACKET" {
         return parse_list(tokens, pos)
     }
     
     // Dict literal
-    if tok.type == "LBRACE" {
+    if tok.typ == "LBRACE" {
         return parse_dict(tokens, pos)
     }
     
@@ -734,18 +734,18 @@ fn eval_program(ast, env) {
 }
 
 fn eval_stmt(stmt, env) {
-    if stmt.type == "Let" {
+    if stmt.typ == "Let" {
         let value = eval_expr(stmt.value, env)
         env.variables[stmt.name] = value
         return none
     }
     
-    if stmt.type == "Fn" {
+    if stmt.typ == "Fn" {
         env.variables[stmt.name] = {"type": "function", "params": stmt.params, "body": stmt.body, "env": env}
         return none
     }
     
-    if stmt.type == "If" {
+    if stmt.typ == "If" {
         let condition = eval_expr(stmt.condition, env)
         if is_truthy(condition) {
             let result = none
@@ -769,7 +769,7 @@ fn eval_stmt(stmt, env) {
         return none
     }
     
-    if stmt.type == "While" {
+    if stmt.typ == "While" {
         while is_truthy(eval_expr(stmt.condition, env)) {
             let result = none
             for body_stmt in stmt.body {
@@ -788,7 +788,7 @@ fn eval_stmt(stmt, env) {
         return none
     }
     
-    if stmt.type == "For" {
+    if stmt.typ == "For" {
         let iterable = eval_expr(stmt.iterable, env)
         for item in iterable {
             env.variables[stmt.var] = item
@@ -809,7 +809,7 @@ fn eval_stmt(stmt, env) {
         return none
     }
     
-    if stmt.type == "Return" {
+    if stmt.typ == "Return" {
         let value = none
         if stmt.value != none {
             value = eval_expr(stmt.value, env)
@@ -817,15 +817,15 @@ fn eval_stmt(stmt, env) {
         return {"type": "return", "value": value}
     }
     
-    if stmt.type == "Break" {
+    if stmt.typ == "Break" {
         return {"type": "break"}
     }
     
-    if stmt.type == "Continue" {
+    if stmt.typ == "Continue" {
         return {"type": "continue"}
     }
     
-    if stmt.type == "ExprStmt" {
+    if stmt.typ == "ExprStmt" {
         return eval_expr(stmt.expr, env)
     }
     
@@ -833,33 +833,33 @@ fn eval_stmt(stmt, env) {
 }
 
 fn eval_expr(expr, env) {
-    if expr.type == "Number" {
+    if expr.typ == "Number" {
         return expr.value
     }
-    if expr.type == "Float" {
+    if expr.typ == "Float" {
         return expr.value
     }
-    if expr.type == "String" {
+    if expr.typ == "String" {
         return expr.value
     }
-    if expr.type == "Boolean" {
+    if expr.typ == "Boolean" {
         return expr.value
     }
-    if expr.type == "None" {
+    if expr.typ == "None" {
         return none
     }
     
-    if expr.type == "Identifier" {
+    if expr.typ == "Identifier" {
         return lookup_var(expr.name, env)
     }
     
-    if expr.type == "BinOp" {
+    if expr.typ == "BinOp" {
         let left = eval_expr(expr.left, env)
         let right = eval_expr(expr.right, env)
         return eval_binop(expr.op, left, right)
     }
     
-    if expr.type == "UnaryOp" {
+    if expr.typ == "UnaryOp" {
         let operand = eval_expr(expr.operand, env)
         if expr.op == "-" {
             return -operand
@@ -869,7 +869,7 @@ fn eval_expr(expr, env) {
         }
     }
     
-    if expr.type == "Call" {
+    if expr.typ == "Call" {
         let callee = lookup_var(expr.name, env)
         let args = []
         for arg in expr.args {
@@ -878,7 +878,7 @@ fn eval_expr(expr, env) {
         return call_function(callee, args, env)
     }
     
-    if expr.type == "List" {
+    if expr.typ == "List" {
         let elements = []
         for elem in expr.elements {
             elements.append(eval_expr(elem, env))
@@ -886,7 +886,7 @@ fn eval_expr(expr, env) {
         return elements
     }
     
-    if expr.type == "Dict" {
+    if expr.typ == "Dict" {
         let entries = {}
         for entry in expr.entries {
             let key = eval_expr(entry.key, env)
@@ -936,11 +936,11 @@ fn lookup_var(name, env) {
 }
 
 fn call_function(callee, args, env) {
-    if callee.type == "builtin" {
+    if callee.typ == "builtin" {
         return callee.fn(args)
     }
     
-    if callee.type == "function" {
+    if callee.typ == "function" {
         let child_env = {"variables": {}, "parent": callee.env}
         for i in range(len(callee.params)) {
             child_env.variables[callee.params[i]] = args[i]
