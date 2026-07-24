@@ -615,7 +615,8 @@ class Parser:
                         key = self.parse_expr()
                         self.require_token("COLON")
                         value = self.parse_expr()
-                        entries.append({"key": key, "value": value
+                        entries.append({"key": key, "value": value})
+
   fn parse_type_alias(self):
     tok = self.advance()
     name = self.require_token(TokenType.IDENTIFIER).value
@@ -629,7 +630,7 @@ class Parser:
     if self.peek().typ == TokenType.STRING:
       name = self.advance().value
     self.expect_colon()
-    self.expect(TokenType.NEWLINE)
+    self.require_token(TokenType.NEWLINE)
     body = Block(self.parse_block(), tok.line, tok.col)
     ret TestGroupDecl(name, body, tok.line, tok.col)
 
