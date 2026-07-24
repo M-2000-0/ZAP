@@ -1060,7 +1060,7 @@ class Evaluator:
         if obj_type is ZapTensor:
             return obj._getitem(obj.data, idx)
         if obj_type is ZapDict:
-            return obj.entries[idx]
+            return obj.entries.get(idx, None)
         if obj_type is str:
             return obj[idx]
         if obj_type is list:
