@@ -220,6 +220,20 @@ class Parser:
         if tok.type == TokenType.KW_CONTINUE:
             return self.parse_continue()
 
+        # Optimization keywords
+        if tok.type == TokenType.KW_TEST:
+            return self.parse_test_group()
+        if tok.type == TokenType.KW_DOC:
+            return self.parse_doc()
+        if tok.type == TokenType.KW_TYPE:
+            return self.parse_type_alias()
+        if tok.type == TokenType.KW_TRY:
+            return self.parse_try()
+        if tok.type == TokenType.KW_THROW:
+            return self.parse_throw()
+        if tok.type == TokenType.KW_ENUM:
+            return self.parse_enum()
+
         if tok.type == TokenType.NEWLINE:
             self.advance()
             return None
@@ -583,6 +597,86 @@ class Parser:
         self.expect(TokenType.NEWLINE)
         return ExpectStmt(cond, msg, tok.line, tok.col)
 
+    def parse_test_group(self):
+        """test "name": body"""
+        tok = self.advance()
+        name = ''
+        if self.peek().type == TokenType.STRING:
+            name = self.advance().value
+        self.expect_colon()
+        self.expect(TokenType.NEWLINE)
+        body = Block(self.parse_block(), tok.line, tok.col)
+        return TestGroupDecl(name, body, tok.line, tok.col)
+
+    def parse_doc(self):
+        """doc "text" or doc"""
+        tok = self.advance()
+        text = ''
+        if self.peek().type == TokenType.STRING:
+            text = self.advance().value
+        if self.peek().type == TokenType.NEWLINE:
+            self.advance()
+        return DocStmt(text, tok.line, tok.col)
+
+    def parse_type_alias(self):
+        """type Name = expr"""
+        tok = self.advance()
+        name = self.expect(TokenType.IDENTIFIER).value
+        self.expect(TokenType.EQ)
+        type_expr = self.parse_expr()
+        return TypeAliasDecl(name, type_expr, tok.line, tok.col)
+
+    def parse_try(self):
+        """try: body catch [var]: body"""
+        tok = self.advance()
+        self.expect_colon()
+        self.expect(TokenType.NEWLINE)
+        body = Block(self.parse_block(), tok.line, tok.col)
+        catch_var = None
+        catch_body = None
+        if self.peek().type in (TokenType.KW_CATCH,):
+            self.advance()
+            if self.peek().type == TokenType.IDENTIFIER:
+                catch_var = self.advance().value
+            self.expect_colon()
+            self.expect(TokenType.NEWLINE)
+            catch_body = Block(self.parse_block(), tok.line, tok.col)
+        return TryStmt(body, catch_var, catch_body, tok.line, tok.col)
+
+    def parse_throw(self):
+        """throw expression"""
+        tok = self.advance()
+        value = self.parse_expr()
+        self.expect(TokenType.NEWLINE)
+        return ThrowStmt(value, tok.line, tok.col)
+
+    def parse_enum(self):
+        """enum Name: case1, case2, case3"""
+        tok = self.advance()
+        name = self.expect(TokenType.IDENTIFIER).value
+        self.expect_colon()
+        self.expect(TokenType.NEWLINE)
+        indent_tok = self.expect(TokenType.INDENT)
+        self._indents.append(indent_tok.value)
+        cases = []
+        self.skip_newlines()
+        while self.peek().type != TokenType.DEDENT and self.peek().type != TokenType.EOF:
+            case_name = self.expect(TokenType.IDENTIFIER).value
+            cases.append(case_name)
+            self.match(TokenType.COMMA)
+            self.skip_newlines()
+        while self.peek().type == TokenType.DEDENT:
+            d = self.advance()
+            target = self._indents[-1] if self._indents else 0
+            if isinstance(d.value, (int, float)) and isinstance(target, (int, float)):
+                if d.value == target:
+                    break
+                if d.value < target:
+                    while self._indents and isinstance(self._indents[-1], (int, float)) and self._indents[-1] > d.value:
+                        self._indents.pop()
+                    break
+        return EnumDecl(name, cases, tok.line, tok.col)
+
     def parse_version(self):
         """version STRING"""
         return self.parse_version_value()
@@ -689,10 +783,20 @@ class Parser:
             default = self.parse_expr()
         return {'name': name.value, 'type': type_ann, 'default': default}
 
+    def maybe_colon(self):
+        """Optionally consume a colon if present (for if/for/while/match colon-optional syntax)."""
+        if self.peek().type == TokenType.COLON:
+            self.advance()
+
+    def expect_colon(self):
+        """Require a colon or a newline (colon is optional before NEWLINE)."""
+        if self.peek().type == TokenType.COLON:
+            self.advance()
+
     def parse_if(self):
         tok = self.advance()
         cond = self.parse_expr()
-        self.expect(TokenType.COLON)
+        self.expect_colon()
         self.expect(TokenType.NEWLINE)
         body = Block(self.parse_block(), tok.line, tok.col)
         else_body = None
@@ -701,7 +805,7 @@ class Parser:
             if self.match(TokenType.KW_IF):
                 else_body = self.parse_if()
             else:
-                self.expect(TokenType.COLON)
+                self.expect_colon()
                 self.expect(TokenType.NEWLINE)
                 else_body = Block(self.parse_block(), tok.line, tok.col)
         return IfStmt(cond, body, else_body, tok.line, tok.col)
@@ -709,9 +813,9 @@ class Parser:
     def parse_for(self):
         tok = self.advance()
         var = self.expect(TokenType.IDENTIFIER)
-        self.expect(TokenType.KW_IN)
+        self.match(TokenType.KW_IN)
         iterable = self.parse_expr()
-        self.expect(TokenType.COLON)
+        self.expect_colon()
         self.expect(TokenType.NEWLINE)
         body = Block(self.parse_block(), tok.line, tok.col)
         return ForStmt(var.value, iterable, body, tok.line, tok.col)
@@ -719,7 +823,7 @@ class Parser:
     def parse_while(self):
         tok = self.advance()
         cond = self.parse_expr()
-        self.expect(TokenType.COLON)
+        self.expect_colon()
         self.expect(TokenType.NEWLINE)
         body = Block(self.parse_block(), tok.line, tok.col)
         return WhileStmt(cond, body, tok.line, tok.col)

@@ -402,3 +402,44 @@ class IntendStmt(Node):
     def __init__(self, text, line=0, col=0):
         super().__init__(line, col)
         self.text = text
+
+class TypeAliasDecl(Node):
+    __slots__ = ('name', 'type_expr')
+    def __init__(self, name, type_expr, line=0, col=0):
+        super().__init__(line, col)
+        self.name = name
+        self.type_expr = type_expr
+
+class TestGroupDecl(Node):
+    __slots__ = ('name', 'body')
+    def __init__(self, name, body, line=0, col=0):
+        super().__init__(line, col)
+        self.name = name
+        self.body = body
+
+class DocStmt(Node):
+    __slots__ = ('text',)
+    def __init__(self, text, line=0, col=0):
+        super().__init__(line, col)
+        self.text = text
+
+class TryStmt(Node):
+    __slots__ = ('body', 'catch_var', 'catch_body')
+    def __init__(self, body, catch_var=None, catch_body=None, line=0, col=0):
+        super().__init__(line, col)
+        self.body = body
+        self.catch_var = catch_var
+        self.catch_body = catch_body
+
+class ThrowStmt(Node):
+    __slots__ = ('value',)
+    def __init__(self, value, line=0, col=0):
+        super().__init__(line, col)
+        self.value = value
+
+class EnumDecl(Node):
+    __slots__ = ('name', 'cases')
+    def __init__(self, name, cases, line=0, col=0):
+        super().__init__(line, col)
+        self.name = name
+        self.cases = cases

@@ -93,6 +93,15 @@ class TokenType(Enum):
     KW_VERSION = auto()
     KW_CHECK = auto()
 
+    # Optimization keywords
+    KW_TEST = auto()
+    KW_DOC = auto()
+    KW_TYPE = auto()
+    KW_TRY = auto()
+    KW_CATCH = auto()
+    KW_THROW = auto()
+    KW_ENUM = auto()
+
 KEYWORDS = {
     'fn': TokenType.KW_FN,
     'let': TokenType.KW_LET,
@@ -110,6 +119,7 @@ KEYWORDS = {
     'or': TokenType.KW_OR,
     'not': TokenType.KW_NOT,
     'import': TokenType.KW_IMPORT,
+    'imp': TokenType.KW_IMPORT,
     'from': TokenType.KW_FROM,
     'class': TokenType.KW_CLASS,
     'async': TokenType.KW_ASYNC,
@@ -117,24 +127,39 @@ KEYWORDS = {
     'match': TokenType.KW_MATCH,
     'intend': TokenType.KW_INTEND,
     'service': TokenType.KW_SERVICE,
+    'svc': TokenType.KW_SERVICE,
     'database': TokenType.KW_DATABASE,
+    'db': TokenType.KW_DATABASE,
     'api': TokenType.KW_API,
     'page': TokenType.KW_PAGE,
     'schema': TokenType.KW_SCHEMA,
     'model': TokenType.KW_MODEL,
     'expose': TokenType.KW_EXPOSE,
     'requires': TokenType.KW_REQUIRES,
+    'req': TokenType.KW_REQUIRES,
     'ensures': TokenType.KW_ENSURES,
     'invariant': TokenType.KW_INVARIANT,
+    'inv': TokenType.KW_INVARIANT,
     'expect': TokenType.KW_EXPECT,
     'permission': TokenType.KW_PERMISSION,
+    'perm': TokenType.KW_PERMISSION,
     'concurrent': TokenType.KW_CONCURRENT,
+    'conc': TokenType.KW_CONCURRENT,
     'channel': TokenType.KW_CHANNEL,
     'break': TokenType.KW_BREAK,
     'continue': TokenType.KW_CONTINUE,
+    'cont': TokenType.KW_CONTINUE,
     'guarantees': TokenType.KW_GUARANTEES,
+    'gnt': TokenType.KW_GUARANTEES,
     'version': TokenType.KW_VERSION,
     'check': TokenType.KW_CHECK,
+    'test': TokenType.KW_TEST,
+    'doc': TokenType.KW_DOC,
+    'type': TokenType.KW_TYPE,
+    'try': TokenType.KW_TRY,
+    'catch': TokenType.KW_CATCH,
+    'throw': TokenType.KW_THROW,
+    'enum': TokenType.KW_ENUM,
 }
 
 

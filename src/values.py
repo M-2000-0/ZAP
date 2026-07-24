@@ -642,9 +642,12 @@ def make_zap_builtins():
         'cad': 'cron_add',         # cad(cron, fn, interval)
         'cst': 'cron_stop',        # cst(cron)
         'clq': 'cron_list',        # clq(cron)
-        # AI primitive short aliases
-        'pt': 'prompt',            # pt("Hello {name}", name="world")
-        'llm': 'llm',              # llm("What is AI?")
+        # General short aliases
+        'rng': 'range',           # rng(10)
+        'en': 'enumerate',        # enumerate(items)
+        'srt': 'sort',            # srt(xs)
+        'rnd': 'random',          # rnd()
+        'cfg': 'config',          # cfg("key")
         'lch': 'llm_chat',         # lch(messages)
         'emb': 'embedding',        # emb("hello world")
         'csim': 'cosine_sim',      # csim(vec_a, vec_b)

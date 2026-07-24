@@ -169,7 +169,51 @@ PARSE_TYPE_MAP = {
 }
 
 def parse_type_annotation(name):
-    return PARSE_TYPE_MAP.get(name, ANY)
+    name = name.strip()
+    if not name:
+        return ANY
+    if name in PARSE_TYPE_MAP:
+        return PARSE_TYPE_MAP[name]
+    if name.startswith('list[') and name.endswith(']'):
+        inner = parse_type_annotation(name[5:-1])
+        return ListType(inner)
+    if name.startswith('dict[') and name.endswith(']'):
+        inner = name[5:-1]
+        parts = _split_type_union(inner)
+        if len(parts) == 2:
+            return DictType(parse_type_annotation(parts[0]), parse_type_annotation(parts[1]))
+        return DictType(ANY, ANY)
+    if '|' in name:
+        parts = name.split('|')
+        types = [parse_type_annotation(p.strip()) for p in parts]
+        return UnionType(types)
+    if name.startswith('?'):
+        return UnionType([parse_type_annotation(name[1:]), NONE])
+    return ANY
+
+def _split_type_union(s):
+    """Split 'int | str | bool' into ['int', 'str', 'bool'] respecting brackets."""
+    parts = []
+    depth = 0
+    current = []
+    i = 0
+    while i < len(s):
+        ch = s[i]
+        if ch in '([{':
+            depth += 1
+            current.append(ch)
+        elif ch in ')]}':
+            depth -= 1
+            current.append(ch)
+        elif ch == '|' and depth == 0:
+            parts.append(''.join(current).strip())
+            current = []
+        else:
+            current.append(ch)
+        i += 1
+    if current:
+        parts.append(''.join(current).strip())
+    return parts
 
 def type_of_literal(value):
     if isinstance(value, bool): return BOOL
