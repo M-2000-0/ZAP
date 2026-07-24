@@ -1,264 +1,233 @@
-# ZapPhysics - Physics & Chemistry Simulation Engine
+# Zap — AI-Native Full-Stack Language
 
-## Overview
+Zap is a programming language designed for **AI code generation** with minimal tokens and one syntax for backend, frontend, database, config, and contracts. Build AI models with **Zap AI**, deploy apps with **live databases**, and achieve **self-hosting** (Zap written in Zap).
 
-ZapPhysics is a comprehensive physics and chemistry simulation engine built entirely in the **Zap programming language**. It represents one of the most practical and immediately useful implementations of Zap's capabilities for real-world scientific computing, engineering analysis, and professional applications.
+## 🚀 Quick Start
 
-The engine showcases over **15 distinct engineering and scientific applications** that people will actually build and use, ranging from structural analysis tools to interactive educational games, from medical device simulations to generative art installations.
-
-## Key Features
-
-### ✅ Core Demos (5 Working Simulations)
-
-1. **Orbital Mechanics** - N-body gravitational dynamics with central bodies and orbiting planets
-2. **Spring-Mass System** - Damped harmonic oscillator chains and resonance analysis  
-3. **Elastic Collisions** - Momentum-conserving collision physics
-4. **Chemistry Lab** - Molecular builder with bond energies, thermodynamics
-5. **Tensor Operations** - N-body force matrix calculations
-
-### 🚀 Implementation Status
-- **All 5 demos working perfectly** ✅
-- **68+ programming improvements** ✅
-- **Parser bugs fixed** ✅ (comments, dicts, nested structures)
-- **Runtime bugs fixed** ✅ (object repr, class calls)
-
-## 🎯 Why This Matters
-
-ZapPhysics is **the first Zap engine** that demonstrates immediate, practical value:
-
-- **Engineering Tools** - Structural analysis, hydraulic systems, vehicle dynamics
-- **Interactive Experiences** - Educational games, interactive simulations
-- **Professional Applications** - Medical device testing, automotive analysis
-- **Creative Projects** - Generative art, physics-based storytelling
-- **Scientific Computing** - Accurate thermodynamic, kinematic calculations
-- **Educational Tools** - Interactive physics concept visualization
-
-## 🛠️ Technical Implementation
-
-### Core Language Features
-Zap's unique syntax enables natural scientific expression:
-
-```zap
-# Vectors for physics calculations
-class Vec2:
-  fn add(self, other)    # Vector addition
-  fn scale(self, s)      # Scalar multiplication
-  fn length(self)        # Magnitude
-  fn normalize(self)     # Unit vector
-
-# Physics objects
-class Particle:
-  fn init(self, mass, pos, vel)
-  fn apply_force(self, f)
-  fn step(self, dt)       # Physics integration
-
-# Simulation container
-class World:
-  fn add(self, p)         # Add particles
-  fn step(self, dt)      # Run simulation
-```
-
-### Key Language Design
-
-**Indentation-based blocks** (2 spaces) - Natural code readability**Implicit returns** - Code reads like documentation**Reserved keywords** - `page`, `service`, `schema`, etc. for domain-specific language**Dict key syntax** - `{name: "value"}` instead of `{"name": "value"}` for token efficiency**Contract declarations** - `@requires` and `@ensures` for validation**
-
-### Real-World Equations Implemented
-
-**Orbital Mechanics**:
-```
-F = G * m₁ * m₂ / r²
-a = F / m
-t = v / a
-```
-
-**Chemistry**:
-```
-Bond Energy (kJ/mol)     = Sum of individual bond strengths
-Molecular Mass (g/mol)   = Σ atomic_mass * count
-Polarity                = Σ electronegativity difference
-Gibbs Free Energy        = dH - T*dS
-Rate = k * [A]^n * [B]^m
-```
-
-**Tensor Math**:
-```
-matrix_multiply(A, B)[i,j] = Σ A[i,k] * B[k,j]
-vector_operations support element-wise ops
-tensor contraction for efficient N-body calculations
-```
-
-## 📋 Getting Started
-
-### Installation
 ```bash
-# Clone the repository
-git clone https://github.com/M-2000-0/ZAP-physics.git
-
-# Navigate to project
-cd zap-physics
-
-# Install Zap language
+# Install and run
 pip install zap-lang
+zap run examples/hello.zap
 
-# Run ZapPhysics engine
-python main.py examples/zapphysics.zap
+# Or use the CLI
+python main.py run examples/hello.zap
 ```
 
-### Quick Examples
+## ✨ Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **AI-Optimized Syntax** | Short keywords (`fn`, `ret`, `el`), expression form functions, pipe operator |
+| **Self-Hosting** | Zap interpreter written in Zap — `self_host/` contains the full self-hosted stack |
+| **Live Database** | `lib/db.zap` — auto-detects DATABASE_URL, supports Vercel/Netlify/Render/Fly/Heroku/Replit |
+| **Deployment Helpers** | `lib/deploy.zap` — `detect_platform()`, `live_url()`, `is_live()` |
+| **AI Primitives** | Neural networks, embeddings, RAG, prompt templates, LLM completion, cosine similarity |
+| **Token Efficiency** | ~30% less tokens than Python/JS for equivalent code |
+| **Zero-Boilerplate Stdlib** | 248+ builtins (HTTP, JSON, SQLite, crypto, auth, queue, cron) |
+| **Contract System** | `@requires`/`@ensures` pre/post conditions, `expect` test assertions |
+| **Compilation + Cache** | Bytecode compilation with manifest-based caching |
+| **LSP Support** | Semantic tokens, diagnostics integration |
+| **Package Manager** | `zap add <spec>`, `zap install`, lockfile + integrity hashes |
+
+## 💡 Syntax Examples
+
+### Function Definition (Expression Form)
+```zap
+fn add(a, b) a + b
+```
+
+### Class with Methods
+```zap
+class Animal:
+  fn init(self, name)
+    self.name = name
+
+  fn speak(self)
+    print(self.name, "says hello!")
+```
+
+### Match with Else (Optimized)
+```zap
+match status:
+  "active": print("active")
+  "inactive": print("inactive")
+el:
+  print("other")
+```
+
+### Database with Auto-Deploy
+```zap
+import "lib/db.zap"
+
+db_auto("app_db"):
+  users:
+    id: "TEXT PRIMARY KEY"
+    name: "TEXT"
+    email: "TEXT"
+
+db_insert("users", {id: "1", name: "Alice", email: "alice@example.com"})
+let user = db_row("SELECT * FROM users WHERE id = ?", ["1"])
+```
+
+### Type Annotations with Compound Types
+```zap
+fn find_user(users: list[dict[str, any]], id: int) -> dict[str, any]:
+  for u in users:
+    if u["id"] == id:
+      ret u
+  ret none
+```
+
+### Type Aliases
+```zap
+type User = dict[str, any]
+type ID = int
+
+fn get_user(id: ID) -> User | none:
+  ...
+```
+
+### Test Groups & Documentation
+```zap
+test "arithmetic":
+  expect 1 + 1 == 2
+  expect 2 * 3 == 6
+
+doc "Calculates the factorial of n"
+doc param n: "Non-negative integer"
+doc returns: "n! as int"
+fn factorial(n):
+  if n <= 1: ret 1
+  ret n * factorial(n - 1)
+```
+
+### Error Handling
+```zap
+try:
+  let result = divide(a, b)
+catch err:
+  print("Error: " + err)
+
+throw MyError("something went wrong")
+```
+
+### Deployment Detection
+```zap
+import "lib/deploy.zap"
+
+fn main():
+  print("Platform: " + detect_platform())
+  print("Live URL: " + live_url())
+  print("Is live: " + str(is_live()))
+```
+
+### Optional Colon & `in` Syntax
+```zap
+# Colons optional — all three forms work:
+if x > 0:
+  print("positive")
+
+if x > 0
+  print("positive")
+
+for i range(10)
+  print(i)
+```
+
+## 📦 Libraries
+
+| Library | Purpose |
+|---------|---------|
+| `lib/db.zap` | High-level DB with auto-deploy schema, insert/update/delete/select helpers |
+| `lib/deploy.zap` | Platform detection (Vercel/Netlify/Render/Fly/Heroku/Replit/K8s) |
+| `lib/strings.zap` | String utilities |
+| `lib/http.zap` | HTTP client |
+| `lib/collections.zap` | List/dict helpers |
+| `lib/std.zap` | Common utilities re-export |
+| `lib/zap_ai.zap` | AI/ML pipeline, neural network primitives |
+
+## 🔧 CLI Commands
+
 ```bash
-# Hello world example
-python main.py examples/hello.zap
-
-# Comprehensive features demo
-python main.py examples/demo.zap
-
-# AI-native features
-python main.py examples/ai_native.zap
-
-# Blog application (full-stack)
-python main.py examples/blog.zap
-
-# Algorithm demonstration
-python main.py examples/fibo.zap
+zap run <file|folder>     # Run Zap file or auto-detect entrypoint
+zap init <name>            # Scaffold a new Zap project
+zap add <spec>             # Add a dependency
+zap install                # Install dependencies from lockfile
+zap run --format=json <file>  # Machine-readable diagnostics
 ```
 
-### Programmatic API
-```python
-# For advanced users wanting to integrate ZapPhysics programmatically
-from src.evaluator import Evaluator
-from src.parser import Parser
-from src.lexer import Lexer
+## 🧪 Testing
 
-source = open('examples/zapphysics.zap').read()
-tokens = Lexer(source).tokenize()
-prog = Parser(tokens).parse()
-result = Evaluator().evaluate(prog)
+```bash
+# Run all tests
+python -m pytest tests/ -q
+
+# Self-hosting tests
+python test_self_hosting.py
 ```
 
-## 🎯 Application Categories
+## 🤖 AI Code Generation
 
-### Engineering Tools
-- **Structural Analysis** - Truss optimization, beam stress calculation
-- **Hydraulic Systems** - Pipe flow, pump sizing, pressure drop analysis
-- **Vehicle Dynamics** - Crash simulation, suspension analysis
-- **Thermal Systems** - Heat transfer, HVAC design
+Zap is designed so AI models generate correct code with minimal prompt tokens:
 
-### Interactive Experiences
-- **Educational Games** - Physics puzzles, interactive learning
-- **Mobile Apps** - Science education, gamified learning
-- **VR/AR Experiences** - Immersive physics simulations
+- **10-token function** (expression form)
+- **2-token import** vs 4+ in other languages
+- **3-character keywords** (`fn`, `ret`, `el`, `and`, `or`)
+- **Structured contracts** (`@requires`, `@ensures`) for AI reliability
+- **Named test groups** (`test "name":`) for AI-generated test suites
+- **Compound type annotations** (`list[int]`, `dict[str, any]`) so AI knows types
 
-### Healthcare & Medical
-- **Medical Device Testing** - Ventilator simulation, CPR training
-- **Biomechanics** - Running gait analysis, surgical tool simulation
+## 📊 Token Efficiency
 
-### Transportation & Automotive
-- **Traffic Simulation** - Smart traffic light optimization
-- **Vehicle Dynamics** - Suspension tuning, crash analysis
-- **Autonomous Systems** - Path planning, collision avoidance
+| Pattern | Zap Tokens | Python Tokens | JS Tokens |
+|---------|-----------|---------------|-----------|
+| Function def | 10 | 12 | 14 |
+| Print statement | 3 (`? "hi"`) | 4 | 5 |
+| Class method | 8 | 10 | 12 |
+| Import | 2 | 2 | 4 |
+| For loop header | 10 | 10 | 14 |
 
-### Creative & Generative
-- **Generative Art** - Physics-based art installations
-- **Interactive Storytelling** - Physics-driven narratives
-- **Architecture** - Structural design visualization
+## 🏗️ Architecture
 
-## 🏆 Technical Achievement
-
-### Major Bugs Fixed
-1. **Parser Comments** - Comments inside indented blocks
-2. **Dict Literals** - Multi-entry dictionary parsing
-3. **Object Representation** - Proper class printing
-4. **Class Constructor Calls** - Object instantiation
-5. **Version Tracking** - Semantic versioning integration
-
-### Design Philosophy
-- **Self-documenting code** - Methods serve as documentation
-- **Indentation-based blocks** - Natural code structure
-- **Immediate utility** - Practical examples from day one
-- **Scientific precision** - Accurate physical and chemical calculations
-
-## 🚀 Development Roadmap
-
-### Phase 1: Foundation (✅ COMPLETE)
-- ✅ Core physics engines (5 working demos)
-- ✅ Practical application examples (15+ tools)
-- ✅ Bug fixes for stability
-- ✅ Version control and documentation
-
-### Phase 2: Professional Tools (Next 6-12 months)
-- **Engineering Analysis** - CAD integration, FEA capabilities
-- **Medical Training** - Procedure simulation, safety testing
-- **Game Development** - Physics engine licensing
-- **Educational Content** - Curriculum integration, certification
-
-### Phase 3: Advanced Applications (12+ months)
-- **Machine Learning** - Physics-informed neural networks
-- **Cloud Computing** - Distributed simulations
-- **AR/VR Integration** - Immersive experiences
-- **Industry Partnerships** - Commercial licensing
-
-## 📊 Usage Examples
-
-### Engineering Simulation
-```zap
-# Roof truss optimization
-schema RoofTruss
-  base: (0,0) to (20,0)
-  ridge_height: 8
-  material: steel
-  load_points:
-    midpoint: 15 kN
-  
-auto_optimize()
+```
+Zap Source (.zap)
+    ↓ Lexer (src/lexer.py)
+    ↓ Parser (src/parser.py) → AST (src/ast_nodes.py)
+    ↓ Evaluator (src/evaluator.py) / Compiler (src/compiler.py)
+    ↓ Runtime (src/values.py) — 248+ builtins
 ```
 
-### Chemistry Molecular Builder
-```zap
-# Water molecule builder
-molecule H2O
-  atoms: H(2), O(1)
-  bonds:
-    H-O single bond (436 kJ/mol)
-    H-O single bond (436 kJ/mol)
+**Self-hosted stack** (`self_host/`):
+- `tokens.zap` — Token system written in Zap
+- `lexer.zap` — Lexer written in Zap
+- `parser.zap` — Parser written in Zap
+- `ast_nodes.zap` — AST definitions written in Zap
+- `env.zap` — Environment class written in Zap
+- `interpreter.zap` — Full self-hosted interpreter
 
-# Calculate properties
-molecular_mass()  # 18.015 g/mol
-bond_energy()    # 700 kJ/mol
-polarity()       # 2.48 (electronegativity diff)
-```
+## 🔮 Roadmap
 
-### Physics Puzzle Game
-```zap
-# Balance beam puzzle
-class BalanceBeam:
-  fn init(length, supports)
-  fn add_weight(position, mass)
-  fn check_equilibrium()
+- [x] Self-hosted interpreter (Zap→Zap)
+- [x] Auto-deploy database support (lib/db.zap)
+- [x] Deployment platform detection (lib/deploy.zap)
+- [x] Compound type annotations (list[T], dict[K,V], T\|U)
+- [x] Type aliases (`type User = dict[str, any]`)
+- [x] New keywords: `test`, `doc`, `try`/`catch`/`throw`, `enum`
+- [x] Optional colons and optional `in` in for loops
+- [x] 248+ builtins with short aliases
+- [ ] Optional chaining (`?.`) — in progress
+- [ ] Destructuring (`let { a, b } = expr`) — planned
+- [ ] Optional type inference improvements — planned
 
-# Level designer
-level1 = BalanceBeam(100, [50])
-level1.add_weight(30, 10)
-# Result: balanced!
+## 📄 License
 
-level2 = BalanceBeam(100, [30, 70])
-level2.add_weight(30, 5)
-level2.add_weight(50, 10)
-level2.add_weight(70, 15)
-# Result: unbalanced, game over
-```
+MIT
 
-## 🎯 Key Achievements
+## 🔗 Links
 
-✅ **5 working physics simulations** demonstrating scientific accuracy  
-✅ **15+ practical engineering applications** with real-world utility  
-✅ **Major bug fixes** ensuring stability and reliability  
-✅ **Self-documenting code** following Zap's design philosophy  
-✅ **Comprehensive examples** for engineers, educators, and developers  
-✅ **Production-ready** for immediate GitHub launch  
-
-ZapPhysics demonstrates that **Zap can handle real-world scientific computing** - from structural analysis to chemistry, from automotive dynamics to medical simulations - all in one consistent language with one syntax.
-
-**Ready for your GitHub repositories and practical applications!** 🚀
+- **Repository**: https://github.com/M-2000-0/ZAP
+- **Guide**: [GUIDE.md](GUIDE.md)
 
 ---
-*ZapPhysics v1.0 • Building the Future of Scientific Computing with Zap*
+
+*Zap — one syntax, AI-native, deploy-ready.*
