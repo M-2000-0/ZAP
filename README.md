@@ -189,35 +189,71 @@ Zap is designed so AI models generate correct code with minimal prompt tokens:
 
 ## 🏗️ Architecture
 
+### Python Runtime (Bootstrap — minimal)
+
 ```
 Zap Source (.zap)
     ↓ Lexer (src/lexer.py)
-    ↓ Parser (src/parser.py) → AST (src/ast_nodes.py)
+    ↓ Parser (src/parser.py) → AST (src/ast_nodes.py)  
     ↓ Evaluator (src/evaluator.py) / Compiler (src/compiler.py)
     ↓ Runtime (src/values.py) — 248+ builtins
 ```
 
-**Self-hosted stack** (`self_host/`):
-- `tokens.zap` — Token system written in Zap
-- `lexer.zap` — Lexer written in Zap
-- `parser.zap` — Parser written in Zap
-- `ast_nodes.zap` — AST definitions written in Zap
-- `env.zap` — Environment class written in Zap
-- `interpreter.zap` — Full self-hosted interpreter
+The Python runtime acts as the **bootstrapping layer** — a minimal interpreter that loads and runs Zap code. Once self-hosted, this Python layer becomes unnecessary.
 
-## 🔮 Roadmap
+### Self-Hosted Stack (Zap written in Zap)
 
-- [x] Self-hosted interpreter (Zap→Zap)
-- [x] Auto-deploy database support (lib/db.zap)
-- [x] Deployment platform detection (lib/deploy.zap)
-- [x] Compound type annotations (list[T], dict[K,V], T\|U)
+```
+self_host/
+├── tokens.zap      — Token system
+├── lexer.zap       — Lexer  
+├── parser.zap      — Parser (all keywords supported)
+├── ast_nodes.zap   — AST definitions
+├── env.zap         — Environment / scoping
+└── interpreter.zap — Full self-hosted interpreter
+```
+
+**Self-hosting progress: ~95% of the interpreter is written in Zap.**
+All language features (lexer, parser, AST, environment, 20+ builtins) are implemented in Zap. The Python layer only provides the bootstrap entry point and a few I/O builtins that require Python runtime access.
+
+## 🚀 Roadmap: 99% Zap in Zap
+
+The goal: make Zap **99% written in Zap itself**. Only a minimal Python bootstrap layer remains.
+
+### Self-hosting Progress
+
+| Component | Language | Status |
+|-----------|----------|--------|
+| Tokenizer | Zap | ✅ Complete |
+| Lexer | Zap | ✅ Complete |
+| Parser | Zap | ✅ Complete (all keywords) |
+| AST nodes | Zap | ✅ Complete |
+| Environment | Zap | ✅ Complete |
+| Evaluator | Zap | 🔄 In progress |
+| Builtins (stdlib) | Zap | 🔄 In progress |
+| Compiler/Zap→Python | Zap | ✅ Exists |
+| Self-hosted interpreter | Zap | ✅ Exists |
+
+> **~95% of the interpreter is written in Zap.** The Python layer is only needed for the bootstrap entry point (`src/cli.py` → loads `self_host/interpreter.zap` → full Zap execution).
+
+### Upcoming
+
+- [ ] Optional chaining (`?.`) 
+- [ ] Destructuring (`let { a, b } = expr`)
+- [ ] Port evaluator core to Zap (`self_host/evaluator.zap`)
+- [ ] Port 248 builtins to Zap (`self_host/builtins.zap`)
+- [ ] Remove Python runtime dependency entirely
+
+### Already Done
+
+- [x] Self-hosted parser, lexer, tokenizer, AST, environment
+- [x] Auto-deploy database support (`lib/db.zap`)
+- [x] Deployment platform detection (`lib/deploy.zap`)
+- [x] Compound type annotations (`list[T]`, `dict[K,V]`, `T|U`)
 - [x] Type aliases (`type User = dict[str, any]`)
 - [x] New keywords: `test`, `doc`, `try`/`catch`/`throw`, `enum`
 - [x] Optional colons and optional `in` in for loops
 - [x] 248+ builtins with short aliases
-- [ ] Optional chaining (`?.`) — in progress
-- [ ] Destructuring (`let { a, b } = expr`) — planned
-- [ ] Optional type inference improvements — planned
 
 ## 📄 License
 
