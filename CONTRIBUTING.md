@@ -1,89 +1,159 @@
 # Contributing to Zap
 
-Zap is an AI-native full-stack programming language. We welcome contributions!
+Thank you for your interest in contributing to Zap! We're building the language that AI models actually want to write, and we need your help.
+
+## Why Contribute?
+
+- **Shape the future of coding** — You're not just contributing to a language, you're helping define how AI and humans will write code together
+- **Learn a new paradigm** — Experience what a language designed for AI code generation looks like
+- **Build something real** — Zap is self-hosting (written in Zap), so your contributions directly improve the language itself
 
 ## Quick Start
 
 ```bash
+# Clone and run
 git clone https://github.com/M-2000-0/ZAP.git
 cd ZAP
-python main.py run examples/hello.zap
+python -m src run examples/hello.zap
+
+# Run tests
+python -m pytest tests/ -q
 ```
+
+## Ways to Contribute
+
+### 1. Try Zap and Give Feedback
+
+The easiest way to contribute is to **use Zap** and tell us what works and what doesn't:
+
+- Try the examples in `examples/`
+- Write your own code
+- Report issues or confusion
+- Suggest improvements
+
+### 2. Fix Bugs
+
+Look at [open issues](https://github.com/M-2000-0/ZAP/issues) for bugs to fix.
+
+### 3. Add Features
+
+Check the [roadmap](README.md#roadmap) for planned features. If you see something you want to work on, open an issue first to discuss it.
+
+### 4. Improve Documentation
+
+- Fix typos
+- Add examples
+- Improve explanations
+- Translate docs
+
+### 5. Add Examples
+
+Create example `.zap` files that showcase the language. Good examples help new users learn.
+
+### 6. Port Builtins
+
+Help port the 248+ builtins from Python to Zap in `self_host/builtins.zap`.
 
 ## Architecture
 
-- `src/lexer.py` — Tokenizer
-- `src/parser.py` — Recursive-descent parser
-- `src/ast_nodes.py` — AST node definitions
-- `src/evaluator.py` — Runtime evaluator (Python)
-- `src/values.py` — Runtime values and 248+ builtins
-- `src/tokens.py` — Token types and keywords
-- `src/types.py` — Type system and inference
-- `self_host/` — Full Zap interpreter written in Zap
+```
+src/
+  lexer.py          - Tokenizer
+  parser.py         - Recursive descent parser
+  ast_nodes.py      - AST node definitions
+  evaluator.py      - Runtime evaluator
+  values.py         - Runtime values and builtins
+  tokens.py         - Token types and keywords
+  types.py          - Type system
+  cli.py            - Command-line interface
 
-## Key Conventions
+self_host/          - Zap interpreter written in Zap
+  tokens.zap        - Token system
+  lexer.zap         - Lexer
+  parser.zap        - Parser
+  ast_nodes.zap     - AST definitions
+  env.zap           - Environment/scoping
+  evaluator.zap     - Evaluator
+  builtins.zap      - Standard library
 
-- **Keywords**: use short forms (`fn`, `ret`, `el`, `and`, `or`)
-- **No semicolons**: indentation-based blocks
-- **`ret` not `return`**
-- **`el:` not `elif`** (use on separate line with `if`)
-- **`match` is reserved** — use `try_match` for method names
-- **`expect` is reserved** — use `require_token` for method names
-- **`version` is reserved** — use `svc_version` or similar
-- **No default params** — pass all arguments explicitly
-- **No `try/except`** — use `try/catch/throw` syntax
-- **No `raise`** — use `throw`
-- **No tuple syntax** — use dicts `{"key": val}` instead
-- **No `.pop()`** on ZapList — use slice `lst[:len(lst)-1]`
-- **`exit()`** not `sys_exit()`
+lib/                - Standard library
+  db.zap            - Database operations
+  deploy.zap        - Deployment helpers
+  strings.zap       - String utilities
+  http.zap          - HTTP client
+  zap_ai.zap        - AI/ML primitives
+```
 
-## Adding a New Keyword
+## Code Style
 
-1. Add `TokenType.KW_NEW` to `src/tokens.py`
-2. Add `'new': TokenType.KW_NEW` to the KEYWORDS dict
-3. Add AST node to `src/ast_nodes.py`
-4. Add parsing logic to `src/parser.py`
-5. Add evaluation logic to `src/evaluator.py`
-6. Add builtin value to `src/values.py` if needed
-7. Port to `self_host/` files
+### Zap Files
 
-## Adding a New Builtin
+- Use `#` for comments (not `//`)
+- Use `ret` for return (not `return`)
+- Use `el:` for else-if (not `elif` or `else if`)
+- Use indentation with `:` for blocks (not `{}`)
+- Use `fn` for functions (not `function`)
+- Use `and`/`or`/`not` (not `&&`/`||`/`!`)
+- No semicolons
+- No `this` (use `self`)
+- No `null` (use `none`)
 
-1. Define `_stdlib_name` function in `src/values.py`
-2. Register with `env.define('name', ZapBuiltin(_stdlib_name, 'name'))`
-3. Add type signature to `src/types.py` if needed
-4. Add short alias in the `short` dict if applicable
+### Python Files
+
+- Follow PEP 8
+- Use type hints
+- Write docstrings
 
 ## Testing
 
 ```bash
+# Run all tests
 python -m pytest tests/ -q
+
+# Run specific test
+python -m pytest tests/test_cli.py -q
+
+# Run self-hosting tests
 python test_self_hosting.py
 ```
 
-## AI Code Generation Notes
+## Pull Request Process
 
-- Use `fn name(args) expr` expression form for single-line functions
-- Use `@requires` / `@ensures` for contracts
-- Use `test "name":` for test groups
-- Use `doc` for structured documentation
-- Use `try/catch/throw` for error handling
-- Use compound type annotations (`list[int]`, `dict[str, any]`)
+1. **Fork** the repository
+2. **Create** a feature branch (`git checkout -b feature/my-feature`)
+3. **Commit** your changes (`git commit -m 'Add my feature'`)
+4. **Push** to your branch (`git push origin feature/my-feature`)
+5. **Open** a Pull Request
 
-## Deployment
+### PR Guidelines
 
-Zap supports auto-deploy database integration:
+- Keep PRs focused on one change
+- Include tests if adding features
+- Update documentation if needed
+- Follow existing code style
+- Write clear commit messages
 
-```zap
-import "lib/db.zap"
-db_auto("my_db"):
-  users:
-    id: "TEXT PRIMARY KEY"
-    name: "TEXT"
+## Development Setup
+
+```bash
+# Install dependencies
+pip install -e .
+
+# Run in development mode
+python -m src run your_file.zap
+
+# Run tests
+python -m pytest tests/ -q
 ```
 
-Works with Vercel, Netlify, Render, Fly.io, Heroku, Replit, and Kubernetes.
+## Questions?
+
+Open a [discussion](https://github.com/M-2000-0/ZAP/discussions) or ask in issues.
+
+## Code of Conduct
+
+Be respectful, inclusive, and constructive. We're building something cool together.
 
 ---
 
-Thank you for contributing to Zap! 🚀
+Thank you for helping build the language of the future! 🚀

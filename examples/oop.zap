@@ -1,0 +1,78 @@
+# Object-Oriented Programming in Zap
+
+# Define a class
+class BankAccount:
+  fn init(self, owner, balance):
+    self.owner = owner
+    self.balance = balance
+    self.transactions = []
+
+  fn deposit(self, amount):
+    if amount <= 0:
+      print("Error: amount must be positive")
+      ret none
+    self.balance = self.balance + amount
+    self.transactions.append("Deposit: +" + str(amount))
+    ret self.balance
+
+  fn withdraw(self, amount):
+    if amount <= 0:
+      print("Error: amount must be positive")
+      ret none
+    if amount > self.balance:
+      print("Error: insufficient funds")
+      ret none
+    self.balance = self.balance - amount
+    self.transactions.append("Withdrawal: -" + str(amount))
+    ret self.balance
+
+  fn get_balance(self):
+    ret self.balance
+
+  fn get_statement(self):
+    print("=== Statement for " + self.owner + " ===")
+    print("Current Balance: $" + str(self.balance))
+    print("")
+    for t in self.transactions:
+      print("  " + t)
+    print("")
+
+# Inheritance
+class SavingsAccount(BankAccount):
+  fn init(self, owner, balance, interest_rate):
+    BankAccount.init(self, owner, balance)
+    self.interest_rate = interest_rate
+
+  fn apply_interest(self):
+    let interest = self.balance * self.interest_rate / 100
+    self.deposit(interest)
+    self.transactions.append("Interest: +" + str(interest))
+    ret self.balance
+
+# Demo
+print("=== Bank Account Demo ===")
+print("")
+
+# Create accounts
+let checking = BankAccount("Alice", 1000)
+let savings = SavingsAccount("Bob", 5000, 5)
+
+# Perform transactions
+checking.deposit(500)
+checking.withdraw(200)
+checking.deposit(100)
+
+savings.deposit(1000)
+savings.apply_interest()
+
+# Print statements
+checking.get_statement()
+savings.get_statement()
+
+# Polymorphism
+fn print_balance(account):
+  print(account.owner + "'s balance: $" + str(account.get_balance()))
+
+print("=== Polymorphism Demo ===")
+print_balance(checking)
+print_balance(savings)
