@@ -1,0 +1,114 @@
+{
+  "name": "zap-language",
+  "displayName": "Zap Language",
+  "description": "AI-native full-stack language with syntax highlighting, autocomplete, and error checking",
+  "version": "0.1.0",
+  "publisher": "zap-lang",
+  "author": {
+    "name": "Zap Language"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/M-2000-0/ZAP"
+  },
+  "engines": {
+    "vscode": "^1.85.0"
+  },
+  "categories": [
+    "Programming Languages"
+  ],
+  "keywords": [
+    "zap",
+    "ai",
+    "language",
+    "full-stack",
+    "syntax highlighting",
+    "autocomplete"
+  ],
+  "activationEvents": [
+    "onLanguage:zap"
+  ],
+  "main": "./src/extension.js",
+  "contributes": {
+    "languages": [
+      {
+        "id": "zap",
+        "aliases": [
+          "Zap",
+          "zap"
+        ],
+        "extensions": [
+          ".zap"
+        ],
+        "configuration": "./language-configuration.json"
+      }
+    ],
+    "grammars": [
+      {
+        "language": "zap",
+        "scopeName": "source.zap",
+        "path": "./syntaxes/zap.tmLanguage.json"
+      }
+    ],
+    "snippets": [
+      {
+        "language": "zap",
+        "label": "Zap Snippets",
+        "path": "./snippets/zap.json"
+      }
+    ],
+    "commands": [
+      {
+        "command": "zap.runFile",
+        "title": "Zap: Run Current File",
+        "icon": "$(play)"
+      },
+      {
+        "command": "zap.runProject",
+        "title": "Zap: Run Project",
+        "icon": "$(folder-opened)"
+      },
+      {
+        "command": "zap.format",
+        "title": "Zap: Format Document",
+        "icon": "$(symbol-misc)"
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "zap.runFile",
+          "when": "editorLangId == zap",
+          "group": "zap"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Zap Language",
+      "properties": {
+        "zap.executablePath": {
+          "type": "string",
+          "default": "zap",
+          "description": "Path to the Zap executable"
+        },
+        "zap.autoFormat": {
+          "type": "boolean",
+          "default": true,
+          "description": "Auto-format on save"
+        },
+        "zap.lintEnabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable real-time linting"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "echo 'No build step required'",
+    "lint": "echo 'Linting not configured'"
+  },
+  "devDependencies": {},
+  "dependencies": {}
+}

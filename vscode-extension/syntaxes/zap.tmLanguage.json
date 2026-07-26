@@ -1,0 +1,150 @@
+{
+  "name": "Zap",
+  "scopeName": "source.zap",
+  "fileTypes": ["zap"],
+  "patterns": [
+    {
+      "name": "comment.line.number-sign.zap",
+      "match": "#.*$"
+    },
+    {
+      "name": "comment.block.documentation.zap",
+      "match": "##.*$"
+    },
+    {
+      "name": "string.quoted.double.zap",
+      "begin": "\"",
+      "end": "\"",
+      "patterns": [
+        {
+          "name": "constant.character.escape.zap",
+          "match": "\\\\."
+        }
+      ]
+    },
+    {
+      "name": "string.quoted.single.zap",
+      "begin": "'",
+      "end": "'",
+      "patterns": [
+        {
+          "name": "constant.character.escape.zap",
+          "match": "\\\\."
+        }
+      ]
+    },
+    {
+      "name": "constant.numeric.float.zap",
+      "match": "\\b\\d+\\.\\d+\\b"
+    },
+    {
+      "name": "constant.numeric.integer.zap",
+      "match": "\\b\\d+\\b"
+    },
+    {
+      "name": "constant.language.boolean.true.zap",
+      "match": "\\b(true|false)\\b"
+    },
+    {
+      "name": "constant.language.none.zap",
+      "match": "\\b(none)\\b"
+    },
+    {
+      "name": "keyword.control.zap",
+      "match": "\\b(if|el:|else|elif|for|in|while|ret|return|break|continue|pass)\\b"
+    },
+    {
+      "name": "keyword.function.zap",
+      "match": "\\b(fn)\\b"
+    },
+    {
+      "name": "keyword.class.zap",
+      "match": "\\b(class)\\b"
+    },
+    {
+      "name": "keyword.operator.logical.zap",
+      "match": "\\b(and|or|not)\\b"
+    },
+    {
+      "name": "keyword.import.zap",
+      "match": "\\b(import|from|as)\\b"
+    },
+    {
+      "name": "keyword.exception.zap",
+      "match": "\\b(try|catch|throw|finally)\\b"
+    },
+    {
+      "name": "keyword.other.zap",
+      "match": "\\b(match|test|doc|schema|api|service|database|channel|concurrent|check|expect|requires|ensures|invariant|permission|version|expose|enum|type|let|mut)\\b"
+    },
+    {
+      "name": "support.function.builtin.zap",
+      "match": "\\b(print|input|len|str|int|float|type|range|append|remove|sort|reverse|map|filter|reduce|zip|enumerate|abs|min|max|sum|round|hash|uuid|random|time|date|now|sleep|read_file|write_file|file_exists|list_dir|http_get|http_post|json_parse|json_stringify|base64_encode|base64_decode|sha256|md5|hmac|encrypt|decrypt|sign|verify|random_string|random_int|random_float|choice|shuffle|flatten|unique|group_by|sort_by|count|sum|average|median|mean|stdev|variance|clamp|lerp|normalize|sign|ceil|floor|trunc|factorial|gcd|lcm|is_prime|fibonacci|pi|e|tau|inf|nan|nan|infinity|epsilon|nil|null|undefined|true|false|void|nothing|empty|blank|nullish|option|maybe|either|result|ok|err|left|right|some|none|just|nothing)\\b"
+    },
+    {
+      "name": "variable.language.self.zap",
+      "match": "\\b(self)\\b"
+    },
+    {
+      "name": "entity.name.function.zap",
+      "match": "\\b([a-zA-Z_][a-zA-Z0-9_]*)\\s*(?=\\()"
+    },
+    {
+      "name": "entity.name.class.zap",
+      "match": "\\b([A-Z][a-zA-Z0-9_]*)\\s*(?=\\{|:|$)"
+    },
+    {
+      "name": "variable.other.zap",
+      "match": "\\b([a-z_][a-zA-Z0-9_]*)\\b"
+    },
+    {
+      "name": "variable.parameter.zap",
+      "match": "\\b([a-z_][a-zA-Z0-9_]*)\\s*(?=:)"
+    },
+    {
+      "name": "storage.type.annotation.zap",
+      "match": "->\\s*\\b([A-Z][a-zA-Z0-9_]*|[a-z][a-zA-Z0-9_]*(\\[.*?\\])?)\\b"
+    },
+    {
+      "name": "keyword.operator.assignment.zap",
+      "match": "(\\=|\\+\\=|\\-\\=|\\*\\=|/\\=|%\\=)"
+    },
+    {
+      "name": "keyword.operator.comparison.zap",
+      "match": "(==|!=|<=|>=|<|>)"
+    },
+    {
+      "name": "keyword.operator.arithmetic.zap",
+      "match": "(\\+|\\-|\\*|/|%)"
+    },
+    {
+      "name": "keyword.operator.logical.zap",
+      "match": "(&&|\\|\\||\\!)"
+    },
+    {
+      "name": "keyword.operator.pipe.zap",
+      "match": "\\|>"
+    },
+    {
+      "name": "keyword.operator.spread.zap",
+      "match": "\\.\\.\\."
+    },
+    {
+      "name": "keyword.operator.arrow.zap",
+      "match": "->"
+    },
+    {
+      "name": "punctuation.bracket.zap",
+      "match": "[\\(\\)\\[\\]\\{\\}]"
+    },
+    {
+      "name": "punctuation.separator.zap",
+      "match": "[,;:]"
+    },
+    {
+      "name": "punctuation.section.block.zap",
+      "match": ":\\s*$"
+    }
+  ],
+  "repository": {}
+}

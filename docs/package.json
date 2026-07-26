@@ -1,0 +1,12 @@
+{
+  "name": "zap-docs",
+  "version": "1.0.0",
+  "description": "Zap Language Documentation",
+  "scripts": {
+    "start": "npx serve .",
+    "build": "echo 'Static site - no build required'"
+  },
+  "keywords": ["zap", "language", "documentation"],
+  "author": "Zap Language",
+  "license": "MIT"
+}

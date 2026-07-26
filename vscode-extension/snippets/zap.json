@@ -1,0 +1,160 @@
+{
+  "Function Definition": {
+    "prefix": "fn",
+    "body": [
+      "fn ${1:name}(${2:params}):",
+      "\t${3:body}"
+    ],
+    "description": "Define a function"
+  },
+  "Class Definition": {
+    "prefix": "class",
+    "body": [
+      "class ${1:Name}:",
+      "\tfn init(self${2:, params}):",
+      "\t\t${3:body}"
+    ],
+    "description": "Define a class"
+  },
+  "If Statement": {
+    "prefix": "if",
+    "body": [
+      "if ${1:condition}:",
+      "\t${2:body}"
+    ],
+    "description": "If statement"
+  },
+  "Else If": {
+    "prefix": "el",
+    "body": [
+      "el:",
+      "\tif ${1:condition}:",
+      "\t\t${2:body}"
+    ],
+    "description": "Else if statement"
+  },
+  "Else": {
+    "prefix": "el:",
+    "body": [
+      "el:",
+      "\t${1:body}"
+    ],
+    "description": "Else statement"
+  },
+  "For Loop": {
+    "prefix": "for",
+    "body": [
+      "for ${1:item} in ${2:iterable}:",
+      "\t${3:body}"
+    ],
+    "description": "For loop"
+  },
+  "While Loop": {
+    "prefix": "while",
+    "body": [
+      "while ${1:condition}:",
+      "\t${2:body}"
+    ],
+    "description": "While loop"
+  },
+  "Match Statement": {
+    "prefix": "match",
+    "body": [
+      "match ${1:value}:",
+      "\t${2:case}: ${3:result}",
+      "el:",
+      "\t${4:default}"
+    ],
+    "description": "Pattern matching"
+  },
+  "Try Catch": {
+    "prefix": "try",
+    "body": [
+      "try:",
+      "\t${1:body}",
+      "catch ${2:err}:",
+      "\t${3:error handling}"
+    ],
+    "description": "Error handling"
+  },
+  "Schema Definition": {
+    "prefix": "schema",
+    "body": [
+      "schema ${1:Name}:",
+      "\t${2:field}: ${3:type}"
+    ],
+    "description": "Define a data schema"
+  },
+  "API Endpoint": {
+    "prefix": "api",
+    "body": [
+      "api ${1:GET} \"${2:/path}\":",
+      "\t${3:handler}"
+    ],
+    "description": "Define an API endpoint"
+  },
+  "Service Definition": {
+    "prefix": "service",
+    "body": [
+      "service ${1:Name}:",
+      "\t${2:body}"
+    ],
+    "description": "Define a service"
+  },
+  "Print Statement": {
+    "prefix": "print",
+    "body": [
+      "print(${1:message})"
+    ],
+    "description": "Print to console"
+  },
+  "Let Variable": {
+    "prefix": "let",
+    "body": [
+      "let ${1:name} = ${2:value}"
+    ],
+    "description": "Declare a variable"
+  },
+  "Return Statement": {
+    "prefix": "ret",
+    "body": [
+      "ret ${1:value}"
+    ],
+    "description": "Return a value"
+  },
+  "Import Statement": {
+    "prefix": "import",
+    "body": [
+      "import \"${1:module}\""
+    ],
+    "description": "Import a module"
+  },
+  "List Comprehension": {
+    "prefix": "comp",
+    "body": [
+      "[${1:expr} for ${2:item} in ${3:iterable}]"
+    ],
+    "description": "List comprehension"
+  },
+  "Dict Comprehension": {
+    "prefix": "dcomp",
+    "body": [
+      "{${1:key}: ${2:value} for ${3:item} in ${4:iterable}}"
+    ],
+    "description": "Dictionary comprehension"
+  },
+  "Lambda Function": {
+    "prefix": "lambda",
+    "body": [
+      "${1:param} => ${2:expr}"
+    ],
+    "description": "Lambda function"
+  },
+  "Pipe Operator": {
+    "prefix": "pipe",
+    "body": [
+      "${1:value} |> ${2:function}"
+    ],
+    "description": "Pipe operator"
+  }
+}
