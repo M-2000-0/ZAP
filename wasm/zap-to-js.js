@@ -1,240 +1,227 @@
 #!/usr/bin/env node
 
-/**
- * Zap to JavaScript Transpiler
- * Compiles Zap code to JavaScript for WebAssembly compilation
- */
-
 const fs = require('fs');
-const path = require('path');
 
 class ZapToJS {
     constructor() {
-        this.indent = 0;
+        this.blocks = [];
         this.output = [];
-        this.variables = new Set();
+        this.classNames = new Set();
     }
 
     transpile(zapCode) {
         const lines = zapCode.split('\n');
         this.output = [];
-        this.indent = 0;
+        this.blocks = [];
+        this.classNames = new Set();
 
-        for (const line of lines) {
-            this.transpileLine(line.trim());
+        for (const raw of lines) {
+            if (raw.trim() === '' || raw.trim().startsWith('#')) {
+                this.output.push('');
+                continue;
+            }
+            const indent = raw.search(/\S/);
+            const line = raw.trim();
+
+            const cm = line.match(/^class\s+(\w+):?\s*$/);
+            if (cm) this.classNames.add(cm[1]);
+
+            if (line.startsWith('el: if ') || line.startsWith('el:if ')) {
+                const m = line.match(/^el:\s*if\s+(.+?):?\s*$/);
+                if (m) {
+                    if (this.blocks.length > 0) this.blocks.pop();
+                    const ind = '  '.repeat(this.blocks.length);
+                    this.output.push(ind + `} else if (${this.transpileExpr(m[1])}) {`);
+                    this.blocks.push({ indent, type: 'else if' });
+                    continue;
+                }
+            }
+
+            if (line === 'el:') {
+                if (this.blocks.length > 0) this.blocks.pop();
+                const ind = '  '.repeat(this.blocks.length);
+                this.output.push(ind + '} else {');
+                this.blocks.push({ indent, type: 'else' });
+                continue;
+            }
+
+            while (this.blocks.length > 0 && indent <= this.blocks[this.blocks.length - 1].indent) {
+                const block = this.blocks.pop();
+                const ind = '  '.repeat(this.blocks.length);
+                this.output.push(ind + '}');
+            }
+
+            const ind = '  '.repeat(this.blocks.length);
+
+            if (line.startsWith('class ')) {
+                const m = line.match(/^class\s+(\w+):?\s*$/);
+                if (m) {
+                    this.output.push(ind + `class ${m[1]} {`);
+                    this.blocks.push({ indent, type: 'class', className: m[1] });
+                    continue;
+                }
+            }
+
+            const inClass = this.blocks.some(b => b.type === 'class');
+
+            if (line.startsWith('fn ') && inClass) {
+                const m = line.match(/^fn\s+(\w+)\s*\((.*?)\):?\s*$/);
+                if (m) {
+                    let params = m[2];
+                    let jsParams = params;
+                    if (params.startsWith('self')) {
+                        jsParams = params.split(',').slice(1).map(p => p.trim()).join(', ');
+                    }
+                    const name = m[1] === 'init' ? 'constructor' : m[1];
+                    this.output.push(ind + `${name}(${jsParams}) {`);
+                    this.blocks.push({ indent, type: 'fn' });
+                    continue;
+                }
+            }
+
+            if (line.startsWith('fn ')) {
+                const m = line.match(/^fn\s+(\w+)\s*\((.*?)\):?\s*$/);
+                if (m) {
+                    this.output.push(ind + `function ${m[1]}(${m[2]}) {`);
+                    this.blocks.push({ indent, type: 'fn' });
+                    continue;
+                }
+            }
+
+            if (line.startsWith('if ')) {
+                const m = line.match(/^if\s+(.+?):?\s*$/);
+                if (m) {
+                    this.output.push(ind + `if (${this.transpileExpr(m[1])}) {`);
+                    this.blocks.push({ indent, type: 'if' });
+                    continue;
+                }
+            }
+
+            if (line.startsWith('while ')) {
+                const m = line.match(/^while\s+(.+?):?\s*$/);
+                if (m) {
+                    this.output.push(ind + `while (${this.transpileExpr(m[1])}) {`);
+                    this.blocks.push({ indent, type: 'while' });
+                    continue;
+                }
+            }
+
+            if (line.startsWith('for ')) {
+                const m = line.match(/^for\s+(\w+)\s+in\s+(.+?):?\s*$/);
+                if (m) {
+                    this.output.push(ind + `for (const ${m[1]} of ${this.transpileExpr(m[2])}) {`);
+                    this.blocks.push({ indent, type: 'for' });
+                    continue;
+                }
+            }
+
+            if (line.startsWith('ret ')) {
+                let val = line.slice(4).trim();
+                if (val === 'self') val = 'this';
+                this.output.push(ind + `return ${this.transpileExpr(val)};`);
+                continue;
+            }
+
+            if (line === 'ret') {
+                this.output.push(ind + 'return;');
+                continue;
+            }
+
+            if (line.startsWith('let ')) {
+                const m = line.match(/^let\s+(\w+)\s*=\s*(.+)$/);
+                if (m) {
+                    this.output.push(ind + `let ${m[1]} = ${this.transpileExpr(m[2])};`);
+                    continue;
+                }
+            }
+
+            if (line.startsWith('print(')) {
+                const m = line.match(/^print\((.+)\)$/);
+                if (m) {
+                    this.output.push(ind + `console.log(${this.transpileExpr(m[1])});`);
+                    continue;
+                }
+            }
+
+            if (line === 'exit()') {
+                this.output.push(ind + 'process.exit(0);');
+                continue;
+            }
+
+            this.output.push(ind + this.transpileExpr(line) + ';');
+        }
+
+        while (this.blocks.length > 0) {
+            this.blocks.pop();
+            const ind = '  '.repeat(this.blocks.length);
+            this.output.push(ind + '}');
         }
 
         return this.output.join('\n');
     }
 
-    transpileLine(line) {
-        // Skip empty lines and comments
-        if (!line || line.startsWith('#')) {
-            this.output.push('');
-            return;
-        }
-
-        // Function definition
-        if (line.startsWith('fn ')) {
-            this.transpileFunction(line);
-            return;
-        }
-
-        // Class definition
-        if (line.startsWith('class ')) {
-            this.transpileClass(line);
-            return;
-        }
-
-        // If statement
-        if (line.startsWith('if ')) {
-            this.transpileIf(line);
-            return;
-        }
-
-        // Else if
-        if (line === 'el:') {
-            this.output.push(this.getIndent() + '} else {');
-            return;
-        }
-
-        // Else
-        if (line === 'el:') {
-            this.output.push(this.getIndent() + '} else {');
-            return;
-        }
-
-        // While loop
-        if (line.startsWith('while ')) {
-            this.transpileWhile(line);
-            return;
-        }
-
-        // For loop
-        if (line.startsWith('for ')) {
-            this.transpileFor(line);
-            return;
-        }
-
-        // Return statement
-        if (line.startsWith('ret ')) {
-            const value = line.slice(4);
-            this.output.push(this.getIndent() + `return ${this.transpileExpr(value)};`);
-            return;
-        }
-
-        // Variable declaration
-        if (line.startsWith('let ')) {
-            this.transpileLet(line);
-            return;
-        }
-
-        // Print statement
-        if (line.startsWith('print(')) {
-            this.transpilePrint(line);
-            return;
-        }
-
-        // Regular expression
-        this.output.push(this.getIndent() + this.transpileExpr(line) + ';');
-    }
-
-    transpileFunction(line) {
-        const match = line.match(/^fn\s+(\w+)\s*\((.*?)\):?\s*$/);
-        if (match) {
-            const name = match[1];
-            const params = match[2];
-            this.output.push(this.getIndent() + `function ${name}(${params}) {`);
-            this.indent++;
-        }
-    }
-
-    transpileClass(line) {
-        const match = line.match(/^class\s+(\w+):?\s*$/);
-        if (match) {
-            const name = match[1];
-            this.output.push(this.getIndent() + `class ${name} {`);
-            this.indent++;
-        }
-    }
-
-    transpileIf(line) {
-        const match = line.match(/^if\s+(.+):?\s*$/);
-        if (match) {
-            const condition = this.transpileExpr(match[1]);
-            this.output.push(this.getIndent() + `if (${condition}) {`);
-            this.indent++;
-        }
-    }
-
-    transpileWhile(line) {
-        const match = line.match(/^while\s+(.+):?\s*$/);
-        if (match) {
-            const condition = this.transpileExpr(match[1]);
-            this.output.push(this.getIndent() + `while (${condition}) {`);
-            this.indent++;
-        }
-    }
-
-    transpileFor(line) {
-        const match = line.match(/^for\s+(\w+)\s+in\s+(.+):?\s*$/);
-        if (match) {
-            const varName = match[1];
-            const iterable = this.transpileExpr(match[2]);
-            this.output.push(this.getIndent() + `for (const ${varName} of ${iterable}) {`);
-            this.indent++;
-        }
-    }
-
-    transpileLet(line) {
-        const match = line.match(/^let\s+(\w+)\s*=\s*(.+)$/);
-        if (match) {
-            const name = match[1];
-            const value = this.transpileExpr(match[2]);
-            this.output.push(this.getIndent() + `let ${name} = ${value};`);
-            this.variables.add(name);
-        }
-    }
-
-    transpilePrint(line) {
-        const match = line.match(/^print\((.+)\)$/);
-        if (match) {
-            const args = this.transpileExpr(match[1]);
-            this.output.push(this.getIndent() + `console.log(${args});`);
-        }
-    }
-
     transpileExpr(expr) {
         expr = expr.trim();
 
-        // String literals
-        if (expr.startsWith('"') && expr.endsWith('"')) {
-            return expr;
-        }
-        if (expr.startsWith("'") && expr.endsWith("'")) {
-            return expr.replace(/'/g, '"');
+        for (const cn of this.classNames) {
+            const re = new RegExp(`\\b${cn}\\(`, 'g');
+            expr = expr.replace(re, `new ${cn}(`);
         }
 
-        // Number literals
-        if (/^\d+(\.\d+)?$/.test(expr)) {
+        if ((expr.startsWith('"') && expr.endsWith('"')) || (expr.startsWith("'") && expr.endsWith("'"))) {
+            if (expr.startsWith("'")) {
+                expr = '"' + expr.slice(1, -1).replace(/"/g, '\\"') + '"';
+            }
             return expr;
         }
 
-        // Boolean literals
+        if (/^\d+(\.\d+)?$/.test(expr)) return expr;
         if (expr === 'true') return 'true';
         if (expr === 'false') return 'false';
         if (expr === 'none') return 'null';
+        if (expr === 'infinity') return 'Infinity';
+        if (expr === 'pi') return 'Math.PI';
 
-        // Operators
         expr = expr.replace(/\band\b/g, '&&');
         expr = expr.replace(/\bor\b/g, '||');
         expr = expr.replace(/\bnot\b/g, '!');
+        expr = expr.replace(/\bself\./g, 'this.');
 
-        // Function calls
-        expr = expr.replace(/(\w+)\((.*?)\)/g, (match, name, args) => {
-            if (name === 'len') return `Array.isArray(${args}) ? ${args}.length : ${args}.length`;
-            if (name === 'str') return `String(${args})`;
-            if (name === 'int') return `parseInt(${args})`;
-            if (name === 'float') return `parseFloat(${args})`;
-            if (name === 'range') return `Array.from({length: ${args}}, (_, i) => i)`;
-            if (name === 'append') return `${args.split(',')[0]}.push(${args.split(',')[1]})`;
-            return `${name}(${args})`;
-        });
-
-        // List literals
-        expr = expr.replace(/\[(.*?)\]/g, (match, items) => {
-            return `[${items}]`;
-        });
-
-        // Dict literals
-        expr = expr.replace(/\{(.*?)\}/g, (match, items) => {
-            return `{${items}}`;
-        });
+        expr = expr.replace(/\blen\(([^)]+)\)/g, (_, a) => `(${a}).length`);
+        expr = expr.replace(/\bstr\(([^)]+)\)/g, (_, a) => `String(${a})`);
+        expr = expr.replace(/\bint\(([^)]+)\)/g, (_, a) => `parseInt(${a})`);
+        expr = expr.replace(/\bfloat\(([^)]+)\)/g, (_, a) => `parseFloat(${a})`);
+        expr = expr.replace(/\babs\(([^)]+)\)/g, (_, a) => `Math.abs(${a})`);
+        expr = expr.replace(/\bsqrt\(([^)]+)\)/g, (_, a) => `Math.sqrt(${a})`);
+        expr = expr.replace(/\bexp\(([^)]+)\)/g, (_, a) => `Math.exp(${a})`);
+        expr = expr.replace(/\blog\(([^)]+)\)/g, (_, a) => `Math.log(${a})`);
+        expr = expr.replace(/\bpow\(([^,]+),\s*([^)]+)\)/g, (_, a, b) => `Math.pow(${a}, ${b})`);
+        expr = expr.replace(/\bmax\(([^,]+),\s*([^)]+)\)/g, (_, a, b) => `Math.max(${a}, ${b})`);
+        expr = expr.replace(/\bmin\(([^,]+),\s*([^)]+)\)/g, (_, a, b) => `Math.min(${a}, ${b})`);
+        expr = expr.replace(/\bord\(([^)]+)\)/g, (_, a) => `${a}.charCodeAt(0)`);
+        expr = expr.replace(/\brange\(([^)]+)\)/g, (_, a) => `Array.from({length: ${a}}, (_, i) => i)`);
+        expr = expr.replace(/\.append\(([^)]+)\)/g, (_, a) => `.push(${a})`);
+        expr = expr.replace(/\.remove\(([^)]+)\)/g, (_, a) => `.splice(${a}, 1)`);
+        expr = expr.replace(/\.keys\(\)/g, '.keys()');
+        expr = expr.replace(/\.values\(\)/g, '.values()');
+        expr = expr.replace(/\.items\(\)/g, '.entries()');
+        expr = expr.replace(/\.slice\(([^)]+)\)/g, (_, a) => `.slice(${a})`);
 
         return expr;
     }
-
-    getIndent() {
-        return '  '.repeat(this.indent);
-    }
 }
 
-// CLI usage
 if (require.main === module) {
     const args = process.argv.slice(2);
-
     if (args.length === 0) {
         console.error('Usage: node zap-to-js.js <input.zap> [output.js]');
         process.exit(1);
     }
-
     const inputFile = args[0];
     const outputFile = args[1] || inputFile.replace('.zap', '.js');
-
     const zapCode = fs.readFileSync(inputFile, 'utf-8');
     const transpiler = new ZapToJS();
     const jsCode = transpiler.transpile(zapCode);
-
     fs.writeFileSync(outputFile, jsCode);
     console.log(`Compiled ${inputFile} -> ${outputFile}`);
 }
