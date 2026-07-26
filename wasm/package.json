@@ -1,0 +1,13 @@
+{
+  "name": "zap-wasm",
+  "version": "0.1.0",
+  "description": "Zap to WebAssembly compiler",
+  "main": "zap-to-js.js",
+  "scripts": {
+    "test": "node test.js",
+    "compile": "node zap-to-js.js"
+  },
+  "keywords": ["zap", "wasm", "webassembly", "compiler"],
+  "author": "Zap Language",
+  "license": "MIT"
+}
