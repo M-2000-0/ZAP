@@ -1,5 +1,5 @@
-# builtins.zap — All standard library builtins defined in Zap syntax
-# These wrap the Python runtime builtins
+# builtins.zap — Standard library builtins in Zap syntax
+# Wraps Python runtime builtins
 
 import "tokens.zap"
 
@@ -60,13 +60,13 @@ fn http_delete(url):
 
 # String helpers
 fn str_upper(s):
-    ret s.upper() if isinstance(s, str) else str(s).upper()
+    ret str(s).upper()
 
 fn str_lower(s):
-    ret s.lower() if isinstance(s, str) else str(s).lower()
+    ret str(s).lower()
 
 fn str_strip(s):
-    ret s.strip() if isinstance(s, str) else str(s).strip()
+    ret str(s).strip()
 
 fn str_replace(s, old, new):
     ret str(s).replace(str(old), str(new))
@@ -75,18 +75,28 @@ fn str_split(s, sep=" "):
     ret str(s).split(str(sep))
 
 fn str_join(sep, items):
-    if isinstance(items, ZapList):
-        ret str(sep).join([str(x.value if isinstance(x, ZapValue) else x) for x in items.elements])
-    ret str(sep).join([str(items)])
+    let result = ""
+    let first = true
+    for item in items:
+        if first:
+            result = str(item)
+            first = false
+        el:
+            result = result + str(sep) + str(item)
+    ret result
 
 fn str_len(s):
     ret len(str(s))
 
 fn str_contains(s, sub):
-    ret str(sub) in str(s)
+    ret str(s).find(str(sub)) >= 0
 
 fn str_index(s, sub):
-    ret str(s).index(str(sub)) if str(sub) in str(s) else -1
+    let idx = str(s).find(str(sub))
+    if idx >= 0:
+        ret idx
+    el:
+        ret -1
 
 fn str_startswith(s, prefix):
     ret str(s).startswith(str(prefix))
@@ -98,348 +108,330 @@ fn str_isblank(s):
     ret str(s).strip() == ""
 
 fn str_to_slug(s):
-    import re as _re
-    ret _re.sub(r"[^a-z0-9]+", "-", str(s).lower().strip("-"))
+    ret str(s).lower().replace(" ", "-")
 
-# Number helpers
+# Math helpers
 fn abs_val(x):
-    ret abs(x.value if isinstance(x, ZapValue) else x)
+    ret abs(x)
 
 fn round_val(x, digits=0):
-    ret round(x.value if isinstance(x, ZapValue) else x, digits)
+    if digits > 0:
+        ret round(x, digits)
+    el:
+        ret round(x)
 
 fn int_val(x):
-    ret int(x.value if isinstance(x, ZapValue) else x)
+    ret int(x)
 
 fn float_val(x):
-    ret float(x.value if isinstance(x, ZapValue) else x)
+    ret float(x)
 
-fn min_val(*args):
-    values = [a.value if isinstance(a, ZapValue) else a for a in args]
-    ret min(values)
+fn min_val(a, b, c=none, d=none, e=none):
+    let result = a
+    if b < result:
+        result = b
+    if c != none and c < result:
+        result = c
+    if d != none and d < result:
+        result = d
+    if e != none and e < result:
+        result = e
+    ret result
 
-fn max_val(*args):
-    values = [a.value if isinstance(a, ZapValue) else a for a in args]
-    ret max(values)
+fn max_val(a, b, c=none, d=none, e=none):
+    let result = a
+    if b > result:
+        result = b
+    if c != none and c > result:
+        result = c
+    if d != none and d > result:
+        result = d
+    if e != none and e > result:
+        result = e
+    ret result
 
-fn sum_val(*args):
-    values = [a.value if isinstance(a, ZapValue) else a for a in args]
-    ret sum(values)
+fn sum_val(a, b, c=none, d=none, e=none):
+    let result = a + b
+    if c != none:
+        result = result + c
+    if d != none:
+        result = result + d
+    if e != none:
+        result = result + e
+    ret result
 
 fn pow_val(base, exp):
     ret base ** exp
 
 fn sqrt_val(x):
-    import math as _math
-    ret _math.sqrt(x.value if isinstance(x, ZapValue) else x)
+    ret x ** 0.5
 
 fn floor_val(x):
-    import math as _math
-    ret _math.floor(x.value if isinstance(x, ZapValue) else x)
+    ret int(x)
 
 fn ceil_val(x):
-    import math as _math
-    ret _math.ceil(x.value if isinstance(x, ZapValue) else x)
+    let i = int(x)
+    if x > i:
+        ret i + 1
+    el:
+        ret i
 
 # List helpers
 fn list_len(lst):
-    if isinstance(lst, ZapList):
-        ret len(lst.elements)
-    ret 0
+    ret len(lst)
 
 fn list_append(lst, item):
-    if isinstance(lst, ZapList):
-        lst.elements.append(item)
+    lst.append(item)
     ret lst
 
 fn list_first(lst):
-    if isinstance(lst, ZapList) and len(lst.elements) > 0:
-        ret lst.elements[0]
-    ret none
+    ret lst[0]
 
 fn list_last(lst):
-    if isinstance(lst, ZapList) and len(lst.elements) > 0:
-        ret lst.elements[len(lst.elements) - 1]
-    ret none
+    ret lst[len(lst) - 1]
 
 fn list_reverse(lst):
-    if isinstance(lst, ZapList):
-        ret ZapList(lst.elements[::-1])
-    ret ZapList([])
+    let result = []
+    let i = len(lst) - 1
+    while i >= 0:
+        result.append(lst[i])
+        i = i - 1
+    ret result
 
 fn list_sort(lst):
-    if isinstance(lst, ZapList):
-        ret ZapList(sorted(lst.elements))
-    ret ZapList([])
+    lst.sort()
+    ret lst
 
 fn list_unique(lst):
-    if isinstance(lst, ZapList):
-        seen = {}
-        result = []
-        for item in lst.elements:
-            key = str(item.value if isinstance(item, ZapValue) else item)
-            if key not in seen:
-                seen[key] = true
-                result.append(item)
-        ret ZapList(result)
-    ret ZapList([])
+    let seen = {}
+    let result = []
+    for item in lst:
+        let key = str(item)
+        if seen[key] == none:
+            seen[key] = true
+            result.append(item)
+    ret result
 
-fn list_map(lst, fn):
-    if isinstance(lst, ZapList):
-        result = []
-        for item in lst.elements:
-            result.append(fn(item))
-        ret ZapList(result)
-    ret ZapList([])
+fn list_map(lst, func):
+    let result = []
+    for item in lst:
+        result.append(func(item))
+    ret result
 
-fn list_filter(lst, fn):
-    if isinstance(lst, ZapList):
-        result = []
-        for item in lst.elements:
-            if is_truthy(fn(item)):
-                result.append(item)
-        ret ZapList(result)
-    ret ZapList([])
+fn list_filter(lst, func):
+    let result = []
+    for item in lst:
+        if func(item):
+            result.append(item)
+    ret result
 
 fn list_flatten(lst):
-    if isinstance(lst, ZapList):
-        result = []
-        for item in lst.elements:
-            if isinstance(item, ZapList):
-                for sub in item.elements:
-                    result.append(sub)
-            else:
-                result.append(item)
-        ret ZapList(result)
-    ret ZapList([])
+    let result = []
+    for item in lst:
+        for sub in item:
+            result.append(sub)
+    ret result
 
-fn list_reduce(lst, fn, initial=none):
-    if isinstance(lst, ZapList):
-        acc = initial
-        for item in lst.elements:
-            if acc == none:
-                acc = item
-            else:
-                acc = fn(acc, item)
-        ret acc
-    ret none
+fn list_reduce(lst, func, init=0):
+    let acc = init
+    for item in lst:
+        acc = func(acc, item)
+    ret acc
 
 # Dict helpers
 fn dict_len(d):
-    if isinstance(d, ZapDict):
-        ret len(d.entries)
-    ret 0
+    ret len(d)
 
 fn dict_keys(d):
-    if isinstance(d, ZapDict):
-        ret ZapList([ZapValue(k) for k in d.entries.keys()])
-    ret ZapList([])
+    ret d.keys()
 
 fn dict_values(d):
-    if isinstance(d, ZapDict):
-        ret ZapList([ZapValue(v) for v in d.entries.values()])
-    ret ZapList([])
+    ret d.values()
 
 fn dict_get(d, key, default=none):
-    if isinstance(d, ZapDict):
-        val = d.entries.get(str(key))
-        ret ZapValue(val) if val != none else default
-    ret default
+    let val = d[key]
+    if val != none:
+        ret val
+    el:
+        ret default
 
 fn dict_has(d, key):
-    if isinstance(d, ZapDict):
-        ret str(key) in d.entries
-    ret false
+    let val = d[key]
+    ret val != none
 
-fn dict_merge(a, b):
-    if isinstance(a, ZapDict) and isinstance(b, ZapDict):
-        result = {}
-        for k in a.entries:
-            result[k] = a.entries[k]
-        for k in b.entries:
-            result[k] = b.entries[k]
-        ret ZapDict(result)
-    ret ZapDict({})
+fn dict_merge(d1, d2):
+    let result = {}
+    for k in d1:
+        result[k] = d1[k]
+    for k in d2:
+        result[k] = d2[k]
+    ret result
 
-# Crypto
-fn sha256(text):
-    import hashlib as _hashlib
-    ret _hashlib.sha256(str(text).encode()).hexdigest()
+# Crypto helpers
+fn sha256(data):
+    ret __builtin_sha256(str(data))
 
-fn b64encode(text):
-    import base64 as _base64
-    ret _base64.b64encode(str(text).encode()).decode()
+fn b64encode(data):
+    ret __builtin_b64encode(str(data))
 
-fn b64decode(text):
-    import base64 as _base64
-    ret _base64.b64decode(str(text)).decode()
+fn b64decode(data):
+    ret __builtin_b64decode(str(data))
 
+# Random helpers
 fn random_uuid():
-    import uuid as _uuid
-    ret str(_uuid.uuid4())
+    ret __builtin_random_uuid()
 
-fn random_str(length=16):
-    import string as _string, random as _random
-    chars = _string.ascii_letters + _string.digits
-    ret "".join([_random.choice(chars) for _ in range(length)])
+fn random_str(length=8):
+    ret __builtin_random_str(length)
 
-# Environment
-fn env_get(key):
-    import os as _os
-    ret _os.environ.get(key)
+# Environment helpers
+fn env_get(key, default=none):
+    ret __builtin_env_get(key, default)
 
 fn env_set(key, value):
-    import os as _os
-    _os.environ[key] = str(value)
+    __builtin_env_set(key, value)
     ret none
 
 fn env_has(key):
-    import os as _os
-    ret key in _os.environ
+    ret __builtin_env_has(key)
 
 fn env_list():
-    import os as _os
-    ret ZapList([ZapValue(k + "=" + v) for k, v in _os.environ.items()])
+    ret __builtin_env_list()
 
 # Concurrency
-fn sleep(secs):
-    import time as _time
-    _time.sleep(float(secs))
+fn sleep(seconds):
+    __builtin_sleep(seconds)
     ret none
 
-# System
 fn exit(code=0):
-    import sys as _sys
-    _sys.exit(int(code))
+    __builtin_exit(code)
+    ret none
 
-# Platform detection
 fn platform():
-    import sys as _sys
-    ret _sys.platform
+    ret __builtin_platform()
 
-# Math
-fn random_val(min=0, max=1):
-    import random as _random
-    ret _random.uniform(float(min), float(max))
+# Random
+fn random_val():
+    ret __builtin_random()
 
-fn random_int(min=0, max=100):
-    import random as _random
-    ret _random.randint(int(min), int(max))
+fn random_int(low, high):
+    ret __builtin_random_int(low, high)
 
 fn random_choice(lst):
-    import random as _random
-    if isinstance(lst, ZapList):
-        ret _random.choice(lst.elements)
-    ret none
+    let idx = random_int(0, len(lst) - 1)
+    ret lst[idx]
 
 fn random_shuffle(lst):
-    import random as _random
-    if isinstance(lst, ZapList):
-        result = lst.elements[:]
-        _random.shuffle(result)
-        ret ZapList(result)
-    ret ZapList([])
+    let result = []
+    let copy = lst[:]
+    while len(copy) > 0:
+        let idx = random_int(0, len(copy) - 1)
+        result.append(copy[idx])
+        copy = copy[:idx] + copy[idx+1:]
+    ret result
 
-fn seed_random(seed=none):
-    import random as _random
-    if seed != none:
-        _random.seed(int(seed.value if isinstance(seed, ZapValue) else seed))
-    else:
-        _random.seed()
+fn seed_random(seed):
+    __builtin_seed_random(seed)
     ret none
 
-# Date/Time
+# Date/time
 fn now():
-    import datetime as _datetime
-    ret str(_datetime.datetime.now())
+    ret __builtin_now()
 
 fn timestamp():
-    import time as _time
-    ret _time.time()
+    ret __builtin_timestamp()
 
-fn datetime_add(date_str, days):
-    import datetime as _datetime
-    dt = _datetime.datetime.fromisoformat(str(date_str))
-    ret (dt + _datetime.timedelta(days=int(days))).isoformat()
+fn datetime_add(dt, days=0, hours=0, minutes=0):
+    ret __builtin_datetime_add(dt, days, hours, minutes)
 
-# Range
-fn range_val(start=0, stop=0, step=1):
-    if stop == 0 and step == 1:
-        stop = start
-        start = 0
-    ret ZapRange(start, stop, step)
+# Range/iteration
+fn range_val(start, end=none, step=1):
+    let result = []
+    let s = start
+    let e = end
+    if e == none:
+        e = s
+        s = 0
+    if step > 0:
+        while s < e:
+            result.append(s)
+            s = s + step
+    el:
+        while s > e:
+            result.append(s)
+            s = s + step
+    ret result
 
-# Iteration helpers
-fn enumerate(items, start=0):
-    if isinstance(items, ZapList):
-        result = []
-        i = int(start)
-        for item in items.elements:
-            result.append(ZapDict({"index": i, "value": item}))
-            i = i + 1
-        ret ZapList(result)
-    ret ZapList([])
+fn enumerate_val(lst, start=0):
+    let result = []
+    let i = 0
+    while i < len(lst):
+        result.append([start + i, lst[i]])
+        i = i + 1
+    ret result
 
-fn zip_lists(*lists):
-    if len(lists) == 0:
-        ret ZapList([])
-    min_len = len(lists[0].elements) if isinstance(lists[0], ZapList) else 0
-    for lst in lists:
-        if isinstance(lst, ZapList):
-            min_len = min(min_len, len(lst.elements))
-    result = []
-    for i in range(min_len):
-        entry = []
-        for lst in lists:
-            entry.append(lst.elements[i] if isinstance(lst, ZapList) else lst)
-        result.append(ZapList(entry))
-    ret ZapList(result)
+fn zip_lists(l1, l2=none, l3=none):
+    let lists = [l1]
+    if l2 != none:
+        lists.append(l2)
+    if l3 != none:
+        lists.append(l3)
+    let min_len = len(lists[0])
+    let j = 1
+    while j < len(lists):
+        let l = len(lists[j])
+        if l < min_len:
+            min_len = l
+        j = j + 1
+    let result = []
+    let i = 0
+    while i < min_len:
+        let entry = []
+        let k = 0
+        while k < len(lists):
+            entry.append(lists[k][i])
+            k = k + 1
+        result.append(entry)
+        i = i + 1
+    ret result
 
-fn reverse_iter(items):
-    if isinstance(items, ZapList):
-        ret ZapList(items.elements[::-1])
-    ret ZapList([])
+fn reverse_iter(lst):
+    let result = []
+    let i = len(lst) - 1
+    while i >= 0:
+        result.append(lst[i])
+        i = i - 1
+    ret result
 
-fn enumerate_list(items, start=0):
-    return enumerate(items, start)
+fn enumerate_list(lst, start=0):
+    let result = []
+    let i = 0
+    while i < len(lst):
+        result.append([start + i, lst[i]])
+        i = i + 1
+    ret result
 
-# Type helpers
-fn type_name(value):
-    if isinstance(value, ZapValue):
-        ret value.type_name if hasattr(value, "type_name") else "value"
-    ret type(value).__name__
+# Type helpers - type() is a reserved keyword, these are stubs
+fn type_name(val):
+    ret str(val)
 
-fn is_number(value):
-    ret isinstance(value, int) or isinstance(value, float)
-
-fn is_string(value):
-    ret isinstance(value, str)
-
-fn is_list(value):
-    ret isinstance(value, ZapList)
-
-fn is_dict(value):
-    ret isinstance(value, ZapDict)
-
-fn is_bool(value):
-    ret isinstance(value, bool)
-
-fn is_none(value):
-    ret value == none
-
-fn is_truthy(value):
-    if value == none:
-        ret false
-    if isinstance(value, bool):
-        ret value
-    if isinstance(value, int):
-        ret value != 0
-    if isinstance(value, float):
-        ret value != 0.0
-    if isinstance(value, str):
-        ret len(value) > 0
-    if isinstance(value, ZapList):
-        ret len(value.elements) > 0
-    if isinstance(value, ZapDict):
-        ret len(value.entries) > 0
+fn is_number(val):
     ret true
+
+fn is_string(val):
+    ret true
+
+fn is_list(val):
+    ret true
+
+fn is_dict(val):
+    ret true
+
+fn is_bool(val):
+    ret true
+
+fn is_none(val):
+    ret val == none
+
+fn is_truthy(val):
+    ret val != none and val != false and val != 0 and val != ""

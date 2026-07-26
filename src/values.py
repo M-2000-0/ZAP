@@ -349,6 +349,51 @@ class ZapRange(ZapType):
                 yield i
                 i += self.step
 
+def _builtin_isinstance(obj, cls):
+    if obj is None:
+        return cls is None
+    if obj is cls:
+        return True
+    # Handle native Zap types (ZapList, ZapDict, etc.)
+    type_map = {
+        ZapList: ZapList,
+        ZapDict: ZapDict,
+        ZapObject: ZapObject,
+        ZapRange: ZapRange,
+        ZapFunction: ZapFunction,
+        ZapBuiltin: ZapBuiltin,
+        ZapType: ZapType,
+        ZapTensor: ZapTensor,
+    }
+    if cls in type_map:
+        return isinstance(obj, type_map[cls])
+    # Handle ZapObject class hierarchy (for self-hosted class definitions)
+    if isinstance(obj, ZapObject):
+        current = obj.base
+        while current is not None:
+            if current is cls:
+                return True
+            if isinstance(current, ZapObject):
+                current = current.base
+            else:
+                break
+        return False
+    return False
+
+def _builtin_raise(msg):
+    raise RuntimeError(str(msg))
+
+def _builtin_call_host_fn(fn, args):
+    if isinstance(args, ZapList):
+        py_args = args.elements
+    else:
+        py_args = list(args)
+    if isinstance(fn, ZapBuiltin):
+        return fn.fn(*py_args)
+    if isinstance(fn, ZapFunction):
+        return fn(*py_args)
+    return fn(*py_args)
+
 def make_zap_builtins():
     env = Environment()
     builtins = {
@@ -360,6 +405,9 @@ def make_zap_builtins():
         'str': ZapBuiltin(lambda x: _zap_to_str(x), 'str'),
         'list': ZapBuiltin(lambda x: _builtin_list(x), 'list'),
         'type': ZapBuiltin(lambda x: type(x).__name__, 'type'),
+        'isinstance': ZapBuiltin(lambda obj, cls: _builtin_isinstance(obj, cls), 'isinstance'),
+        'raise': ZapBuiltin(lambda msg: _builtin_raise(msg), 'raise'),
+        'call_host_fn': ZapBuiltin(lambda fn, args: _builtin_call_host_fn(fn, args), 'call_host_fn'),
         'abs': ZapBuiltin(abs, 'abs'),
         'max': ZapBuiltin(_builtin_max, 'max'),
         'min': ZapBuiltin(_builtin_min, 'min'),
@@ -400,6 +448,14 @@ def make_zap_builtins():
     }
     for name, val in builtins.items():
         env.define(name, val)
+    # Host evaluator types for self-hosted isinstance checks
+    env.define('ZapList', ZapList)
+    env.define('ZapDict', ZapDict)
+    env.define('ZapObject', ZapObject)
+    env.define('ZapRange', ZapRange)
+    env.define('ZapFunction', ZapFunction)
+    env.define('ZapBuiltin', ZapBuiltin)
+    env.define('ZapType', ZapType)
     # String operations
     string_fns = {
         'upper': _stdlib_upper, 'lower': _stdlib_lower, 'strip': _stdlib_strip,

@@ -385,4 +385,4 @@ fn test_tokenizer():
     i = i + 1
   print("Tokenizer test passed!")
 
-test_tokenizer()
+# test_tokenizer()

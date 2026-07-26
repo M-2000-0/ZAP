@@ -174,8 +174,15 @@ class Evaluator:
         value = self._eval_expr(stmt.value)
         target_name = None
         if isinstance(stmt.target, Identifier):
-            self.env.set(stmt.target.name, value)
-            target_name = stmt.target.name
+            name = stmt.target.name
+            if self.env.parent is None:
+                self.env.set(name, value)
+            else:
+                if self.env.has(name):
+                    self.env.set(name, value)
+                else:
+                    self.env.define(name, value)
+            target_name = name
         elif isinstance(stmt.target, MemberAccess):
             obj = self._eval_expr(stmt.target.obj)
             if isinstance(obj, ZapObject):

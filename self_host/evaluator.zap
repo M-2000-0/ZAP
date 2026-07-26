@@ -11,8 +11,12 @@ class ReturnSignal:
     self.value = value
 
 class BreakSignal:
+  fn init(self):
+    self.value = none
 
 class ContinueSignal:
+  fn init(self):
+    self.value = none
 
 class InterpreterError:
   fn init(self, msg, line, col):
@@ -20,11 +24,39 @@ class InterpreterError:
     self.line = line
     self.col = col
 
-fn evaluate(program, env=none):
-  if env == none:
-    env = Environment(none)
+fn unwrap_list(val):
+  if isinstance(val, ZapList):
+    ret val.elements
+  ret val
+
+fn setup_builtins(env):
+  env.define("print", print)
+  env.define("len", len)
+  env.define("str", str)
+  env.define("range", range)
+  env.define("int", int)
+  env.define("float", float)
+  env.define("isinstance", isinstance)
+  env.define("abs", abs)
+  env.define("max", max)
+  env.define("min", min)
+  env.define("sum", sum)
+  env.define("round", round)
+  env.define("ZapList", ZapList)
+  env.define("ZapDict", ZapDict)
+  env.define("ZapObject", ZapObject)
+  env.define("ZapRange", ZapRange)
+  env.define("ZapFunction", ZapFunction)
+  env.define("ZapBuiltin", ZapBuiltin)
+  env.define("ZapType", ZapType)
+  print("setup_builtins done, print in env: " + str(env.has_name("print")))
+
+fn evaluate(program, env):
   results = []
-  for stmt in program.stmts:
+  let raw_stmts = program.stmts
+  let stmts = unwrap_list(raw_stmts)
+  for i in range(len(stmts)):
+    let stmt = stmts[i]
     result = eval_stmt(stmt, env)
     if result != none:
       results.append(result)
@@ -37,7 +69,11 @@ fn eval_stmt(stmt, env):
     ret none
   if isinstance(stmt, AssignStmt):
     value = eval_expr(stmt.value, env)
-    env.set_value(stmt.target.name, value)
+    # Use define for new locals in function scopes, set_value for existing/module
+    if env.has_name(stmt.target.name) == false and env.parent != none:
+      env.define(stmt.target.name, value)
+    el:
+      env.set_value(stmt.target.name, value)
     ret none
   if isinstance(stmt, FnDef):
     closure = env.clone()
@@ -45,7 +81,7 @@ fn eval_stmt(stmt, env):
     ret none
   if isinstance(stmt, ClassDef):
     methods = {}
-    for method in stmt.methods:
+    for method in unwrap_list(stmt.methods):
       methods[method.name] = method
     env.define(stmt.name, ZapClassDef(stmt.name, methods))
     ret none
@@ -58,28 +94,34 @@ fn eval_stmt(stmt, env):
     ret none
   if isinstance(stmt, ForStmt):
     iterable = eval_expr(stmt.iterable, env)
-    items = []
+    items = none
     if isinstance(iterable, ZapList):
-      items = iterable.elements
+      items = unwrap_list(iterable)
     if isinstance(iterable, ZapRange):
       items = iterable._iter()
+    if items == none:
+      raise InterpreterError("cannot iterate over " + str(type(iterable)), stmt.line, stmt.col)
     for item in items:
       env.define(stmt.var, item)
       try:
         eval_block(stmt.body, env)
-      except BreakSignal:
-        break
-      except ContinueSignal:
-        continue
+      catch sig:
+        if isinstance(sig, BreakSignal):
+          break
+        if isinstance(sig, ContinueSignal):
+          continue
+        raise sig
     ret none
   if isinstance(stmt, WhileStmt):
     while is_truthy(eval_expr(stmt.condition, env)):
       try:
         eval_block(stmt.body, env)
-      except BreakSignal:
-        break
-      except ContinueSignal:
-        continue
+      catch sig:
+        if isinstance(sig, BreakSignal):
+          break
+        if isinstance(sig, ContinueSignal):
+          continue
+        raise sig
     ret none
   if isinstance(stmt, RetStmt):
     if stmt.value == none:
@@ -122,7 +164,7 @@ fn eval_block(block, env):
 
 fn eval_match(stmt, env):
   value = eval_expr(stmt.value, env)
-  for case in stmt.cases:
+  for case in unwrap_list(stmt.cases):
     pattern = case.pattern
     body = case.body
     if isinstance(pattern, Identifier) and pattern.name == "_":
@@ -138,16 +180,16 @@ fn eval_match(stmt, env):
 fn eval_try(stmt, env):
   try:
     eval_block(stmt.body, env)
-  except ReturnSignal as sig:
-    raise sig
-  except BreakSignal as sig:
-    raise sig
-  except ContinueSignal as sig:
-    raise sig
-  except InterpreterError:
+  catch sig:
+    if isinstance(sig, ReturnSignal):
+      raise sig
+    if isinstance(sig, BreakSignal):
+      raise sig
+    if isinstance(sig, ContinueSignal):
+      raise sig
     if stmt.catch_body != none:
       if stmt.catch_var != none:
-        env.define(stmt.catch_var, ZapValue("error"))
+        env.define(stmt.catch_var, sig)
       eval_block(stmt.catch_body, env)
   ret none
 
@@ -175,7 +217,7 @@ fn eval_expr(expr, env):
   if isinstance(expr, Call):
     callee = eval_expr(expr.callee, env)
     args = []
-    for arg in expr.args:
+    for arg in unwrap_list(expr.args):
       args.append(eval_expr(arg, env))
     ret call_function(callee, args, env)
   if isinstance(expr, MemberAccess):
@@ -187,12 +229,12 @@ fn eval_expr(expr, env):
     ret get_index(obj, idx)
   if isinstance(expr, ListLiteral):
     elements = []
-    for elem in expr.elements:
+    for elem in unwrap_list(expr.elements):
       elements.append(eval_expr(elem, env))
     ret ZapList(elements)
   if isinstance(expr, DictLiteral):
     entries = {}
-    for entry in expr.entries:
+    for entry in unwrap_list(expr.entries):
       key = str(eval_expr(entry.key, env))
       value = eval_expr(entry.value, env)
       entries[key] = value
@@ -253,36 +295,50 @@ fn is_truthy(value):
   ret true
 
 fn call_function(callee, args, env):
+  print("CALL_FUNCTION callee=" + str(callee))
   if isinstance(callee, ZapClosure):
     ret call_closure(callee, args, env)
   if isinstance(callee, ZapLambda):
     ret call_lambda(callee, args, env)
   if isinstance(callee, ZapClassDef):
     ret instantiate_class(callee, args, env)
+  if isinstance(callee, ZapBuiltin):
+    ret call_host_fn(callee, args)
+  if isinstance(callee, ZapFunction):
+    ret call_host_fn(callee, args)
   raise InterpreterError("TypeError: not callable", 0, 0)
 
 fn call_closure(closure, args, env):
   new_env = Environment(closure.closure)
-  fn = closure.func
-  for i in range(len(fn.params)):
-    param = fn.params[i]
-    param_name = param.value if isinstance(param, Identifier) else str(param)
+  func = closure.func
+  let params = unwrap_list(func.params)
+  for i in range(len(params)):
+    param = params[i]
+    if isinstance(param, Identifier):
+      param_name = param.value
+    el:
+      param_name = str(param)
     if i < len(args):
       new_env.define(param_name, args[i])
     else:
       new_env.define(param_name, none)
   try:
-    eval_block(fn.body, new_env)
+    eval_block(func.body, new_env)
     ret none
-  except ReturnSignal as sig:
-    ret sig.value
+  catch sig:
+    if isinstance(sig, ReturnSignal):
+      ret sig.value
+    raise sig
 
 fn call_lambda(lam, args, env):
   new_env = Environment(lam.closure)
   lambda_fn = lam.lambda_expr
   for i in range(len(lambda_fn.params)):
     param = lambda_fn.params[i]
-    param_name = param.value if isinstance(param, Identifier) else str(param)
+    if isinstance(param, Identifier):
+      param_name = param.value
+    el:
+      param_name = str(param)
     if i < len(args):
       new_env.define(param_name, args[i])
     else:
@@ -291,26 +347,32 @@ fn call_lambda(lam, args, env):
 
 fn instantiate_class(klass, args, env):
   obj_env = Environment(env)
-  for attr_name, attr_value in klass.fields.items():
-    obj_env.define(attr_name, attr_value)
-  for method_name, method in klass.methods.items():
-    obj_env.define(method_name, ZapBoundMethod(method, obj_env))
+  for attr_name in klass.fields:
+    obj_env.define(attr_name, klass.fields[attr_name])
+  for method_name in klass.methods:
+    obj_env.define(method_name, ZapBoundMethod(klass.methods[method_name], obj_env))
   ret ZapInstance(klass.name, obj_env)
 
 fn get_attr(obj, member):
-  if isinstance(obj, ZapInstance) and member in obj.env.bindings:
+  if isinstance(obj, ZapInstance) and obj.env.get_value(member) != none:
     ret obj.env.get_value(member)
   raise InterpreterError("AttributeError: " + member + " not found", 0, 0)
 
 fn get_index(obj, idx):
   if isinstance(obj, ZapList):
-    idx_int = int(idx.value) if isinstance(idx, ZapValue) else int(idx)
+    if isinstance(idx, ZapValue):
+      idx_int = int(idx.value)
+    el:
+      idx_int = int(idx)
     if idx_int < len(obj.elements):
       ret obj.elements[idx_int]
     ret none
   if isinstance(obj, ZapDict):
     entry = obj.entries.get(str(idx))
-    ret ZapValue(entry) if entry != none else none
+    if entry != none:
+      ret ZapValue(entry)
+    el:
+      ret none
   ret none
 
 class ZapClosure:
