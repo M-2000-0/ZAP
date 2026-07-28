@@ -93,18 +93,18 @@ class ZapFunction(ZapType):
         self._call = self._default_call
 
     def _default_call(self, *args):
+        from .evaluator import Evaluator, ReturnSignal
         env = Environment(self.closure)
+        local_eval = Evaluator(is_main=False)
+        local_eval.env = env
+        local_eval.global_env = self.closure
         for i, param in enumerate(self.params):
             if i < len(args):
                 env.define(param['name'], args[i])
             elif param.get('default') is not None:
-                env.define(param['name'], param['default'])
+                env.define(param['name'], local_eval._eval_expr(param['default']))
             else:
                 env.define(param['name'], None)
-        from .evaluator import Evaluator, ReturnSignal
-        local_eval = Evaluator(is_main=False)
-        local_eval.env = env
-        local_eval.global_env = self.closure
         for contract in self.contracts:
             if contract.kind == 'requires':
                 cond_env = Environment(env)
@@ -318,12 +318,38 @@ class ZapList(ZapType):
         self.elements.append(item)
         return self
 
+    def __iter__(self):
+        return iter(self.elements)
+
+    def __len__(self):
+        return len(self.elements)
+
     def __repr__(self):
         return f"[{', '.join(repr(e) for e in self.elements)}]"
 
 class ZapDict(ZapType):
     def __init__(self, entries=None):
-        self.entries = dict(entries or {})
+        if isinstance(entries, ZapDict):
+            self.entries = dict(entries.entries)
+        elif entries is not None:
+            self.entries = dict(entries)
+        else:
+            self.entries = {}
+
+    def __getitem__(self, key):
+        return self.entries[key]
+
+    def __setitem__(self, key, value):
+        self.entries[key] = value
+
+    def get(self, key, default=None):
+        return self.entries.get(key, default)
+
+    def __iter__(self):
+        return iter(self.entries.keys())
+
+    def __len__(self):
+        return len(self.entries)
 
     def __repr__(self):
         items = ', '.join(f"{k!r}: {v!r}" for k, v in self.entries.items())
@@ -348,6 +374,12 @@ class ZapRange(ZapType):
             while i > self.stop:
                 yield i
                 i += self.step
+
+    def __repr__(self):
+        return '[' + ', '.join(str(x) for x in self) + ']'
+
+    def __str__(self):
+        return self.__repr__()
 
 def _builtin_isinstance(obj, cls):
     if obj is None:
@@ -406,6 +438,7 @@ def make_zap_builtins():
         'list': ZapBuiltin(lambda x: _builtin_list(x), 'list'),
         'type': ZapBuiltin(lambda x: type(x).__name__, 'type'),
         'isinstance': ZapBuiltin(lambda obj, cls: _builtin_isinstance(obj, cls), 'isinstance'),
+        'getattr': ZapBuiltin(lambda obj, name: getattr(obj, name) if isinstance(obj, (ZapDict, ZapList)) else getattr(obj, name), 'getattr'),
         'raise': ZapBuiltin(lambda msg: _builtin_raise(msg), 'raise'),
         'call_host_fn': ZapBuiltin(lambda fn, args: _builtin_call_host_fn(fn, args), 'call_host_fn'),
         'abs': ZapBuiltin(abs, 'abs'),

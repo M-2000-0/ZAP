@@ -15,11 +15,12 @@ fn run_file(filepath):
     print("Error: cannot read " + filepath)
     ret none
   print("=== Running: " + filepath + " ===")
-  let toks = tokenize(src, filepath)
+  let lexer = Lexer(src, filepath)
+  let toks = lexer.tokenize()
   if len(toks) == 0:
     print("No tokens found")
     ret none
-  let parser = Parser(toks, filepath)
+  let parser = Parser(toks)
   let ast = parser.parse()
   if ast == none:
     print("Parse failed")
@@ -31,8 +32,9 @@ fn run_file(filepath):
   ret result
 
 fn run_source(source, name="<stdin>"):
-  let toks = tokenize(source, name)
-  let parser = Parser(toks, name)
+  let lexer = Lexer(source, name)
+  let toks = lexer.tokenize()
+  let parser = Parser(toks)
   let ast = parser.parse()
   if ast == none:
     print("Parse failed")

@@ -802,7 +802,7 @@ class Parser:
         else_body = None
         if self.peek().type == TokenType.KW_EL:
             self.advance()
-            if self.match(TokenType.KW_IF):
+            if self.peek().type == TokenType.KW_IF:
                 else_body = self.parse_if()
             else:
                 self.expect_colon()
@@ -1140,6 +1140,20 @@ class Parser:
                         condition = self.parse_expr()
                     self.expect(TokenType.RBRACKET)
                     return ListComprehension(first, bindings, condition, tok.line, tok.col)
+                # Check for dict literal: ["key": value]
+                if self.peek().type == TokenType.COLON:
+                    self.advance()  # consume ':'
+                    value_expr = self.parse_expr()
+                    entries = [(first, value_expr)]
+                    while self.match(TokenType.COMMA):
+                        if self.peek().type == TokenType.RBRACKET:
+                            break
+                        key = self.parse_expr()
+                        self.expect(TokenType.COLON)
+                        val = self.parse_expr()
+                        entries.append((key, val))
+                    self.expect(TokenType.RBRACKET)
+                    return DictLiteral(entries, tok.line, tok.col)
                 elements.append(first)
                 while self.match(TokenType.COMMA):
                     if self.peek().type == TokenType.RBRACKET:

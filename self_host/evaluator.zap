@@ -37,6 +37,7 @@ fn setup_builtins(env):
   env.define("int", int)
   env.define("float", float)
   env.define("isinstance", isinstance)
+  env.define("getattr", getattr)
   env.define("abs", abs)
   env.define("max", max)
   env.define("min", min)
@@ -94,11 +95,7 @@ fn eval_stmt(stmt, env):
     ret none
   if isinstance(stmt, ForStmt):
     iterable = eval_expr(stmt.iterable, env)
-    items = none
-    if isinstance(iterable, ZapList):
-      items = unwrap_list(iterable)
-    if isinstance(iterable, ZapRange):
-      items = iterable._iter()
+    items = list(iterable)
     if items == none:
       raise InterpreterError("cannot iterate over " + str(type(iterable)), stmt.line, stmt.col)
     for item in items:
@@ -295,7 +292,6 @@ fn is_truthy(value):
   ret true
 
 fn call_function(callee, args, env):
-  print("CALL_FUNCTION callee=" + str(callee))
   if isinstance(callee, ZapClosure):
     ret call_closure(callee, args, env)
   if isinstance(callee, ZapLambda):
@@ -314,14 +310,18 @@ fn call_closure(closure, args, env):
   let params = unwrap_list(func.params)
   for i in range(len(params)):
     param = params[i]
-    if isinstance(param, Identifier):
-      param_name = param.value
+    let param_name
+    if type(param) == "ZapDict":
+      param_name = param["name"]
     el:
-      param_name = str(param)
+      param_name = param.value
     if i < len(args):
       new_env.define(param_name, args[i])
     else:
-      new_env.define(param_name, none)
+      if type(param) == "ZapDict" and param["default"] != none:
+        new_env.define(param_name, eval_expr(param["default"], env))
+      el:
+        new_env.define(param_name, none)
   try:
     eval_block(func.body, new_env)
     ret none
@@ -335,13 +335,14 @@ fn call_lambda(lam, args, env):
   lambda_fn = lam.lambda_expr
   for i in range(len(lambda_fn.params)):
     param = lambda_fn.params[i]
-    if isinstance(param, Identifier):
-      param_name = param.value
+    let param_name
+    if type(param) == "ZapDict":
+      param_name = param["name"]
     el:
-      param_name = str(param)
+      param_name = param.value
     if i < len(args):
       new_env.define(param_name, args[i])
-    else:
+    el:
       new_env.define(param_name, none)
   ret eval_expr(lambda_fn.body, new_env)
 
@@ -354,23 +355,28 @@ fn instantiate_class(klass, args, env):
   ret ZapInstance(klass.name, obj_env)
 
 fn get_attr(obj, member):
+  if isinstance(member, Identifier):
+    member = member.name
+  if isinstance(obj, ZapDict):
+    let entries = getattr(obj, "entries")
+    entry = entries.get(member)
+    if entry != none:
+      ret entry
   if isinstance(obj, ZapInstance) and obj.env.get_value(member) != none:
     ret obj.env.get_value(member)
-  raise InterpreterError("AttributeError: " + member + " not found", 0, 0)
+  raise InterpreterError("AttributeError: " + str(member) + " not found", 0, 0)
 
 fn get_index(obj, idx):
   if isinstance(obj, ZapList):
-    if isinstance(idx, ZapValue):
-      idx_int = int(idx.value)
-    el:
-      idx_int = int(idx)
+    idx_int = int(idx)
     if idx_int < len(obj.elements):
       ret obj.elements[idx_int]
     ret none
   if isinstance(obj, ZapDict):
-    entry = obj.entries.get(str(idx))
+    let entries = getattr(obj, "entries")
+    entry = entries.get(str(idx))
     if entry != none:
-      ret ZapValue(entry)
+      ret entry
     el:
       ret none
   ret none
@@ -400,22 +406,3 @@ class ZapInstance:
   fn init(self, class_name, env):
     self.class_name = class_name
     self.env = env
-
-class ZapValue:
-  fn init(self, value):
-    self.value = value
-  fn to_string(self):
-    ret str(self.value)
-
-class ZapRange:
-  fn init(self, start, stop, step=1):
-    self.start = start
-    self.stop = stop
-    self.step = step
-  fn _iter(self):
-    result = []
-    current = self.start
-    while current < self.stop:
-      result.append(current)
-      current = current + self.step
-    ret result

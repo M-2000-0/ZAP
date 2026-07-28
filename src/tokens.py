@@ -158,6 +158,7 @@ KEYWORDS = {
     'type': TokenType.KW_TYPE,
     'try': TokenType.KW_TRY,
     'catch': TokenType.KW_CATCH,
+    'raise': TokenType.KW_THROW,
     'throw': TokenType.KW_THROW,
     'enum': TokenType.KW_ENUM,
 }

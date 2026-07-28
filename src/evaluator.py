@@ -76,6 +76,9 @@ class Evaluator:
     def _eval_program(self, node):
         result = None
         for stmt in node.stmts:
+            import sys as _s; _s.stderr.write(f"TRACE _eval_program: stmt={type(stmt).__name__}"
+                f" file={self._current_file}"
+                f" env id={id(self.env)} keys={len(self.env.store)}\n"); _s.stderr.flush()
             try:
                 result = self._eval_stmt(stmt)
             except ReturnSignal as rs:
@@ -105,6 +108,10 @@ class Evaluator:
             raise ContinueSignal()
         if st is IfStmt:
             return self._eval_if(stmt)
+        if st is TryStmt:
+            return self._eval_try(stmt)
+        if st is ThrowStmt:
+            return self._eval_throw(stmt)
         if st is ForStmt:
             return self._eval_for(stmt)
         if st is WhileStmt:
@@ -217,6 +224,21 @@ class Evaluator:
             raise RuntimeError(f"unknown augop: {stmt.op}")
         if isinstance(target, Identifier):
             self.env.set(target.name, result)
+        elif isinstance(target, MemberAccess):
+            obj = self._eval_expr(target.obj)
+            if isinstance(obj, ZapObject):
+                obj.fields[target.member] = result
+            elif isinstance(obj, ZapDict):
+                obj.entries[target.member] = result
+        elif isinstance(target, Index):
+            obj = self._eval_expr(target.obj)
+            idx = self._eval_expr(target.index)
+            if isinstance(obj, ZapList):
+                obj.elements[idx] = result
+            elif isinstance(obj, ZapDict):
+                obj.entries[idx] = result
+            elif isinstance(obj, list):
+                obj[idx] = result
         return result
 
     def _eval_if(self, stmt):
@@ -228,6 +250,20 @@ class Evaluator:
                 return self._eval_if(stmt.else_body)
             return self._eval_block(stmt.else_body)
         return None
+
+    def _eval_try(self, stmt):
+        try:
+            result = self._eval_block(stmt.body)
+        except ThrowSignal as e:
+            if stmt.catch_var and stmt.catch_body:
+                self.env.define(stmt.catch_var, e.value)
+                return self._eval_block(stmt.catch_body)
+            raise
+        return result
+
+    def _eval_throw(self, stmt):
+        value = self._eval_expr(stmt.value)
+        raise ThrowSignal(value)
 
     def _eval_for(self, stmt):
         iterable = self._eval_expr(stmt.iterable)
@@ -350,11 +386,20 @@ class Evaluator:
             base = self.env.get(stmt.base)
         obj = ZapObject(methods=methods, base=base)
         self.env.define(stmt.name, obj)
-        if 'init' in methods:
+        has_init = 'init' in methods
+        has_base_init = base and hasattr(base, 'methods') and 'init' in base.methods
+        if has_init or has_base_init:
             def constructor(*args):
                 instance = ZapObject(base=obj)
                 instance.fields['self'] = instance
-                instance.methods = dict(obj.methods)
+                merged = {}
+                cur = obj
+                while cur:
+                    for k, v in cur.methods.items():
+                        if k not in merged:
+                            merged[k] = v
+                    cur = cur.base if hasattr(cur, 'base') else None
+                instance.methods = merged
                 init_fn = instance.methods.get('init')
                 if init_fn:
                     call_env = Environment(init_fn.closure)
@@ -1159,6 +1204,8 @@ class Evaluator:
             return list(obj._iter())
         if isinstance(obj, ZapList):
             return obj.elements
+        if isinstance(obj, ZapDict):
+            return list(obj.entries.keys())
         if isinstance(obj, (list, tuple)):
             return list(obj)
         if isinstance(obj, str):
@@ -1167,6 +1214,11 @@ class Evaluator:
             flat = obj._flatten(obj.data)
             return flat
         raise RuntimeError(f"'{type(obj).__name__}' is not iterable")
+
+class ThrowSignal(BaseException):
+    def __init__(self, value=None):
+        super().__init__()
+        self.value = value
 
 class ReturnSignal(Exception):
     def __init__(self, value=None):

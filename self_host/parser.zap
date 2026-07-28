@@ -616,30 +616,8 @@ class Parser:
                         self.require_token("COLON")
                         value = self.parse_expr()
                         entries.append({"key": key, "value": value})
+                    self.require_token("RBRACE")
+                    ret DictLiteral(entries, tok.line, tok.col)
 
-    fn parse_type_alias(self):
-        tok = self.advance()
-        name = self.require_token(TokenType.IDENTIFIER).value
-        self.require_token(TokenType.EQ)
-        type_expr = self.parse_expr()
-        ret TypeAliasDecl(name, type_expr, tok.line, tok.col)
 
-    fn parse_test_group(self):
-        tok = self.advance()
-        name = ''
-        if self.peek().typ == TokenType.STRING:
-          name = self.advance().value
-        self.expect_colon()
-        self.require_token(TokenType.NEWLINE)
-        body = Block(self.parse_block(), tok.line, tok.col)
-        ret TestGroupDecl(name, body, tok.line, tok.col)
-
-    fn parse_doc(self):
-        tok = self.advance()
-        text = ''
-        if self.peek().typ == TokenType.STRING:
-          text = self.advance().value
-        if self.peek().typ == TokenType.NEWLINE:
-          self.advance()
-        ret DocStmt(text, tok.line, tok.col)
 
