@@ -18,7 +18,7 @@ import pytest
 ZAP_CMD = [sys.executable, "-m", "src"]
 
 # Examples directory
-EXAMPLES_DIR = os.path.join(os.path.dirname(__file__), "examples")
+EXAMPLES_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "examples")
 
 
 def run_zap(args, cwd=None, input_text=None):
