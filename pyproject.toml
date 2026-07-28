@@ -5,14 +5,27 @@ build-backend = "setuptools.backends._legacy:_Backend"
 [project]
 name = "zap-lang"
 version = "0.2.0"
-description = "Zap programming language — AI-native, full-stack"
+description = "Zap — AI-native, full-stack, token-efficient programming language. Self-hosting, zero-boilerplate, 248+ builtins, no imports, no build step."
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
     {name = "M-2000-0"},
 ]
 requires-python = ">=3.10"
-keywords = ["programming-language", "ai-native", "fullstack"]
+keywords = [
+    "programming-language",
+    "ai-native",
+    "fullstack",
+    "token-efficient",
+    "self-hosting",
+    "zero-boilerplate",
+    "python-alternative",
+    "llm-optimized",
+    "no-build-step",
+    "pattern-matching",
+    "design-by-contract",
+    "interpreted-language",
+]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Programming Language :: Python :: 3",

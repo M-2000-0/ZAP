@@ -1,8 +1,8 @@
-# Zap — The Language AI Models Actually Want to Write
+# Zap — AI-Native Programming Language | Zero-Boilerplate, Full-Stack, Token-Efficient
 
-**One language. One syntax. Zero boilerplate.**
+**One language. One syntax. Zero boilerplate.** — The first programming language designed for AI code generation.
 
-Zap is the first programming language designed from the ground up for **AI code generation**. While Python, JavaScript, and other languages were designed for humans reading code on paper in 1991, Zap was designed for AI models generating code in a context window in 2026.
+Zap is a modern, self-hosting programming language optimized for **LLMs and AI models**. Unlike Python (1991) or JavaScript (1995), Zap's syntax uses **30-60% fewer tokens** — making it the most token-efficient language for AI-generated code. It replaces the traditional 6-language stack (Python + JavaScript + SQL + HTML + CSS + YAML) with **one unified syntax** for backend, frontend, database, and configuration — all with zero imports and no build step.
 
 ```
 fn greet(name) "Hello, " + name + "!"
@@ -10,6 +10,8 @@ print(greet("World"))
 ```
 
 That's a complete program. No imports. No boilerplate. No build step. Just `zap run file.zap`.
+
+Keywords: `programming language`, `AI-native`, `token-efficient`, `self-hosting`, `full-stack`, `zero-boilerplate`, `Python alternative`, `LLM-optimized`, `no build step`, `built-in database`, `pattern matching`, `design by contract`
 
 ---
 
