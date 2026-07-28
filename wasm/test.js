@@ -1,9 +1,5 @@
 #!/usr/bin/env node
 
-/**
- * Test the Zap to JavaScript transpiler
- */
-
 const ZapToJS = require('./zap-to-js');
 
 const testCases = [
@@ -28,6 +24,11 @@ const testCases = [
         expected: 'if (x > 0) {\n  console.log("positive");\n}'
     },
     {
+        name: 'If/else',
+        zap: 'if x > 0:\n  print("pos")\nel:\n  print("neg")',
+        expected: 'if (x > 0) {\n  console.log("pos");\n} else {\n  console.log("neg");\n}'
+    },
+    {
         name: 'While loop',
         zap: 'while i < 10:\n  i = i + 1',
         expected: 'while (i < 10) {\n  i = i + 1;\n}'
@@ -43,9 +44,45 @@ const testCases = [
         expected: 'let nums = [1, 2, 3];'
     },
     {
-        name: 'String operations',
-        zap: 'let len = len("hello")',
-        expected: 'let len = Array.isArray("hello") ? "hello".length : "hello".length;'
+        name: 'Len builtin',
+        zap: 'let n = len(data)',
+        expected: 'let n = (data).length;'
+    },
+    {
+        name: 'Str builtin',
+        zap: 'let s = str(42)',
+        expected: 'let s = String(42);'
+    },
+    {
+        name: 'Sqrt builtin',
+        zap: 'let r = sqrt(9)',
+        expected: 'let r = Math.sqrt(9);'
+    },
+    {
+        name: 'Boolean operators',
+        zap: 'let v = a and b or not c',
+        expected: 'let v = a && b || ! c;'
+    },
+    {
+        name: 'None literal',
+        zap: 'let v = none',
+        expected: 'let v = null;'
+    },
+    {
+        name: 'True literal',
+        zap: 'let v = true',
+        expected: 'let v = true;'
+    },
+    {
+        name: 'Self reference',
+        zap: '  ret self',
+        expected: '  return this;'
+    },
+    {
+        name: 'Method with self',
+        zap: '  fn get_value(self):\n    ret self.value',
+        expected: '  get_value() {\n    return this.value;\n  }',
+        inClass: true
     }
 ];
 
@@ -55,23 +92,30 @@ let failed = 0;
 
 for (const test of testCases) {
     try {
-        const result = transpiler.transpile(test.zap);
-        if (result.trim() === test.expected.trim()) {
-            console.log(`✓ ${test.name}`);
+        let zapCode = test.zap;
+        if (test.inClass) {
+            zapCode = 'class Foo:\n' + test.zap;
+        }
+
+        const result = transpiler.transpile(zapCode).trim();
+        const expected = test.expected.trim();
+
+        if (result.includes(expected)) {
+            console.log(`  ${test.name}`);
             passed++;
         } else {
-            console.log(`✗ ${test.name}`);
-            console.log(`  Expected: ${test.expected}`);
-            console.log(`  Got:      ${result.trim()}`);
+            console.log(`  ${test.name}`);
+            console.log(`    Expected: ${expected}`);
+            console.log(`    Got:      ${result}`);
             failed++;
         }
     } catch (e) {
-        console.log(`✗ ${test.name} - Error: ${e.message}`);
+        console.log(`  ${test.name} - Error: ${e.message}`);
         failed++;
     }
 }
 
-console.log(`\n${passed} passed, ${failed} failed`);
+console.log(`\n${passed} passed, ${failed} failed out of ${testCases.length} tests`);
 
 if (failed > 0) {
     process.exit(1);

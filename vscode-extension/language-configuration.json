@@ -1,7 +1,6 @@
 {
   "comments": {
-    "lineComment": "#",
-    "blockComment": ["/*", "*/"]
+    "lineComment": "#"
   },
   "brackets": [
     ["(", ")"],
@@ -29,8 +28,8 @@
     }
   },
   "indentationRules": {
-    "increaseIndentPattern": "^\\s*(fn|class|if|elif|else|for|while|match|test|doc|try|catch|finally|service|api|schema|database|channel|concurrent|check)\\b.*:\\s*$",
-    "decreaseIndentPattern": "^\\s*(el:|catch:|finally:)\\s*$"
+    "increaseIndentPattern": "^\\s*(fn|class|if|for|while|match|test|doc|check|el:\\s*if)\\b.*:\\s*$",
+    "decreaseIndentPattern": "^\\s*el:\\s*$"
   },
   "colorizedBracketPairs": [
     ["(", ")"],
