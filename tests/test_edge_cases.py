@@ -259,6 +259,36 @@ class TestLambdaAndComprehensions:
         assert "15" in stdout
 
 
+class TestDestructuring:
+    """Destructuring assignment: let {a, b} = expr."""
+
+    def test_destructure_dict(self):
+        rc, stdout, stderr = run_zap(
+            'let {a, b} = ["a": 1, "b": 2]\n'
+            'print(a)\n'
+            'print(b)\n'
+        )
+        assert rc == 0, stderr
+        assert "1" in stdout and "2" in stdout
+
+    def test_destructure_rename(self):
+        rc, stdout, stderr = run_zap(
+            'let data = ["x": 10, "y": 20]\n'
+            'let {x, y} = data\n'
+            'print(x + y)\n'
+        )
+        assert rc == 0, stderr
+        assert "30" in stdout
+
+    def test_destructure_single(self):
+        rc, stdout, stderr = run_zap(
+            'let {name} = ["name": "Zap"]\n'
+            'print(name)\n'
+        )
+        assert rc == 0, stderr
+        assert "Zap" in stdout
+
+
 class TestBuiltinEdgeCases:
     """Edge cases for builtins."""
 

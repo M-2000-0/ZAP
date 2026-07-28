@@ -19,6 +19,13 @@ class LetStmt(Node):
         self.type_annotation = type_annotation
         self.value = value
 
+class DestructureStmt(Node):
+    __slots__ = ('names', 'value')
+    def __init__(self, names, value, line=0, col=0):
+        super().__init__(line, col)
+        self.names = names
+        self.value = value
+
 class AssignStmt(Node):
     __slots__ = ('target', 'value')
     def __init__(self, target, value, line=0, col=0):

@@ -250,6 +250,8 @@ class Parser:
 
     def parse_let(self):
         tok = self.advance()
+        if self.peek().type == TokenType.LBRACE:
+            return self._parse_destructure(tok)
         name_tok = self._expect_name()
         name = str(name_tok.value)
         type_ann = None
@@ -259,6 +261,20 @@ class Parser:
         if self.match(TokenType.EQ):
             value = self.parse_expr()
         return LetStmt(name, value, type_ann, tok.line, tok.col)
+
+    def _parse_destructure(self, tok):
+        self.advance()  # consume '{'
+        names = []
+        if self.peek().type != TokenType.RBRACE:
+            names.append(str(self._expect_name().value))
+            while self.match(TokenType.COMMA):
+                if self.peek().type == TokenType.RBRACE:
+                    break
+                names.append(str(self._expect_name().value))
+        self.expect(TokenType.RBRACE)
+        self.expect(TokenType.EQ)
+        value = self.parse_expr()
+        return DestructureStmt(names, value, tok.line, tok.col)
 
     def parse_decorated(self):
         decorators = []

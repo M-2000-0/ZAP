@@ -76,9 +76,6 @@ class Evaluator:
     def _eval_program(self, node):
         result = None
         for stmt in node.stmts:
-            import sys as _s; _s.stderr.write(f"TRACE _eval_program: stmt={type(stmt).__name__}"
-                f" file={self._current_file}"
-                f" env id={id(self.env)} keys={len(self.env.store)}\n"); _s.stderr.flush()
             try:
                 result = self._eval_stmt(stmt)
             except ReturnSignal as rs:
@@ -95,6 +92,8 @@ class Evaluator:
             return self._eval_expr(stmt.expr)
         if st is LetStmt:
             return self._eval_let(stmt)
+        if st is DestructureStmt:
+            return self._eval_destructure(stmt)
         if st is AssignStmt:
             return self._eval_assign(stmt)
         if st is AugAssignStmt:
@@ -175,6 +174,14 @@ class Evaluator:
         value = self._eval_expr(stmt.value) if stmt.value else None
         self.env.define(stmt.name, value)
         trace('assign', f"let {stmt.name}", {'name': stmt.name, 'value': repr(value)[:100]})
+        return value
+
+    def _eval_destructure(self, stmt):
+        value = self._eval_expr(stmt.value)
+        for name in stmt.names:
+            v = value.get(name) if hasattr(value, 'get') else value[name]
+            self.env.define(name, v)
+            trace('assign', f"let {name}", {'name': name, 'value': repr(v)[:100]})
         return value
 
     def _eval_assign(self, stmt):
