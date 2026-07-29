@@ -501,6 +501,18 @@ def make_zap_builtins():
         env.define(name, ZapBuiltin(fn, name))
     env.define('format', ZapBuiltin(lambda t, d: _stdlib_format(t, **_zap_to_py(d) if isinstance(d, ZapDict) else {}), 'format'))
 
+    # Regex operations
+    regex_fns = {
+        'regex_match': _stdlib_regex_match,
+        'regex_search': _stdlib_regex_search,
+        'regex_replace': _stdlib_regex_replace,
+        'regex_split': _stdlib_regex_split,
+        'regex_findall': _stdlib_regex_findall,
+        'regex_fullmatch': _stdlib_regex_fullmatch,
+    }
+    for name, fn in regex_fns.items():
+        env.define(name, ZapBuiltin(fn, name))
+
     # File I/O
     file_fns = {
         'read_file': _stdlib_read_file, 'write_file': _stdlib_write_file,
@@ -967,6 +979,43 @@ def _stdlib_format(template, **kwargs):
         t = t.replace('{' + k + '}', str(v))
     return t
 def _stdlib_trim(s): return str(s).strip()
+
+# Regex functions
+def _stdlib_regex_match(pattern, s):
+    import re
+    return re.search(str(pattern), str(s)) is not None
+
+def _stdlib_regex_search(pattern, s):
+    import re
+    m = re.search(str(pattern), str(s))
+    if m is None:
+        return None
+    return ZapDict({
+        'match': m.group(0),
+        'groups': ZapList(list(m.groups())) if m.groups() else ZapList([]),
+        'start': m.start(),
+        'end': m.end(),
+    })
+
+def _stdlib_regex_replace(pattern, s, repl, count=0):
+    import re
+    return re.sub(str(pattern), str(repl), str(s), int(count) if count > 0 else 0)
+
+def _stdlib_regex_split(pattern, s, maxsplit=0):
+    import re
+    parts = re.split(str(pattern), str(s), int(maxsplit) if maxsplit > 0 else 0)
+    return ZapList(parts)
+
+def _stdlib_regex_findall(pattern, s):
+    import re
+    matches = re.findall(str(pattern), str(s))
+    if matches and isinstance(matches[0], tuple):
+        return ZapList([ZapList(list(m)) for m in matches])
+    return ZapList(matches)
+
+def _stdlib_regex_fullmatch(pattern, s):
+    import re
+    return re.fullmatch(str(pattern), str(s)) is not None
 
 def _stdlib_read_file(path):
     with open(str(path), 'r', encoding='utf-8') as f:
