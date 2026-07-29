@@ -1,40 +1,59 @@
 {
-  "comments": {
-    "lineComment": "#"
-  },
+  "comments": { "lineComment": "#", "blockComment": ["##", "##"] },
   "brackets": [
     ["(", ")"],
     ["[", "]"],
-    ["{", "}"]
+    ["{", "}"],
+    ["<", ">"]
   ],
   "autoClosingPairs": [
     { "open": "(", "close": ")" },
     { "open": "[", "close": "]" },
     { "open": "{", "close": "}" },
+    { "open": "<", "close": ">" },
     { "open": "\"", "close": "\"", "notIn": ["string"] },
-    { "open": "'", "close": "'", "notIn": ["string"] }
+    { "open": "'", "close": "'", "notIn": ["string", "comment"] },
+    { "open": "\"\"\"", "close": "\"\"\"" },
+    { "open": "'''", "close": "'''" },
+    { "open": "`", "close": "`" }
   ],
   "surroundingPairs": [
     ["(", ")"],
     ["[", "]"],
     ["{", "}"],
     ["\"", "\""],
-    ["'", "'"]
+    ["'", "'"],
+    ["`", "`"]
   ],
   "folding": {
-    "markers": {
-      "start": "^\\s*#\\s*region\\b",
-      "end": "^\\s*#\\s*endregion\\b"
-    }
+    "markers": { "start": "^\\s*#\\s*region\\b", "end": "^\\s*#\\s*endregion\\b" },
+    "offSide": true,
+    "offSideOpen": "^\\s*(fn|class|trait|interface|if|el:|for|while|match|test|doc|check|schema|api|service|database|concurrent)\\b.*:\\s*$",
+    "offSideClose": "^\\s*el:\\s*$"
   },
   "indentationRules": {
-    "increaseIndentPattern": "^\\s*(fn|class|if|for|while|match|test|doc|check|el:\\s*if)\\b.*:\\s*$",
-    "decreaseIndentPattern": "^\\s*el:\\s*$"
+    "increaseIndentPattern": "^\\s*(fn|class|trait|interface|if|el:\\s*if|for|while|match|test|doc|check|schema|api|service|database|concurrent|permission)\\b.*:\\s*$",
+    "decreaseIndentPattern": "^\\s*el:\\s*$",
+    "unIndentedLinePattern": "^((\\s*#.*)|(\\s*$))"
   },
   "colorizedBracketPairs": [
     ["(", ")"],
     ["[", "]"],
     ["{", "}"]
   ],
-  "wordPattern": "(-?\\d*\\.\\d\\w*)|([^\\`\\~\\!\\@\\#\\%\\^\\&\\*\\(\\)\\=\\+\\{\\}\\\\\\|\\;\\:\\'\\\"\\,\\.\\<\\/\\?\\>\\s]+)"
+  "wordPattern": "(-?\\d*\\.\\d\\w*)|([^\\`\\~\\!\\@\\#\\%\\^\\&\\*\\(\\)\\=\\+\\{\\}\\\\\\|\\;\\:\\'\\\"\\,\\.\\<\\/\\?\\>\\s]+)",
+  "onEnterRules": [
+    { "beforeText": "^\\s*(fn|class|trait|interface|if|el:\\s*if|for|while|match|test|doc|check|schema|api|service|database|concurrent|permission)\\b.*:\\s*$", "action": { "indentAction": "indent" } },
+    { "beforeText": "^\\s*el:\\s*$", "action": { "indentAction": "outdent" } },
+    { "beforeText": "^\\s*#\\s*region\\b.*$", "action": { "indentAction": "indent" } }
+  ],
+  "__electricCharacterSupport": {
+    "docComment": { "scope": "comment.line.number-sign.zap", "open": "# ", "close": "" },
+    "brackets": [
+      { "tokenType": "delimiter.bracket.zap", "open": "(", "close": ")" },
+      { "tokenType": "delimiter.bracket.zap", "open": "[", "close": "]" },
+      { "tokenType": "delimiter.bracket.zap", "open": "{", "close": "}" }
+    ]
+  },
+  "linkedEditing": true
 }

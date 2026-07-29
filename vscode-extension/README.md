@@ -1,89 +1,150 @@
-# Zap Language for VS Code
+# Zap Language Extension for VS Code
 
-AI-native full-stack language support for Visual Studio Code.
+AI-native full-stack programming language support with syntax highlighting, IntelliSense, diagnostics, formatting, debugging, and run integration.
 
 ## Features
 
-- **Syntax Highlighting** - Full syntax highlighting for Zap language
-- **Autocomplete** - Smart code completion for keywords, built-in functions, and snippets
-- **Error Checking** - Real-time diagnostics for common Zap mistakes
-- **Code Formatting** - Automatic formatting on save
-- **Code Lens** - Run buttons for functions
-- **Hover Documentation** - Built-in function documentation on hover
-- **Go to Definition** - Jump to function/class definitions
-- **Snippets** - Common Zap patterns as snippets
+### 🎨 Syntax Highlighting
+- Full TextMate grammar with 50+ token types
+- Keywords, operators, functions, classes, types, decorators
+- String interpolation `${expr}` and `$var`
+- Regex literals `/pattern/`
+- Built-in function categories (io, string, math, async, db, ml, ui, system)
 
-## Installation
+### 💡 IntelliSense & Completion
+- Keywords, builtins, types, decorators
+- Snippets for all language constructs (fn, class, if, for, match, try, etc.)
+- Context-aware completions (function params, class members)
+- Variable, function, class detection from current document
 
-### From VSIX
+### 🔍 Hover & Documentation
+- Rich markdown documentation for all builtins
+- Function signatures from definitions
+- Links to online docs
 
-1. Build the extension:
-   ```bash
-   cd vscode-extension
-   npm run package
-   ```
+### 📋 Diagnostics (Real-time)
+- `return` → use `ret`
+- `elif` → use `el: if`
+- `&&` → use `and`
+- `||` → use `or`
+- `function` → use `fn`
+- `this` → use `self`
+- Missing colon on block statements
+- Type-check integration (on save)
 
-2. Install the extension:
-   ```bash
-   code --install-extension zap-language-0.1.0.vsix
-   ```
+### ✨ Formatting
+- Auto-indentation (2 spaces)
+- Block-aware formatting on save
+- Configurable indent size
 
-### From Source
+### 🏃 Run & Debug
+- **Run File** (F5): Execute current `.zap` file
+- **Run Project**: Run entire workspace
+- **Type Check** (Ctrl+Shift+C): Static analysis
+- **Debug**: Launch configurations with breakpoints
 
-1. Clone the repository
-2. Open the `vscode-extension` folder in VS Code
-3. Press `F5` to launch the extension development host
+### ⚡ CodeLens
+- Run/Debug buttons above functions
+- Test runner for `test` blocks
 
-## Usage
+### 🔧 Commands
+| Command | Keybinding | Description |
+|---------|------------|-------------|
+| `zap.runFile` | F5 | Run current file |
+| `zap.runProject` | - | Run project |
+| `zap.check` | Ctrl+Shift+C | Type check |
+| `zap.format` | Shift+Alt+F | Format document |
+| `zap.newProject` | - | Create new project |
+| `zap.restartServer` | - | Restart LSP |
 
-### Running Zap Files
+## Configuration
 
-1. Open a `.zap` file
-2. Press `Ctrl+Shift+P` and select "Zap: Run Current File"
-3. Or right-click in the editor and select "Run Zap File"
+```json
+{
+  "zap.executablePath": "python -m src",
+  "zap.enableDiagnostics": true,
+  "zap.enableFormatOnSave": true,
+  "zap.enableHover": true,
+  "zap.enableCompletion": true,
+  "zap.runOnSave": false,
+  "zap.checkOnSave": true
+}
+```
 
-### Formatting
+## Snippets
 
-1. Open a `.zap` file
-2. Press `Shift+Alt+F` to format the document
-3. Or enable auto-format on save in settings
+| Prefix | Description |
+|--------|-------------|
+| `fn` | Function |
+| `fn->` | Function with return type |
+| `async fn` | Async function |
+| `class` | Class |
+| `trait` | Trait |
+| `if` | If statement |
+| `el` | Else |
+| `elif` | Else-if |
+| `for` | For loop |
+| `while` | While loop |
+| `match` | Pattern matching |
+| `try` | Try-catch |
+| `schema` | Schema definition |
+| `api` | API endpoint |
+| `service` | Service |
+| `database` | Database |
+| `concurrent` | Concurrent block |
+| `test` | Test definition |
+| `doc` | Documentation |
+| `check` | Check block |
+| `lambda` / `=>` | Lambda |
+| `comp` | List comprehension |
+| `dcomp` | Dict comprehension |
+| `pipe` / `|>` | Pipe operator |
+| `http_get` / `http_post` | HTTP requests |
+| `db_query` | Database query |
+| `element` | HTML element |
+| `signal` / `effect` | Reactive UI |
 
-### Autocomplete
+## Language Server (Optional)
 
-Type in a `.zap` file and suggestions will appear automatically. You can also press `Ctrl+Space` to trigger suggestions manually.
+For enhanced features (cross-file navigation, workspace symbols, refactoring):
 
-### Snippets
+```bash
+# Install the language server
+cargo install zap-lsp  # or download binary
+```
 
-Type a snippet prefix and press `Tab` to expand. Available snippets:
+Then set in settings:
+```json
+"zap.languageServerPath": "/path/to/zap-lsp"
+```
 
-- `fn` - Function definition
-- `class` - Class definition
-- `if` - If statement
-- `el:` - Else statement
-- `for` - For loop
-- `while` - While loop
-- `match` - Pattern matching
-- `try` - Try-catch
-- `schema` - Schema definition
-- `api` - API endpoint
-- `service` - Service definition
+## Debugging
 
-## Settings
+Create `.vscode/launch.json`:
 
-- `zap.executablePath` - Path to the Zap executable (default: "zap")
-- `zap.autoFormat` - Auto-format on save (default: true)
-- `zap.lintEnabled` - Enable real-time linting (default: true)
-
-## Known Issues
-
-- Limited support for complex type annotations
-- No debugger support yet
-- No remote development support
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "zap",
+      "request": "launch",
+      "name": "Debug Zap File",
+      "program": "${file}",
+      "stopOnEntry": false,
+      "console": "integratedTerminal"
+    }
+  ]
+}
+```
 
 ## Contributing
 
-Contributions are welcome! Please see the [main repository](https://github.com/M-2000-0/ZAP) for details.
+1. Fork the repository
+2. Make changes to grammar/snippets/extension
+2. Test with `npm run compile` and `F5`
+3. Submit PR
 
 ## License
 
-MIT
+MIT - see [LICENSE](../LICENSE)

@@ -1,52 +1,171 @@
 {
   "name": "zap-language",
-  "version": "0.1.0",
-  "description": "AI-native full-stack language with syntax highlighting, autocomplete, and error checking",
+  "displayName": "Zap Language",
+  "description": "AI-native, full-stack programming language with syntax highlighting, autocomplete, error checking, and debugging",
+  "version": "0.2.0",
   "publisher": "zap-lang",
-  "engines": {
-    "vscode": "^1.85.0"
-  },
-  "categories": [
-    "Programming Languages"
-  ],
+  "icon": "icon.png",
+  "engines": { "vscode": "^1.85.0" },
+  "categories": ["Programming Languages", "Snippets", "Linters", "Debuggers"],
   "keywords": [
-    "zap",
-    "ai",
-    "language",
-    "full-stack",
-    "syntax highlighting",
-    "autocomplete"
+    "zap", "ai", "language", "full-stack", "syntax highlighting",
+    "autocomplete", "intellisense", "linter", "formatter", "debugger",
+    "token-efficient", "zero-boilerplate", "self-hosting"
   ],
   "activationEvents": [
-    "onLanguage:zap"
+    "onLanguage:zap",
+    "workspaceContains:**/*.zap",
+    "onCommand:zap.runFile",
+    "onCommand:zap.runProject",
+    "onCommand:zap.check",
+    "onCommand:zap.format"
   ],
   "main": "./src/extension.js",
   "contributes": {
-    "languages": [
-      {
-        "id": "zap",
-        "aliases": [
-          "Zap",
-          "zap"
-        ],
-        "extensions": [
-          ".zap"
-        ],
-        "configuration": "./language-configuration.json"
-      }
+    "languages": [{
+      "id": "zap",
+      "aliases": ["Zap", "zap"],
+      "extensions": [".zap"],
+      "configuration": "./language-configuration.json",
+      "icon": { "light": "./icons/zap-light.svg", "dark": "./icons/zap-dark.svg" }
+    }],
+    "grammars": [{
+      "language": "zap",
+      "scopeName": "source.zap",
+      "path": "./syntaxes/zap.tmLanguage.json"
+    }],
+    "snippets": [{
+      "language": "zap",
+      "path": "./snippets/zap.json"
+    }],
+    "commands": [
+      { "command": "zap.runFile", "title": "Zap: Run File", "icon": "$(play)" },
+      { "command": "zap.runProject", "title": "Zap: Run Project", "icon": "$(play-circle)" },
+      { "command": "zap.check", "title": "Zap: Check Types", "icon": "$(beaker)" },
+      { "command": "zap.format", "title": "Zap: Format Document", "icon": "$(format)" },
+      { "command": "zap.restartServer", "title": "Zap: Restart Language Server", "icon": "$(sync)" },
+      { "command": "zap.newProject", "title": "Zap: New Project", "icon": "$(file-add)" },
+      { "command": "zap.showOutput", "title": "Zap: Show Output", "icon": "$(output)" }
     ],
-    "grammars": [
-      {
-        "language": "zap",
-        "scopeName": "source.zap",
-        "path": "./syntaxes/zap.tmLanguage.json"
+    "menus": {
+      "editor/title": [
+        { "when": "resourceLangId == zap", "command": "zap.runFile", "group": "navigation", "title": "Run" },
+        { "when": "resourceLangId == zap", "command": "zap.check", "group": "navigation", "title": "Check" }
+      ],
+      "editor/context": [
+        { "when": "resourceLangId == zap", "command": "zap.runFile", "group": "zap" },
+        { "when": "resourceLangId == zap", "command": "zap.check", "group": "zap" },
+        { "when": "resourceLangId == zap", "command": "zap.format", "group": "zap" }
+      ],
+      "explorer/context": [
+        { "when": "resourceExtname == .zap", "command": "zap.runFile", "group": "zap" }
+      ],
+      "commandPalette": [
+        { "command": "zap.runFile", "when": "resourceLangId == zap" },
+        { "command": "zap.runProject", "when": "resourceLangId == zap" },
+        { "command": "zap.check", "when": "resourceLangId == zap" },
+        { "command": "zap.format", "when": "resourceLangId == zap" },
+        { "command": "zap.newProject" }
+      ]
+    },
+    "keybindings": [
+      { "command": "zap.runFile", "key": "f5", "when": "editorTextFocus && resourceLangId == zap" },
+      { "command": "zap.check", "key": "ctrl+shift+c", "when": "editorTextFocus && resourceLangId == zap" },
+      { "command": "zap.format", "key": "shift+alt+f", "when": "editorTextFocus && resourceLangId == zap" },
+      { "command": "editor.action.formatDocument", "key": "shift+alt+f", "when": "editorTextFocus && resourceLangId == zap" }
+    ],
+    "configuration": {
+      "type": "object",
+      "title": "Zap",
+      "properties": {
+        "zap.executablePath": {
+          "type": "string",
+          "default": "zap",
+          "description": "Path to Zap executable"
+        },
+        "zap.languageServerPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to Zap Language Server (optional)"
+        },
+        "zap.enableDiagnostics": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable real-time diagnostics"
+        },
+        "zap.enableFormatOnSave": {
+          "type": "boolean",
+          "default": true,
+          "description": "Format on save"
+        },
+        "zap.enableLanguageServer": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable language server"
+        },
+        "zap.trace.server": {
+          "type": "string",
+          "enum": ["off", "messages", "verbose"],
+          "default": "off",
+          "description": "Language server trace level"
+        }
       }
-    ]
+    },
+    "debuggers": [{
+      "type": "zap",
+      "label": "Zap Debug",
+      "program": "${workspaceFolder}",
+      "runtime": "zap",
+      "runtimeArgs": ["run", "--debug", "${file}"],
+      "languages": ["zap"],
+      "configurationAttributes": {
+        "launch": {
+          "properties": {
+            "program": { "type": "string", "description": "Entry point file" },
+            "args": { "type": "array", "items": { "type": "string" }, "description": "Command line arguments" },
+            "stopOnEntry": { "type": "boolean", "default": false },
+            "console": { "type": "string", "enum": ["internalConsole", "integratedTerminal", "externalTerminal"], "default": "integratedTerminal" }
+          }
+        }
+      }
+    }],
+    "views": {
+      "zap": [
+        { "id": "zap.output", "name": "Zap Output" },
+        { "id": "zap.intents", "name": "Active Intents" }
+      ]
+    },
+    "viewsContainers": {
+      "activitybar": [{
+        "id": "zap",
+        "title": "Zap",
+        "icon": "icons/zap-activity.svg"
+      }]
+    }
   },
   "scripts": {
-    "package": "vsce package"
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./",
+    "package": "vsce package",
+    "publish": "vsce publish",
+    "lint": "eslint src --ext ts",
+    "test": "jest"
   },
   "devDependencies": {
-    "@vscode/vsce": "^2.22.0"
-  }
+    "@types/vscode": "^1.85.0",
+    "@types/node": "^18.15.0",
+    "typescript": "^5.0.0",
+    "vscode-test": "^1.6.0",
+    "@vscode/vsce": "^2.22.0",
+    "eslint": "^8.35.0",
+    "@typescript-eslint/eslint-plugin": "^5.54.0",
+    "@typescript-eslint/parser": "^5.54.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/M-2000-0/ZAP.git"
+  },
+  "bugs": { "url": "https://github.com/M-2000-0/ZAP/issues" },
+  "homepage": "https://github.com/M-2000-0/ZAP/blob/main/vscode-extension/README.md",
+  "license": "MIT"
 }
