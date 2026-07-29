@@ -814,8 +814,32 @@ def _ai_fetch(args):
 # Main entrypoint
 # ---------------------------------------------------------------------------
 
+def _register_icon():
+    if sys.platform != "win32":
+        return
+    try:
+        import subprocess, struct
+        ico_path = os.path.join(os.path.dirname(__file__), "zpx.ico")
+        if not os.path.exists(ico_path):
+            return
+        r = subprocess.run(["reg", "query", "HKCU\\Software\\Classes\\.zpx\\DefaultIcon", "/ve"],
+                           capture_output=True, text=True)
+        if r.returncode != 0 or ico_path not in r.stdout:
+            subprocess.run(["reg", "add", "HKCU\\Software\\Classes\\.zpx", "/ve",
+                           "/t", "REG_SZ", "/d", "zpx-file", "/f"], capture_output=True)
+            subprocess.run(["reg", "add", "HKCU\\Software\\Classes\\.zpx\\DefaultIcon", "/ve",
+                           "/t", "REG_SZ", "/d", ico_path, "/f"], capture_output=True)
+            subprocess.run(["reg", "add", "HKCU\\Software\\Classes\\zpx-file", "/ve",
+                           "/t", "REG_SZ", "/d", "Zpx Source File", "/f"], capture_output=True)
+            subprocess.run(["reg", "add", "HKCU\\Software\\Classes\\zpx-file\\DefaultIcon", "/ve",
+                           "/t", "REG_SZ", "/d", ico_path, "/f"], capture_output=True)
+    except Exception:
+        pass
+
+
 def main(argv=None):
     argv = argv if argv is not None else sys.argv
+    _register_icon()
 
     # Pre-scan for --format and --no-color so subcommands can use them.
     diag_format = "text"
