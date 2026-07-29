@@ -1,24 +1,24 @@
-# AI Coding Guide for Zap
+# AI Coding Guide for Zpx
 
-This guide teaches AI language models how to generate Zap code efficiently. Zap is designed so that an AI can express any application — backend, frontend, database, config, contracts — in **one language with one syntax**.
+This guide teaches AI language models how to generate Zpx code efficiently. Zpx is designed so that an AI can express any application — backend, frontend, database, config, contracts — in **one language with one syntax**.
 
-## Why Zap Exists
+## Why Zpx Exists
 
 Most languages were designed for *humans reading printed code* (FORTRAN 1957, C 1972, Python 1991).
-Zap was designed for *AI generating code in a context window*.
+Zpx was designed for *AI generating code in a context window*.
 
-| Traditional languages | Zap |
+| Traditional languages | Zpx |
 |---|---|
 | Different syntax for every layer | One syntax for everything |
 | 30+ languages per app | 1 language per app |
 | ~300 tokens for a CRUD app | ~65 tokens for the same app |
 | Context switching between modes | Single mental model |
 | Type annotations + docstrings + tests + schemas = 4x redundancy | Contracts cover all four |
-| Build tools, config files, package managers | `zap run file.zap` |
+| Build tools, config files, package managers | `zpx run file.zpx` |
 
 ## Golden Rule
 
-**Every Zap file is a valid program.** No build step, no config file, no package.json. Just `zap run file.zap`.
+**Every Zpx file is a valid program.** No build step, no config file, no package.json. Just `zpx run file.zpx`.
 
 ## Core Syntax (2 spaces indentation)
 
@@ -37,7 +37,7 @@ match value {cases}         # Pattern matching
 
 ### 1. Replace 3+ languages with 1
 
-Instead of generating Python + SQL + HTML + JS + CSS + YAML in one response, generate **only Zap**:
+Instead of generating Python + SQL + HTML + JS + CSS + YAML in one response, generate **only Zpx**:
 
 ```
 # BAD: 6 languages in one file
@@ -71,8 +71,8 @@ id |> query("SELECT * FROM users WHERE id = ?", ?) |> json_stringify |> print
 
 ```
 # These are equivalent:
-{name: "zap", version: 1}
-{"name": "zap", "version": 1}
+{name: "zpx", version: 1}
+{"name": "zpx", "version": 1}
 ```
 
 Use identifier keys `{key: val}` to save 2 tokens per key.
@@ -103,7 +103,7 @@ filter(items, x => x > 0)
 ### 6. Strings use double quotes
 
 ```python
-let name = "zap"       # Standard
+let name = "zpx"       # Standard
 let path = "C:\\dir"   # Backslash escapes work
 ```
 
@@ -209,30 +209,30 @@ Use these to reduce token count by 40-60%:
 
 ## AI-Specific Tips
 
-1. **Stay in Zap.** If you need to generate SQL, generate it as a string literal inside Zap. If you need HTML, use `element()`. Never switch languages.
-2. **One response, one app.** A Zap file can contain API endpoints, database schemas, business logic, and UI components. Generate everything at once.
+1. **Stay in Zpx.** If you need to generate SQL, generate it as a string literal inside Zpx. If you need HTML, use `element()`. Never switch languages.
+2. **One response, one app.** A Zpx file can contain API endpoints, database schemas, business logic, and UI components. Generate everything at once.
 3. **Use contracts before tests.** `@requires` and `@ensures` are more token-efficient than inline `if/error` checks.
 4. **Prefer pipes over nesting** for readability.
 5. **Numbers can be variable names** — `let 1 = "one"` is valid, access with `get("1")`.
 
 ## File Size Comparison
 
-| App | Python + JS + SQL + HTML | Zap alone |
+| App | Python + JS + SQL + HTML | Zpx alone |
 |---|---|---|
 | Blog API + frontend | ~450 lines / 5 files | ~30 lines / 1 file |
 | CRUD service | ~300 lines / 4 files | ~20 lines / 1 file |
 | Data pipeline | ~200 lines / 3 files | ~15 lines / 1 file |
 
-Zap reduces token count by **60-80%** for the same application.
+Zpx reduces token count by **60-80%** for the same application.
 
 ## When to Bridge to Other Languages
 
-Zap's goal is to replace 30+ languages, but pragmatism wins. Here's when to bridge:
+Zpx's goal is to replace 30+ languages, but pragmatism wins. Here's when to bridge:
 
-### Bridge OUT of Zap (call other languages)
+### Bridge OUT of Zpx (call other languages)
 
 ```python
-# Python — for libraries that don't have a Zap equivalent yet
+# Python — for libraries that don't have a Zpx equivalent yet
 import numpy as np
 let arr = np.array([1, 2, 3])
 print(np.mean(arr))
@@ -241,10 +241,10 @@ print(np.mean(arr))
 import "./node_modules/lodash.js"
 ```
 
-**AI rule:** If a well-known library exists in Python/JS that has no Zap stdlib equivalent,
-generate an `import` statement. Don't reimplement numpy in Zap.
+**AI rule:** If a well-known library exists in Python/JS that has no Zpx stdlib equivalent,
+generate an `import` statement. Don't reimplement numpy in Zpx.
 
-### Bridge INTO Zap (call Zap from other languages)
+### Bridge INTO Zpx (call Zpx from other languages)
 
 ```python
 # Python host
@@ -258,18 +258,18 @@ eval.evaluate(parse("fn double(x) x * 2"))
 
 | Scenario | Choice |
 |---|---|
-| New project, no dependencies | Pure Zap |
-| Need numpy/pandas/torch | `import` from Zap |
-| Prototyping | Pure Zap (faster to iterate) |
+| New project, no dependencies | Pure Zpx |
+| Need numpy/pandas/torch | `import` from Zpx |
+| Prototyping | Pure Zpx (faster to iterate) |
 | Production with existing infra | Bridge both ways |
-| AI code generation | Pure Zap (simpler context) |
+| AI code generation | Pure Zpx (simpler context) |
 
-The rule: **write new code in Zap, bridge to existing libraries.** Over time the stdlib
+The rule: **write new code in Zpx, bridge to existing libraries.** Over time the stdlib
 grows until bridges are rarely needed.
 
 ## Zero-Boilerplate Patterns
 
-Zap includes built-in primitives for common patterns — no imports needed:
+Zpx includes built-in primitives for common patterns — no imports needed:
 
 ### Web Server (One Line)
 
@@ -280,14 +280,14 @@ serve(3000, {"/": () => "Hello!", "/api": () => {status: "ok"}})
 ### Project Config
 
 ```python
-cfg = config("zap.json")
+cfg = config("zpx.json")
 name = cfg["name"]
 ```
 
 ### File Watching
 
 ```python
-watch("main.zap", () => reload())
+watch("main.zpx", () => reload())
 ```
 
 ### Parallel Processing
@@ -306,32 +306,32 @@ par_for(urls, url => fetch(url))
 ### Package Management
 
 ```bash
-zap init my-app          # scaffold new project
-zap add file:./lib/x     # add local dependency
-zap install              # install all deps
+zpx init my-app          # scaffold new project
+zpx add file:./lib/x     # add local dependency
+zpx install              # install all deps
 ```
 
 ### Bytecode Caching
 
 ```bash
-zap compile main.zap     # compile + cache in .zap_cache/
-zap run main.zap         # uses cache automatically
+zpx compile main.zpx     # compile + cache in .zpx_cache/
+zpx run main.zpx         # uses cache automatically
 ```
 
 ### Machine-Readable Diagnostics
 
 ```bash
-zap check main.zap --format=json
+zpx check main.zpx --format=json
 ```
 
-## Setting Up AI Assistants for Zap
+## Setting Up AI Assistants for Zpx
 
 ### Cursor
 
 Create `.cursorrules`:
 
 ```
-You generate ONLY Zap code (.zap files). Zap is a full-stack language where schemas,
+You generate ONLY Zpx code (.zpx files). Zpx is a full-stack language where schemas,
 APIs, HTML, and logic all use the same syntax. Never output Python, JavaScript, SQL,
 HTML, CSS, or YAML separately. Use element() for HTML, fn for functions, api for endpoints,
 service for grouping endpoints, schema for data models. 2-space indentation.
@@ -343,7 +343,7 @@ Implicit return on last expression. Pipes with |> for chaining.
 Add to `.windsurfrules`:
 
 ```
-- Primary language: Zap (.zap)
+- Primary language: Zpx (.zpx)
 - Never split into multiple files or languages
 - UI = element(tag, {attrs}, children)
 - Data = query("SQL", params) or file builtins
@@ -356,9 +356,9 @@ Add to `.windsurfrules`:
 Upload `GUIDE.md` to project knowledge. System prompt:
 
 ```
-You are a Zap language specialist. Respond with ONLY Zap code.
-Zap replaces Python + JavaScript + SQL + HTML + CSS + YAML in one language.
-Write complete applications in single .zap files.
+You are a Zpx language specialist. Respond with ONLY Zpx code.
+Zpx replaces Python + JavaScript + SQL + HTML + CSS + YAML in one language.
+Write complete applications in single .zpx files.
 ```
 
 ### ChatGPT / Custom GPT
@@ -366,9 +366,9 @@ Write complete applications in single .zap files.
 Custom instruction:
 
 ```
-Generate only Zap code. Zap is a single language for backend, frontend, databases,
+Generate only Zpx code. Zpx is a single language for backend, frontend, databases,
 and configuration. Never suggest using multiple languages. Every application
-feature can be expressed in Zap alone. Use element() for HTML, fn for functions,
+feature can be expressed in Zpx alone. Use element() for HTML, fn for functions,
 let for variables, schema for models, api for endpoints.
 ```
 
@@ -377,7 +377,7 @@ let for variables, schema for models, api for endpoints.
 `.github/copilot-instructions.md`:
 
 ```markdown
-This project uses the Zap language (.zap).
+This project uses the Zpx language (.zpx).
 - One file per application
 - 2-space indentation for blocks
 - Functions: fn name(params) body

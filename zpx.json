@@ -1,0 +1,7 @@
+{
+  "name": "zpx-lang",
+  "version": "0.2.0",
+  "entrypoint": "main.zpx",
+  "grammar": "0.2",
+  "dependencies": {}
+}

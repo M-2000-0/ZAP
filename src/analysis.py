@@ -290,7 +290,7 @@ def build_dependency_graph(indexes):
 
 
 def format_graph(dep_graph):
-    lines = ['digraph zap_deps {']
+    lines = ['digraph zpx_deps {']
     for filepath, info in dep_graph.items():
         label = os.path.basename(filepath)
         lines.append(f'  "{filepath}" [label="{label}" shape=box];')

@@ -1,5 +1,5 @@
 """
-Structured diagnostic system for Zap.
+Structured diagnostic system for Zpx.
 
 A Diagnostic carries everything an AI agent (or a human) needs to fix the
 problem: a stable error code, a span pointing at the source, the message,
@@ -7,7 +7,7 @@ and a list of suggested fixes. Diagnostics serialize to JSON so an LLM
 can parse them programmatically.
 
 The existing string error path keeps working — `Diagnostic.format()` is
-the human-readable string. The JSON path is opt-in via `zap check --format=json`
+the human-readable string. The JSON path is opt-in via `zpx check --format=json`
 and via `parse_diagnostics(string)` for tools that already have a stream
 of human-readable output.
 

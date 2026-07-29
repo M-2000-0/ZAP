@@ -1,5 +1,5 @@
 """
-Intent-Based Runtime for ZAP.
+Intent-Based Runtime for ZPX.
 
 Core idea: Developers declare WHAT they want (intent), the runtime + AI figures out HOW.
 The runtime continuously optimizes, profiles, and rewrites hot paths.
@@ -34,7 +34,7 @@ from contextlib import contextmanager
 
 from src.runtime.timetravel import TimeTravelRuntime
 from src.runtime.capability import CapabilityRuntime, Capability
-from src.values import ZapDict, ZapList, ZapFunction, ZapBuiltin
+from src.values import ZpxDict, ZpxList, ZpxFunction, ZpxBuiltin
 from src.evaluator import Evaluator
 
 
@@ -492,7 +492,7 @@ def intent_performance(budget_ms: float = 100, percentile: float = 0.95, **kwarg
             **kwargs
         )
         # Store on function for later registration
-        fn._zap_intent = intent
+        fn._zpx_intent = intent
         return fn
     return decorator
 
@@ -507,7 +507,7 @@ def intent_reliability(max_retries: int = 3, fallback: str = None, **kwargs):
             fallback=fallback,
             **kwargs
         )
-        fn._zap_intent = intent
+        fn._zpx_intent = intent
         return fn
     return decorator
 
@@ -521,7 +521,7 @@ def intent_security(capabilities: List[str] = None, **kwargs):
             capabilities=capabilities or [],
             **kwargs
         )
-        fn._zap_intent = intent
+        fn._zpx_intent = intent
         return fn
     return decorator
 
@@ -536,7 +536,7 @@ def intent_cost(max_tokens: int = 10000, max_api_calls: int = 100, **kwargs):
             max_api_calls=max_api_calls,
             **kwargs
         )
-        fn._zap_intent = intent
+        fn._zpx_intent = intent
         return fn
     return decorator
 

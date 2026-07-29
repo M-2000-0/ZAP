@@ -1,16 +1,16 @@
-# Zap — AI-Native Programming Language
+# Zpx — AI-Native Programming Language
 
 > **One language. One syntax. Zero boilerplate.**  
 > The first programming language designed for AI code generation.
 
-[![PyPI](https://img.shields.io/pypi/v/zap-lang?label=zap-lang)](https://pypi.org/project/zap-lang/)
-[![Python](https://img.shields.io/pypi/pyversions/zap-lang)](https://pypi.org/project/zap-lang/)
-[![License](https://img.shields.io/github/license/M-2000-0/ZAP)](LICENSE)
-[![Tests](https://github.com/M-2000-0/ZAP/actions/workflows/test.yml/badge.svg)](https://github.com/M-2000-0/ZAP/actions)
+[![PyPI](https://img.shields.io/pypi/v/zpx-lang?label=zpx-lang)](https://pypi.org/project/zpx-lang/)
+[![Python](https://img.shields.io/pypi/pyversions/zpx-lang)](https://pypi.org/project/zpx-lang/)
+[![License](https://img.shields.io/github/license/M-2000-0/ZPX)](LICENSE)
+[![Tests](https://github.com/M-2000-0/ZPX/actions/workflows/test.yml/badge.svg)](https://github.com/M-2000-0/ZPX/actions)
 
 ---
 
-## Why Zap?
+## Why Zpx?
 
 **Today's AI writes code in 6+ languages for one app:**
 
@@ -23,9 +23,9 @@
 | Styles | CSS | `body { ... }` |
 | Types | TypeScript | `x: number` |
 
-**Zap replaces all of them with one syntax:**
+**Zpx replaces all of them with one syntax:**
 
-```zap
+```zpx
 schema User:
   id: int
   name: str
@@ -46,11 +46,11 @@ fn render_user(user):
 
 ---
 
-## Token Efficiency: Why LLMs Love Zap
+## Token Efficiency: Why LLMs Love Zpx
 
-Zap uses **30–60% fewer tokens** than Python/JS for equivalent code:
+Zpx uses **30–60% fewer tokens** than Python/JS for equivalent code:
 
-| Pattern | Zap | Python | JS |
+| Pattern | Zpx | Python | JS |
 |---------|-----|--------|-----|
 | Function | `fn add(a,b) a+b` | `def add(a,b): return a+b` | `function add(a,b){return a+b}` |
 | Print | `print("hi")` | `print("hi")` | `console.log("hi")` |
@@ -66,23 +66,23 @@ Zap uses **30–60% fewer tokens** than Python/JS for equivalent code:
 
 ```bash
 # Install from PyPI
-pip install zap-lang
+pip install zpx-lang
 
 # Run your first program
-echo 'print("Hello from Zap!")' > hello.zap
-zap run hello.zap
+echo 'print("Hello from Zpx!")' > hello.zpx
+zpx run hello.zpx
 
 # Run built-in examples
-zap run examples/hello.zap
-zap run examples/blog.zap
-zap run examples/rest_api.zap
+zpx run examples/hello.zpx
+zpx run examples/blog.zpx
+zpx run examples/rest_api.zpx
 ```
 
 **From source:**
 ```bash
-git clone https://github.com/M-2000-0/ZAP.git
-cd ZAP
-python -m src run examples/hello.zap
+git clone https://github.com/M-2000-0/ZPX.git
+cd ZPX
+python -m src run examples/hello.zpx
 ```
 
 ---
@@ -90,9 +90,9 @@ python -m src run examples/hello.zap
 ## Language Tour
 
 ### Variables & Types
-```zap
+```zpx
 let x = 42              # int
-let name = "Zap"        # str
+let name = "Zpx"        # str
 let flag = true         # bool
 let empty = none        # null
 let nums = [1, 2, 3]    # list
@@ -100,7 +100,7 @@ let user = ["name": "Alice", "age": 30]  # dict
 ```
 
 ### Functions (short keywords: `fn`, `ret`)
-```zap
+```zpx
 fn greet(name):
   ret "Hello, " + name + "!"
 
@@ -113,7 +113,7 @@ greet_with_default("Bob", "Hey")  # "Hey, Bob"
 ```
 
 ### Control Flow (`el` not `else`, `ret` not `return`)
-```zap
+```zpx
 fn classify(x):
   if x > 0: ret "positive"
   el: if x < 0: ret "negative"
@@ -129,7 +129,7 @@ for item in [1, 2, 3]:
 ```
 
 ### Pattern Matching
-```zap
+```zpx
 match status:
   "active": print("User is active")
   "inactive": print("User is inactive")
@@ -138,7 +138,7 @@ match status:
 ```
 
 ### Contracts (Design by Contract)
-```zap
+```zpx
 fn withdraw(amount: float):
   requires amount > 0
   requires balance >= amount
@@ -148,7 +148,7 @@ fn withdraw(amount: float):
 ```
 
 ### Classes & Inheritance
-```zap
+```zpx
 class Animal:
   fn init(self, name):
     self.name = name
@@ -165,7 +165,7 @@ print(d.speak())  # "Rex says Woof!"
 ```
 
 ### Comprehensions
-```zap
+```zpx
 let nums = [1, 2, 3, 4, 5]
 let doubled = [x * 2 for x in nums]
 let evens = [x for x in nums if x % 2 == 0]
@@ -173,13 +173,13 @@ let squares = {x: x * x for x in nums}
 ```
 
 ### Built-ins (248+, no imports needed)
-```zap
+```zpx
 # HTTP
 http_get("https://api.example.com/data")
 http_post(url, json_body={"key": "value"})
 
 # JSON
-json_parse('{"name": "Zap"}')
+json_parse('{"name": "Zpx"}')
 json_stringify(data)
 
 # Database (SQLite, auto-deploys on Vercel/Netlify/Render)
@@ -213,7 +213,7 @@ parallel(fn1, fn2, fn3)
 ## Full-Stack Examples
 
 ### 1. REST API (single file, zero config)
-```zap
+```zpx
 schema User:
   id: int
   name: str
@@ -242,9 +242,9 @@ api POST "/users":
 ```
 
 ### 2. Blog with HTML Rendering
-```zap
+```zpx
 let posts = [
-  {title: "Hello Zap", body: "Welcome!"},
+  {title: "Hello Zpx", body: "Welcome!"},
   {title: "Full-Stack", body: "One language for everything."},
 ]
 
@@ -267,7 +267,7 @@ print(html(page("My Blog", posts)))
 ```
 
 ### 3. AI-Native Features
-```zap
+```zpx
 # Permissions
 permission filesystem_read "read access to filesystem"
 permission network_http "outbound HTTP"
@@ -304,7 +304,7 @@ expect divide(10, 2) == 5
 
 ```
 ┌─────────────────────────────────────┐
-│           zap run file.zap          │
+│           zpx run file.zpx          │
 └──────────────┬──────────────────────┘
                ▼
 ┌─────────────────────────────────────┐
@@ -333,32 +333,32 @@ expect divide(10, 2) == 5
 └─────────────────────────────────────┘
 ```
 
-**Self-hosting**: The interpreter is written in Zap (`self_host/`):
-- `tokens.zap` — Token system
-- `lexer.zap` — Lexer
-- `parser.zap` — Parser
-- `ast_nodes.zap` — AST definitions
-- `env.zap` — Environment/scoping
-- `evaluator.zap` — Full evaluator
-- `builtins.zap` — Standard library
+**Self-hosting**: The interpreter is written in Zpx (`self_host/`):
+- `tokens.zpx` — Token system
+- `lexer.zpx` — Lexer
+- `parser.zpx` — Parser
+- `ast_nodes.zpx` — AST definitions
+- `env.zpx` — Environment/scoping
+- `evaluator.zpx` — Full evaluator
+- `builtins.zpx` — Standard library
 
 ---
 
 ## CLI Reference
 
 ```bash
-zap run <file|folder>      # Execute (auto-detects main.zap/index.zap/app.zap)
-zap check <file>           # Parse + type-check
-zap build <file>           # Check + run
-zap compile <file>         # Transpile to Python bytecode
-zap test [path]            # Run @test / expect blocks
-zap repl                   # Interactive REPL
-zap version                # Print version + grammar version
-zap diag <text>            # Parse diagnostics → JSON
-zap init [name]            # Scaffold new project
-zap add <spec>             # Add dependency
-zap install                # Install from zap.json
-zap ai                     # AI subcommands (train, scan, wifi)
+zpx run <file|folder>      # Execute (auto-detects main.zpx/index.zpx/app.zpx)
+zpx check <file>           # Parse + type-check
+zpx build <file>           # Check + run
+zpx compile <file>         # Transpile to Python bytecode
+zpx test [path]            # Run @test / expect blocks
+zpx repl                   # Interactive REPL
+zpx version                # Print version + grammar version
+zpx diag <text>            # Parse diagnostics → JSON
+zpx init [name]            # Scaffold new project
+zpx add <spec>             # Add dependency
+zpx install                # Install from zpx.json
+zpx ai                     # AI subcommands (train, scan, wifi)
 ```
 
 **Flags:** `--format=json` (machine-readable), `--no-color`
@@ -372,7 +372,7 @@ zap ai                     # AI subcommands (train, scan, wifi)
 - Snippets (`fn`, `let`, `if`, `class`, `api`, `schema`, ...)
 - Language configuration (brackets, comments, folding)
 
-**LSP Server** (`zap lsp`):
+**LSP Server** (`zpx lsp`):
 - Hover documentation
 - Go to definition
 - Find references
@@ -386,7 +386,7 @@ zap ai                     # AI subcommands (train, scan, wifi)
 ## Project Structure
 
 ```
-ZAP/
+ZPX/
 ├── src/                    # Python interpreter (~300K lines)
 │   ├── lexer.py            # Tokenizer
 │   ├── parser.py           # Recursive descent parser
@@ -397,24 +397,24 @@ ZAP/
 │   ├── cli.py              # Full CLI
 │   ├── lsp.py              # Language Server Protocol
 │   └── adapters/           # JS/Python transpilers
-├── self_host/              # Zap written in Zap (~95%)
-│   ├── tokens.zap
-│   ├── lexer.zap
-│   ├── parser.zap
-│   ├── ast_nodes.zap
-│   ├── env.zap
-│   ├── evaluator.zap
-│   ├── builtins.zap
-│   └── zap_interpreter.zap
+├── self_host/              # Zpx written in Zpx (~95%)
+│   ├── tokens.zpx
+│   ├── lexer.zpx
+│   ├── parser.zpx
+│   ├── ast_nodes.zpx
+│   ├── env.zpx
+│   ├── evaluator.zpx
+│   ├── builtins.zpx
+│   └── zpx_interpreter.zpx
 ├── lib/                    # Standard library
-│   ├── std.zap
-│   ├── db.zap
-│   ├── http.zap
-│   ├── strings.zap
-│   └── collections.zap
+│   ├── std.zpx
+│   ├── db.zpx
+│   ├── http.zpx
+│   ├── strings.zpx
+│   └── collections.zpx
 ├── examples/               # 20+ example programs
 ├── tests/                  # 165 passing tests
-├── wasm/                   # Zap → JS transpiler
+├── wasm/                   # Zpx → JS transpiler
 ├── vscode-extension/       # VS Code extension
 ├── registry/               # Package registry
 └── training/               # AI training data
@@ -451,8 +451,8 @@ ZAP/
 ## Contributing
 
 ```bash
-git clone https://github.com/M-2000-0/ZAP.git
-cd ZAP
+git clone https://github.com/M-2000-0/ZPX.git
+cd ZPX
 python -m pytest tests/ -q  # 165 tests pass
 ```
 
@@ -462,9 +462,9 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## Community
 
-- **GitHub**: [github.com/M-2000-0/ZAP](https://github.com/M-2000-0/ZAP)
-- **Issues**: [Report bugs](https://github.com/M-2000-0/ZAP/issues)
-- **Discussions**: [Ask questions](https://github.com/M-2000-0/ZAP/discussions)
+- **GitHub**: [github.com/M-2000-0/ZPX](https://github.com/M-2000-0/ZPX)
+- **Issues**: [Report bugs](https://github.com/M-2000-0/ZPX/issues)
+- **Discussions**: [Ask questions](https://github.com/M-2000-0/ZPX/discussions)
 
 ---
 
@@ -478,6 +478,6 @@ MIT — free for commercial use.
 
 > **By 2027, 80% of code will be AI-generated.**  
 > Languages designed for humans become legacy.  
-> Zap is designed for the world where AI writes most of the code.
+> Zpx is designed for the world where AI writes most of the code.
 
-**Zap — Write less. Ship faster. Let AI do the rest.**
+**Zpx — Write less. Ship faster. Let AI do the rest.**

@@ -1,0 +1,20 @@
+# Zpx Standard Library
+# import "lib/std.zpx"  -- loads everything
+# Or import individual modules:
+#   import "lib/strings.zpx"
+#   import "lib/http.zpx"
+#   import "lib/collections.zpx"
+
+import "lib/strings.zpx"
+import "lib/http.zpx"
+import "lib/collections.zpx"
+
+# Combined utilities
+fn fetch_and_parse(url)
+  get_json(url)
+
+fn read_config(path)
+  path |> read_file |> json_parse
+
+fn write_json(path, data)
+  data |> json_stringify |> wr(path)

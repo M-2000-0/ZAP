@@ -1,16 +1,16 @@
-# Zap Training Dataset for LLMs
+# Zpx Training Dataset for LLMs
 
-This directory contains training data for fine-tuning language models to generate Zap code.
+This directory contains training data for fine-tuning language models to generate Zpx code.
 
 ## Files
 
-- `zap-training-data.jsonl` - 40 prompt-completion pairs for fine-tuning
+- `zpx-training-data.jsonl` - 40 prompt-completion pairs for fine-tuning
 
 ## Format
 
 Each line is a JSON object with:
 - `prompt` - Natural language description of what to code
-- `completion` - Zap code that implements the feature
+- `completion` - Zpx code that implements the feature
 
 Example:
 ```json
@@ -23,7 +23,7 @@ Example:
 
 ```bash
 # Upload the training file
-openai api files.upload -f training/zap-training-data.jsonl -p purpose fine-tune
+openai api files.upload -f training/zpx-training-data.jsonl -p purpose fine-tune
 
 # Create a fine-tuning job
 openai api fine_tuning.jobs.create -t <file-id> -m gpt-4o-mini
@@ -34,7 +34,7 @@ openai api fine_tuning.jobs.create -t <file-id> -m gpt-4o-mini
 ```python
 from datasets import load_dataset
 
-dataset = load_dataset("json", data_files="zap-training-data.jsonl")
+dataset = load_dataset("json", data_files="zpx-training-data.jsonl")
 # ... training code
 ```
 
@@ -42,14 +42,14 @@ dataset = load_dataset("json", data_files="zap-training-data.jsonl")
 
 To add more training examples:
 
-1. Add a new line to `zap-training-data.jsonl`
+1. Add a new line to `zpx-training-data.jsonl`
 2. Follow the format: `{"prompt": "...", "completion": "..."}`
-3. Ensure the Zap code is correct and follows the style guide
+3. Ensure the Zpx code is correct and follows the style guide
 
 ## Quality Guidelines
 
 - Use clear, descriptive prompts
-- Write idiomatic Zap code
+- Write idiomatic Zpx code
 - Include comments for complex logic
 - Cover a variety of use cases
 - Keep examples concise but complete

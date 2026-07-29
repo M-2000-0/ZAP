@@ -3,7 +3,7 @@ import threading
 from concurrent.futures import ThreadPoolExecutor
 from .ast_nodes import *
 from .environment import Environment
-from .values import _zap_to_str
+from .values import _zpx_to_str
 from .values import *
 from .context import get_context, save_context
 from .tracer import trace, get_tracer
@@ -29,7 +29,7 @@ class Evaluator:
         cls._thread_local.current_file = value
 
     def __init__(self, is_main=True, current_file=None):
-        self.global_env = make_zap_builtins()
+        self.global_env = make_zpx_builtins()
         self.env = self.global_env
         self.distributed_pool = None
         self._current_file = current_file
@@ -199,19 +199,19 @@ class Evaluator:
             target_name = name
         elif isinstance(stmt.target, MemberAccess):
             obj = self._eval_expr(stmt.target.obj)
-            if isinstance(obj, ZapObject):
+            if isinstance(obj, ZpxObject):
                 obj.fields[stmt.target.member] = value
-            elif isinstance(obj, ZapDict):
+            elif isinstance(obj, ZpxDict):
                 obj.entries[stmt.target.member] = value
             target_name = f"{stmt.target.obj}.{stmt.target.member}"
         elif isinstance(stmt.target, Index):
             obj = self._eval_expr(stmt.target.obj)
             idx = self._eval_expr(stmt.target.index)
-            if isinstance(obj, ZapList):
+            if isinstance(obj, ZpxList):
                 obj.elements[idx] = value
-            elif isinstance(obj, ZapTensor):
+            elif isinstance(obj, ZpxTensor):
                 obj.data[idx] = value
-            elif isinstance(obj, ZapDict):
+            elif isinstance(obj, ZpxDict):
                 obj.entries[idx] = value
             elif isinstance(obj, list):
                 obj[idx] = value
@@ -233,16 +233,16 @@ class Evaluator:
             self.env.set(target.name, result)
         elif isinstance(target, MemberAccess):
             obj = self._eval_expr(target.obj)
-            if isinstance(obj, ZapObject):
+            if isinstance(obj, ZpxObject):
                 obj.fields[target.member] = result
-            elif isinstance(obj, ZapDict):
+            elif isinstance(obj, ZpxDict):
                 obj.entries[target.member] = result
         elif isinstance(target, Index):
             obj = self._eval_expr(target.obj)
             idx = self._eval_expr(target.index)
-            if isinstance(obj, ZapList):
+            if isinstance(obj, ZpxList):
                 obj.elements[idx] = result
-            elif isinstance(obj, ZapDict):
+            elif isinstance(obj, ZpxDict):
                 obj.entries[idx] = result
             elif isinstance(obj, list):
                 obj[idx] = result
@@ -311,7 +311,7 @@ class Evaluator:
         return result
 
     def _eval_fn_def(self, stmt):
-        fn = ZapFunction(stmt.name, stmt.params, stmt.body, self.env,
+        fn = ZpxFunction(stmt.name, stmt.params, stmt.body, self.env,
                         stmt.return_type, stmt.is_async,
                         decorators=stmt.decorators, contracts=stmt.contracts)
         self.env.define(stmt.name, fn)
@@ -359,7 +359,7 @@ class Evaluator:
                 })
                 if fallback_name:
                     fb_fn = self.env.get(fallback_name)
-                    if isinstance(fb_fn, ZapFunction):
+                    if isinstance(fb_fn, ZpxFunction):
                         return fb_fn._call(*call_args)
                     if callable(fb_fn):
                         return fb_fn(*call_args)
@@ -385,19 +385,19 @@ class Evaluator:
     def _eval_class_def(self, stmt):
         methods = {}
         for method in stmt.methods:
-            fn = ZapFunction(method.name, method.params, method.body,
+            fn = ZpxFunction(method.name, method.params, method.body,
                            self.env, method.return_type, method.is_async, is_method=True)
             methods[method.name] = fn
         base = None
         if stmt.base:
             base = self.env.get(stmt.base)
-        obj = ZapObject(methods=methods, base=base)
+        obj = ZpxObject(methods=methods, base=base)
         self.env.define(stmt.name, obj)
         has_init = 'init' in methods
         has_base_init = base and hasattr(base, 'methods') and 'init' in base.methods
         if has_init or has_base_init:
             def constructor(*args):
-                instance = ZapObject(base=obj)
+                instance = ZpxObject(base=obj)
                 instance.fields['self'] = instance
                 merged = {}
                 cur = obj
@@ -424,23 +424,23 @@ class Evaluator:
                         self.env = prev
                 return instance
             # Store constructor on the class object, don't overwrite it
-            obj.fields['__init__'] = ZapBuiltin(constructor, stmt.name + '.__init__')
+            obj.fields['__init__'] = ZpxBuiltin(constructor, stmt.name + '.__init__')
             # Also make the class callable for ergonomics
-            obj.fields['__call__'] = ZapBuiltin(constructor, stmt.name)
+            obj.fields['__call__'] = ZpxBuiltin(constructor, stmt.name)
         return None
 
     def _eval_import(self, stmt):
         if stmt.from_module:
             self._eval_from_import(stmt)
         elif stmt.module:
-            self._eval_zap_import(stmt)
+            self._eval_zpx_import(stmt)
         return None
 
     def _eval_from_import(self, stmt):
-        """Handle 'import from X: Y, Z' - try Zap module first, fall back to Python."""
+        """Handle 'import from X: Y, Z' - try Zpx module first, fall back to Python."""
         import os as _os
         module_name = stmt.from_module
-        module_path = module_name + '.zap'
+        module_path = module_name + '.zpx'
         search_dirs = ['.']
         if self._current_file:
             search_dirs.insert(0, _os.path.dirname(self._current_file))
@@ -480,11 +480,11 @@ class Evaluator:
             except ImportError:
                 raise ImportError(f"cannot import '{module_name}'")
 
-    def _eval_zap_import(self, stmt):
+    def _eval_zpx_import(self, stmt):
         import os as _os
         module_path = stmt.module
-        if not module_path.endswith('.zap'):
-            module_path = module_path.replace('.', '/') + '.zap'
+        if not module_path.endswith('.zpx'):
+            module_path = module_path.replace('.', '/') + '.zpx'
 
         search_dirs = ['.']
         if self._current_file:
@@ -541,10 +541,10 @@ class Evaluator:
     def _eval_service(self, stmt):
         methods = {}
         for m in stmt.methods:
-            fn = ZapFunction(m.name, m.params, m.body, self.env,
+            fn = ZpxFunction(m.name, m.params, m.body, self.env,
                             m.return_type, m.is_async, is_method=True)
             methods[m.name] = fn
-        obj = ZapObject()
+        obj = ZpxObject()
         obj.fields['__name__'] = stmt.name
         obj.fields['__kind__'] = 'service'
         obj.fields['__expose__'] = stmt.expose
@@ -564,13 +564,13 @@ class Evaluator:
     def _eval_database(self, stmt):
         tables = {}
         for t in stmt.tables:
-            schema_obj = ZapObject()
+            schema_obj = ZpxObject()
             schema_obj.fields['__name__'] = t.name
             schema_obj.fields['__kind__'] = 'schema'
             for f in t.fields:
                 schema_obj.fields[f.name] = f.field_type
             tables[t.name] = schema_obj
-        obj = ZapObject()
+        obj = ZpxObject()
         obj.fields['__name__'] = stmt.name
         obj.fields['__kind__'] = 'database'
         obj.fields['__tables__'] = tables
@@ -582,10 +582,10 @@ class Evaluator:
     def _eval_api(self, stmt):
         handler_fn = None
         if stmt.handler:
-            handler_fn = ZapFunction(stmt.handler.name, stmt.handler.params,
+            handler_fn = ZpxFunction(stmt.handler.name, stmt.handler.params,
                                     stmt.handler.body, self.env,
                                     stmt.handler.return_type, stmt.handler.is_async)
-        obj = ZapObject()
+        obj = ZpxObject()
         obj.fields['__kind__'] = 'api'
         obj.fields['__method__'] = stmt.method
         obj.fields['__path__'] = stmt.path
@@ -597,7 +597,7 @@ class Evaluator:
         return obj
 
     def _eval_page(self, stmt):
-        obj = ZapObject()
+        obj = ZpxObject()
         obj.fields['__kind__'] = 'page'
         obj.fields['__name__'] = stmt.name
         obj.fields['__route__'] = stmt.route
@@ -605,7 +605,7 @@ class Evaluator:
         return obj
 
     def _eval_schema(self, stmt):
-        obj = ZapObject()
+        obj = ZpxObject()
         obj.fields['__kind__'] = 'schema'
         obj.fields['__name__'] = stmt.name
         for f in stmt.fields:
@@ -619,18 +619,18 @@ class Evaluator:
         return obj
 
     def _eval_model(self, stmt):
-        obj = ZapObject()
+        obj = ZpxObject()
         obj.fields['__kind__'] = 'model'
         obj.fields['__name__'] = stmt.name
         for f in stmt.fields:
             obj.fields[f.name] = f.field_type
         for m in stmt.methods:
-            fn = ZapFunction(m.name, m.params, m.body, self.env,
+            fn = ZpxFunction(m.name, m.params, m.body, self.env,
                             m.return_type, m.is_async, is_method=True)
             obj.methods[m.name] = fn
         self.env.define(stmt.name, obj)
         def constructor(*args):
-            instance = ZapObject(base=obj)
+            instance = ZpxObject(base=obj)
             instance.fields['self'] = instance
             instance.methods = dict(obj.methods)
             for f in stmt.fields:
@@ -652,13 +652,13 @@ class Evaluator:
                     self.env = prev
             return instance
         # Store constructor on the model object, don't overwrite it
-        obj.fields['__init__'] = ZapBuiltin(constructor, stmt.name + '.__init__')
-        obj.fields['__call__'] = ZapBuiltin(constructor, stmt.name)
+        obj.fields['__init__'] = ZpxBuiltin(constructor, stmt.name + '.__init__')
+        obj.fields['__call__'] = ZpxBuiltin(constructor, stmt.name)
         return obj
 
     def _eval_permission(self, stmt):
         """Define a permission constant."""
-        perm_obj = ZapObject()
+        perm_obj = ZpxObject()
         perm_obj.fields['__kind__'] = 'permission'
         perm_obj.fields['__name__'] = stmt.name
         perm_obj.fields['__description__'] = stmt.description
@@ -770,7 +770,7 @@ class Evaluator:
 
         if expr_type is ListLiteral:
             elements = [self._eval_expr(e) for e in expr.elements]
-            return ZapList(elements)
+            return ZpxList(elements)
 
         if expr_type is DictLiteral:
             entries = {}
@@ -780,7 +780,7 @@ class Evaluator:
                 else:
                     key = self._eval_expr(k)
                 entries[key] = self._eval_expr(v)
-            return ZapDict(entries)
+            return ZpxDict(entries)
 
         if expr_type is ListComprehension:
             def _eval_comprehension(child, bindings, idx, expr, condition):
@@ -802,7 +802,7 @@ class Evaluator:
                                 continue
                         result.append(grandchild._eval_expr(expr))
                 return result
-            return ZapList(_eval_comprehension(self, expr.bindings, 0, expr.expr, expr.condition))
+            return ZpxList(_eval_comprehension(self, expr.bindings, 0, expr.expr, expr.condition))
 
         if expr_type is DictComprehension:
             def _eval_dict_comprehension(child, bindings, idx, key_expr, value_expr, condition):
@@ -826,7 +826,7 @@ class Evaluator:
                         value = grandchild._eval_expr(value_expr)
                         result[key] = value
                 return result
-            return ZapDict(_eval_dict_comprehension(self, expr.bindings, 0, expr.key_expr, expr.value_expr, expr.condition))
+            return ZpxDict(_eval_dict_comprehension(self, expr.bindings, 0, expr.key_expr, expr.value_expr, expr.condition))
 
         if expr_type is TensorLiteral:
             data = [self._eval_expr(e) for e in expr.data]
@@ -835,14 +835,14 @@ class Evaluator:
                 actual = []
                 for e in expr.data:
                     val = self._eval_expr(e)
-                    if type(val) is ZapList:
+                    if type(val) is ZpxList:
                         actual.append(val.elements)
-                    elif type(val) is ZapTensor:
+                    elif type(val) is ZpxTensor:
                         actual.append(val.data)
                     else:
                         actual.append(val)
-                return ZapTensor(actual)
-            return ZapTensor(data)
+                return ZpxTensor(actual)
+            return ZpxTensor(data)
 
         if expr_type is Lambda:
             return self._make_lambda(expr)
@@ -892,9 +892,9 @@ class Evaluator:
             right = self._eval_expr(right_expr)
             if callable(right):
                 return right(left)
-            if type(right) in (ZapFunction, ZapBuiltin):
+            if type(right) in (ZpxFunction, ZpxBuiltin):
                 return self._call_fn(right, [left])
-            if type(right) is ZapObject and 'call' in right.methods:
+            if type(right) is ZpxObject and 'call' in right.methods:
                 return self._call_fn(right.methods['call'], [left])
             raise RuntimeError(f"cannot pipe into {type(right).__name__}")
 
@@ -905,20 +905,20 @@ class Evaluator:
         right_type = type(right)
 
         if op == '+':
-            if left_type is ZapTensor or right_type is ZapTensor:
+            if left_type is ZpxTensor or right_type is ZpxTensor:
                 return left + right
             if left_type is str or right_type is str:
-                return _zap_to_str(left) + _zap_to_str(right)
-            if left_type is ZapList and right_type is ZapList:
-                return ZapList(left.elements + right.elements)
+                return _zpx_to_str(left) + _zpx_to_str(right)
+            if left_type is ZpxList and right_type is ZpxList:
+                return ZpxList(left.elements + right.elements)
             return left + right
         if op == '-':
             return left - right
         if op == '*':
-            if left_type is ZapTensor or right_type is ZapTensor:
+            if left_type is ZpxTensor or right_type is ZpxTensor:
                 return left * right
-            if left_type is ZapList and right_type is int:
-                return ZapList(left.elements * right)
+            if left_type is ZpxList and right_type is int:
+                return ZpxList(left.elements * right)
             return left * right
         if op == '/':
             return left / right
@@ -927,12 +927,12 @@ class Evaluator:
         if op == '**':
             return left ** right
         if op == '@@':
-            if left_type is ZapTensor and right_type is ZapTensor:
+            if left_type is ZpxTensor and right_type is ZpxTensor:
                 return left.matmul(right)
             raise RuntimeError("@@ requires tensors")
         if op == '==':
-            if type(left) is ZapType and hasattr(left, 'data'):
-                return type(right) is ZapTensor and left.data == right.data
+            if type(left) is ZpxType and hasattr(left, 'data'):
+                return type(right) is ZpxTensor and left.data == right.data
             return left == right
         if op == '!=':
             return left != right
@@ -1095,21 +1095,21 @@ class Evaluator:
             self_obj = callee.self_obj
             return fn._call(*([self_obj] + list(args)))
 
-        if callee_type is ZapFunction:
+        if callee_type is ZpxFunction:
             return callee._call(*args)
 
-        if callee_type is ZapBuiltin:
+        if callee_type is ZpxBuiltin:
             return callee.fn(*args)
 
         if callable(callee):
             return callee(*args)
 
-        if callee_type is ZapObject and 'call' in callee.methods:
+        if callee_type is ZpxObject and 'call' in callee.methods:
             return self._call_fn(callee.methods['call'], args)
 
-        if callee_type is ZapObject and '__call__' in callee.fields:
+        if callee_type is ZpxObject and '__call__' in callee.fields:
             call_fn = callee.fields['__call__']
-            if type(call_fn) is ZapBuiltin:
+            if type(call_fn) is ZpxBuiltin:
                 return call_fn.fn(*args)
             return call_fn(*args)
 
@@ -1119,11 +1119,11 @@ class Evaluator:
         obj = self._eval_expr(expr.obj)
         idx = self._eval_expr(expr.index)
         obj_type = type(obj)
-        if obj_type is ZapList:
+        if obj_type is ZpxList:
             return obj.elements[idx]
-        if obj_type is ZapTensor:
+        if obj_type is ZpxTensor:
             return obj._getitem(obj.data, idx)
-        if obj_type is ZapDict:
+        if obj_type is ZpxDict:
             return obj.entries.get(idx, None)
         if obj_type is str:
             return obj[idx]
@@ -1136,15 +1136,15 @@ class Evaluator:
         start = self._eval_expr(expr.start) if expr.start else None
         stop = self._eval_expr(expr.stop) if expr.stop else None
         step = self._eval_expr(expr.step) if expr.step else None
-        if isinstance(obj, ZapList):
+        if isinstance(obj, ZpxList):
             s = slice(start, stop, step)
-            return ZapList(obj.elements[s])
+            return ZpxList(obj.elements[s])
         if isinstance(obj, str):
             return obj[start:stop:step]
-        if isinstance(obj, ZapTensor):
+        if isinstance(obj, ZpxTensor):
             s = slice(start, stop, step)
             flat = obj._flatten(obj.data)
-            return ZapTensor(flat[s], [len(flat[s])])
+            return ZpxTensor(flat[s], [len(flat[s])])
         if isinstance(obj, list):
             return obj[start:stop:step]
         raise RuntimeError(f"cannot slice {type(obj).__name__}")
@@ -1154,7 +1154,7 @@ class Evaluator:
         name = expr.member
         obj_type = type(obj)
 
-        if obj_type is ZapObject:
+        if obj_type is ZpxObject:
             if name in obj.fields:
                 return obj.fields[name]
             if name in obj.methods:
@@ -1162,7 +1162,7 @@ class Evaluator:
                 if fn.is_method:
                     return BoundMethod(fn, obj)
                 return fn
-            if obj.base and type(obj.base) is ZapObject:
+            if obj.base and type(obj.base) is ZpxObject:
                 if name in obj.base.methods:
                     fn = obj.base.methods[name]
                     if fn.is_method:
@@ -1172,17 +1172,17 @@ class Evaluator:
                     return obj.base.fields[name]
             raise AttributeError(f"'{obj_type.__name__}' has no attribute '{name}'")
 
-        if obj_type is ZapDict:
+        if obj_type is ZpxDict:
             if name in obj.entries:
                 return obj.entries[name]
             raise AttributeError(f"dict has no key '{name}'")
 
-        if obj_type is ZapTensor:
+        if obj_type is ZpxTensor:
             if name in ('shape', 'data'):
                 return getattr(obj, name)
             raise AttributeError(f"tensor has no attribute '{name}'")
 
-        if obj_type is ZapList:
+        if obj_type is ZpxList:
             if name == 'len':
                 return len(obj.elements)
         py_attr = getattr(obj, name, None)
@@ -1212,17 +1212,17 @@ class Evaluator:
         return _is_truthy_std(val)
 
     def _iterable_to_list(self, obj):
-        if isinstance(obj, ZapRange):
+        if isinstance(obj, ZpxRange):
             return list(obj._iter())
-        if isinstance(obj, ZapList):
+        if isinstance(obj, ZpxList):
             return obj.elements
-        if isinstance(obj, ZapDict):
+        if isinstance(obj, ZpxDict):
             return list(obj.entries.keys())
         if isinstance(obj, (list, tuple)):
             return list(obj)
         if isinstance(obj, str):
             return list(obj)
-        if isinstance(obj, ZapTensor):
+        if isinstance(obj, ZpxTensor):
             flat = obj._flatten(obj.data)
             return flat
         raise RuntimeError(f"'{type(obj).__name__}' is not iterable")

@@ -1,13 +1,13 @@
 """
-Zap package manager.
+Zpx package manager.
 
-Manages dependencies declared in zap.json. Supports:
+Manages dependencies declared in zpx.json. Supports:
   - Local packages (file: paths)
   - Git packages (git+https://...)
-  - Registry packages (from a Zap registry, default: https://registry.zap-lang.org)
+  - Registry packages (from a Zpx registry, default: https://registry.zpx-lang.org)
 
-Dependencies are resolved into a zap.lock file for deterministic installs.
-Installed packages go into the local .zap_modules/ directory.
+Dependencies are resolved into a zpx.lock file for deterministic installs.
+Installed packages go into the local .zpx_modules/ directory.
 """
 
 from __future__ import annotations
@@ -19,10 +19,10 @@ import shutil
 import sys
 from dataclasses import dataclass, field
 
-ZAP_REGISTRY = "https://registry.zap-lang.org"
-MODULES_DIR = ".zap_modules"
-LOCKFILE = "zap.lock"
-CONFIG = "zap.json"
+ZPX_REGISTRY = "https://registry.zpx-lang.org"
+MODULES_DIR = ".zpx_modules"
+LOCKFILE = "zpx.lock"
+CONFIG = "zpx.json"
 
 
 @dataclass
@@ -107,7 +107,7 @@ def save_config(project_dir: str, config: dict) -> None:
 
 def _fetch_registry_metadata(name: str) -> dict:
     import urllib.request
-    url = f"{ZAP_REGISTRY}/{name}"
+    url = f"{ZPX_REGISTRY}/{name}"
     try:
         req = urllib.request.Request(url, headers={"Accept": "application/json"})
         with urllib.request.urlopen(req, timeout=10) as resp:
@@ -137,7 +137,7 @@ def _resolve_version(meta: dict, version_range: str) -> str:
 
 def _download_package(name: str, version: str, dest: str) -> str:
     import urllib.request
-    url = f"{ZAP_REGISTRY}/{name}/{version}"
+    url = f"{ZPX_REGISTRY}/{name}/{version}"
     try:
         req = urllib.request.Request(url, headers={"Accept": "application/json"})
         with urllib.request.urlopen(req, timeout=30) as resp:
@@ -169,7 +169,7 @@ def _copy_local_package(src: str, dest: str) -> str:
     h = hashlib.sha256()
     for root, _, files in os.walk(dest):
         for f in sorted(files):
-            if f.endswith(".zap"):
+            if f.endswith(".zpx"):
                 with open(os.path.join(root, f), "rb") as fh:
                     h.update(fh.read())
     return f"sha256:{h.hexdigest()}"
@@ -237,7 +237,7 @@ def add(args, *, project_dir: str = None, diag_format: str = "text") -> int:
     from .diagnostics import runtime_error, emit
 
     if not args:
-        print("usage: zap add <package-spec>", file=sys.stderr)
+        print("usage: zpx add <package-spec>", file=sys.stderr)
         sys.exit(1)
 
     project_dir = project_dir or os.getcwd()

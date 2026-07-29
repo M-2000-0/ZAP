@@ -1,13 +1,13 @@
 {
-  "name": "zap-wasm",
+  "name": "zpx-wasm",
   "version": "0.1.0",
-  "description": "Zap to WebAssembly compiler",
-  "main": "zap-to-js.js",
+  "description": "Zpx to WebAssembly compiler",
+  "main": "zpx-to-js.js",
   "scripts": {
     "test": "node test.js",
-    "compile": "node zap-to-js.js"
+    "compile": "node zpx-to-js.js"
   },
-  "keywords": ["zap", "wasm", "webassembly", "compiler"],
-  "author": "Zap Language",
+  "keywords": ["zpx", "wasm", "webassembly", "compiler"],
+  "author": "Zpx Language",
   "license": "MIT"
 }

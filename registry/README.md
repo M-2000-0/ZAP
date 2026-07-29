@@ -1,33 +1,33 @@
-# Zap Package Registry
+# Zpx Package Registry
 
-A simple, Git-based package registry for Zap packages.
+A simple, Git-based package registry for Zpx packages.
 
 ## How It Works
 
-The Zap registry uses Git repositories as package sources. Each package is a Git repository with a `zap-package.json` file.
+The Zpx registry uses Git repositories as package sources. Each package is a Git repository with a `zpx-package.json` file.
 
 ### Package Structure
 
 ```
 my-package/
-├── zap-package.json    # Package metadata
+├── zpx-package.json    # Package metadata
 ├── src/
-│   └── main.zap        # Package code
+│   └── main.zpx        # Package code
 └── README.md
 ```
 
-### zap-package.json
+### zpx-package.json
 
 ```json
 {
   "name": "my-package",
   "version": "1.0.0",
-  "description": "My awesome Zap package",
+  "description": "My awesome Zpx package",
   "author": "Your Name",
   "repository": "https://github.com/username/my-package",
-  "main": "src/main.zap",
+  "main": "src/main.zpx",
   "dependencies": {},
-  "keywords": ["zap", "package"]
+  "keywords": ["zpx", "package"]
 }
 ```
 
@@ -37,46 +37,46 @@ my-package/
 
 ```bash
 # Install from GitHub
-zap add github:username/package-name
+zpx add github:username/package-name
 
 # Install from URL
-zap add https://github.com/username/package-name
+zpx add https://github.com/username/package-name
 
 # Install specific version
-zap add github:username/package-name@v1.0.0
+zpx add github:username/package-name@v1.0.0
 ```
 
 ### Publishing Packages
 
 1. Create a Git repository with your package
-2. Add a `zap-package.json` file
+2. Add a `zpx-package.json` file
 3. Push to GitHub
-4. Users can now install with `zap add github:username/package-name`
+4. Users can now install with `zpx add github:username/package-name`
 
 ### Listing Packages
 
 ```bash
 # List installed packages
-zap list
+zpx list
 
 # Search packages (future)
-zap search "http"
+zpx search "http"
 ```
 
 ## Official Packages
 
 | Package | Description |
 |---------|-------------|
-| `zap-db` | Database operations |
-| `zap-http` | HTTP client |
-| `zap-ai` | AI/ML primitives |
-| `zap-deploy` | Deployment helpers |
+| `zpx-db` | Database operations |
+| `zpx-http` | HTTP client |
+| `zpx-ai` | AI/ML primitives |
+| `zpx-deploy` | Deployment helpers |
 
 ## Creating a Package
 
 1. Create a new directory
-2. Initialize with `zap-package.json`
-3. Write your code in `src/main.zap`
+2. Initialize with `zpx-package.json`
+3. Write your code in `src/main.zpx`
 4. Push to GitHub
 5. Share the URL with users
 

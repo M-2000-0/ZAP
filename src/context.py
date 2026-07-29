@@ -1,5 +1,5 @@
 """
-.zapcontext — structured project context shared between the interpreter
+.zpxcontext — structured project context shared between the interpreter
 and AI agents.
 
 The file is JSON. Top-level shape:
@@ -16,7 +16,7 @@ The file is JSON. Top-level shape:
   }
 
 The previous implementation appended without dedup, which is how the
-sample .zapcontext ended up with the same intent 16 times. The current
+sample .zpxcontext ended up with the same intent 16 times. The current
 implementation treats each list as a set keyed on the natural identity of
 the entry (text for intents/decisions/conventions, name for apis/schemas/
 services). Re-adding an existing entry is a no-op; updating an entry
@@ -26,10 +26,10 @@ overwrites it.
 import json
 import os
 
-DEFAULT_FILE = '.zapcontext'
+DEFAULT_FILE = '.zpxcontext'
 
 
-class ZapContext:
+class ZpxContext:
     def __init__(self):
         self.data = {
             'project': {'name': '', 'description': '', 'version': '0.2'},
@@ -51,7 +51,7 @@ class ZapContext:
                     loaded = json.load(f)
                 # Be tolerant: merge in any missing top-level keys, drop
                 # unknown ones. The context file may have been written by
-                # an older or newer version of Zap.
+                # an older or newer version of Zpx.
                 if isinstance(loaded, dict):
                     for k, v in loaded.items():
                         if k in ctx.data:
@@ -173,7 +173,7 @@ class ZapContext:
 
     def dedupe(self):
         """Run all the dedup rules over whatever is already on disk. Safe
-        to call repeatedly. Used by the fix-zapcontext command and once
+        to call repeatedly. Used by the fix-zpxcontext command and once
         at the start of any save to clean up legacy duplicated files."""
         self.data['intents'] = _dedupe_by(
             self.data.get('intents', []),
@@ -229,7 +229,7 @@ _context_instance = None
 def get_context():
     global _context_instance
     if _context_instance is None:
-        _context_instance = ZapContext.load()
+        _context_instance = ZpxContext.load()
         # One-time dedup in case the file on disk is from a buggy
         # version. After this, in-memory operations stay deduped.
         _context_instance.dedupe()

@@ -48,11 +48,11 @@
     { "beforeText": "^\\s*#\\s*region\\b.*$", "action": { "indentAction": "indent" } }
   ],
   "__electricCharacterSupport": {
-    "docComment": { "scope": "comment.line.number-sign.zap", "open": "# ", "close": "" },
+    "docComment": { "scope": "comment.line.number-sign.zpx", "open": "# ", "close": "" },
     "brackets": [
-      { "tokenType": "delimiter.bracket.zap", "open": "(", "close": ")" },
-      { "tokenType": "delimiter.bracket.zap", "open": "[", "close": "]" },
-      { "tokenType": "delimiter.bracket.zap", "open": "{", "close": "}" }
+      { "tokenType": "delimiter.bracket.zpx", "open": "(", "close": ")" },
+      { "tokenType": "delimiter.bracket.zpx", "open": "[", "close": "]" },
+      { "tokenType": "delimiter.bracket.zpx", "open": "{", "close": "}" }
     ]
   },
   "linkedEditing": true

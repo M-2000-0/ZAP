@@ -54,32 +54,32 @@ const SNIPPETS = {
 };
 
 function activate(context) {
-  const diagnosticCollection = vscode.languages.createDiagnosticCollection('zap');
-  let zapServer = null;
+  const diagnosticCollection = vscode.languages.createDiagnosticCollection('zpx');
+  let zpxServer = null;
 
   context.subscriptions.push(
     // Commands
-    vscode.commands.registerCommand('zap.runFile', runFile),
-    vscode.commands.registerCommand('zap.runProject', runProject),
-    vscode.commands.registerCommand('zap.check', checkFile),
-    vscode.commands.registerCommand('zap.format', formatDocument),
-    vscode.commands.registerCommand('zap.restartServer', () => restartServer(context)),
+    vscode.commands.registerCommand('zpx.runFile', runFile),
+    vscode.commands.registerCommand('zpx.runProject', runProject),
+    vscode.commands.registerCommand('zpx.check', checkFile),
+    vscode.commands.registerCommand('zpx.format', formatDocument),
+    vscode.commands.registerCommand('zpx.restartServer', () => restartServer(context)),
 
     // Providers
-    vscode.languages.registerCompletionItemProvider('zap', new ZapCompletionProvider(), '.', '(', '[', ',', '"', '\'', '@', ':', '<'),
-    vscode.languages.registerHoverProvider('zap', new ZapHoverProvider()),
-    vscode.languages.registerDefinitionProvider('zap', new ZapDefinitionProvider()),
-    vscode.languages.registerDocumentFormattingEditProvider('zap', new ZapFormatter()),
-    vscode.languages.registerCodeLensProvider('zap', new ZapCodeLensProvider()),
-    vscode.languages.registerDocumentSymbolProvider('zap', new ZapDocumentSymbolProvider()),
-    vscode.languages.registerWorkspaceSymbolProvider(new ZapWorkspaceSymbolProvider()),
+    vscode.languages.registerCompletionItemProvider('zpx', new ZpxCompletionProvider(), '.', '(', '[', ',', '"', '\'', '@', ':', '<'),
+    vscode.languages.registerHoverProvider('zpx', new ZpxHoverProvider()),
+    vscode.languages.registerDefinitionProvider('zpx', new ZpxDefinitionProvider()),
+    vscode.languages.registerDocumentFormattingEditProvider('zpx', new ZpxFormatter()),
+    vscode.languages.registerCodeLensProvider('zpx', new ZpxCodeLensProvider()),
+    vscode.languages.registerDocumentSymbolProvider('zpx', new ZpxDocumentSymbolProvider()),
+    vscode.languages.registerWorkspaceSymbolProvider(new ZpxWorkspaceSymbolProvider()),
 
     diagnosticCollection
   );
 
   // Diagnostics on change
   const updateOnChange = vscode.workspace.onDidChangeTextDocument(e => {
-    if (e.document.languageId === 'zap') {
+    if (e.document.languageId === 'zpx') {
       updateDiagnostics(e.document, diagnosticCollection);
     }
   });
@@ -95,15 +95,15 @@ function activate(context) {
 
   // Status bar
   const statusBar = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-  statusBar.text = '$(zap) Zap';
-  statusBar.tooltip = 'Zap Language Support';
-  statusBar.command = 'zap.check';
+  statusBar.text = '$(zpx) Zpx';
+  statusBar.tooltip = 'Zpx Language Support';
+  statusBar.command = 'zpx.check';
   statusBar.show();
   context.subscriptions.push(statusBar);
 }
 
 async function startLanguageServer(context) {
-  const config = vscode.workspace.getConfiguration('zap');
+  const config = vscode.workspace.getConfiguration('zpx');
   const serverPath = config.get('languageServerPath');
   
   if (serverPath && fs.existsSync(serverPath)) {
@@ -115,35 +115,35 @@ async function startLanguageServer(context) {
       });
       
       server.stderr.on('data', data => {
-        console.error('Zap LSP:', data.toString());
+        console.error('Zpx LSP:', data.toString());
       });
       
-      zapServer = server;
+      zpxServer = server;
     } catch (e) {
-      console.warn('Failed to start Zap LSP:', e.message);
+      console.warn('Failed to start Zpx LSP:', e.message);
     }
   }
 }
 
 function restartServer(context) {
-  if (zapServer) {
-    zapServer.kill();
-    zapServer = null;
+  if (zpxServer) {
+    zpxServer.kill();
+    zpxServer = null;
   }
   startLanguageServer(context);
-  vscode.window.showInformationMessage('Zap language server restarted');
+  vscode.window.showInformationMessage('Zpx language server restarted');
 }
 
 async function runFile() {
   const editor = vscode.window.activeTextEditor;
-  if (!editor || editor.document.languageId !== 'zap') {
-    vscode.window.showErrorMessage('No Zap file active');
+  if (!editor || editor.document.languageId !== 'zpx') {
+    vscode.window.showErrorMessage('No Zpx file active');
     return;
   }
   await editor.document.save();
-  const config = vscode.workspace.getConfiguration('zap');
-  const executablePath = config.get('executablePath', 'zap');
-  const terminal = vscode.window.createTerminal('Zap Run');
+  const config = vscode.workspace.getConfiguration('zpx');
+  const executablePath = config.get('executablePath', 'zpx');
+  const terminal = vscode.window.createTerminal('Zpx Run');
   terminal.show();
   terminal.sendText(`${executablePath} run "${editor.document.fileName}"`);
 }
@@ -154,23 +154,23 @@ async function runProject() {
     vscode.window.showErrorMessage('No workspace open');
     return;
   }
-  const config = vscode.workspace.getConfiguration('zap');
-  const executablePath = config.get('executablePath', 'zap');
-  const terminal = vscode.window.createTerminal('Zap Project');
+  const config = vscode.workspace.getConfiguration('zpx');
+  const executablePath = config.get('executablePath', 'zpx');
+  const terminal = vscode.window.createTerminal('Zpx Project');
   terminal.show();
   terminal.sendText(`cd "${workspace.uri.fsPath}" && ${executablePath} run .`);
 }
 
 async function checkFile() {
   const editor = vscode.window.activeTextEditor;
-  if (!editor || editor.document.languageId !== 'zap') {
-    vscode.window.showErrorMessage('No Zap file active');
+  if (!editor || editor.document.languageId !== 'zpx') {
+    vscode.window.showErrorMessage('No Zpx file active');
     return;
   }
   await editor.document.save();
-  const config = vscode.workspace.getConfiguration('zap');
-  const executablePath = config.get('executablePath', 'zap');
-  const terminal = vscode.window.createTerminal('Zap Check');
+  const config = vscode.workspace.getConfiguration('zpx');
+  const executablePath = config.get('executablePath', 'zpx');
+  const terminal = vscode.window.createTerminal('Zpx Check');
   terminal.show();
   terminal.sendText(`${executablePath} check "${editor.document.fileName}"`);
 }
@@ -180,14 +180,14 @@ async function formatDocument() {
   if (!editor) return;
   const doc = editor.document;
   const text = doc.getText();
-  const formatted = formatZapCode(text);
+  const formatted = formatZpxCode(text);
   if (text !== formatted) {
     const fullRange = new vscode.Range(doc.positionAt(0), doc.positionAt(text.length));
     await editor.edit(eb => eb.replace(fullRange, formatted));
   }
 }
 
-function formatZapCode(code) {
+function formatZpxCode(code) {
   const lines = code.split('\n');
   const formatted = [];
   let indentLevel = 0;
@@ -213,7 +213,7 @@ function formatZapCode(code) {
 }
 
 function updateDiagnostics(doc, collection) {
-  if (doc.languageId !== 'zap') return;
+  if (doc.languageId !== 'zpx') return;
   const diagnostics = [];
   const text = doc.getText();
   const lines = text.split('\n');
@@ -274,7 +274,7 @@ function makeDiag(doc, line, msg, severity) {
 
 // ============ PROVIDERS ============
 
-class ZapCompletionProvider {
+class ZpxCompletionProvider {
   provideCompletionItems(doc, pos, token, context) {
     const items = [];
     const lineText = doc.lineAt(pos).text.substring(0, pos.character);
@@ -297,7 +297,7 @@ class ZapCompletionProvider {
     Object.entries(BUILTINS.functions).forEach(([cat, funcs]) => {
       funcs.forEach(fn => {
         const item = this.makeItem(fn, vscode.CompletionItemKind.Function, `Builtin (${cat})`);
-        item.documentation = new vscode.MarkdownString(`**${fn}** - Zap builtin function (${cat})`);
+        item.documentation = new vscode.MarkdownString(`**${fn}** - Zpx builtin function (${cat})`);
         items.push(item);
       });
     });
@@ -354,7 +354,7 @@ class ZapCompletionProvider {
   }
 }
 
-class ZapHoverProvider {
+class ZpxHoverProvider {
   provideHover(doc, pos) {
     const word = doc.getWordRangeAtPosition(pos);
     if (!word) return null;
@@ -362,27 +362,27 @@ class ZapHoverProvider {
 
     // Builtin docs
     const docs = {
-      'print': 'Print to console\n\n```zap\nprint("Hello")\nprint(1, 2, 3)  # multiple args\n```',
-      'len': 'Length of string, list, or dict\n\n```zap\nlen("hi")      # 2\nlen([1,2,3])   # 3\nlen({"a": 1})  # 1\n```',
-      'str': 'Convert to string\n\n```zap\nstr(42)       # "42"\nstr([1,2])    # "[1, 2]"\n```',
-      'int': 'Convert to integer\n\n```zap\nint("42")     # 42\nint(3.14)     # 3\n```',
-      'float': 'Convert to float\n\n```zap\nfloat("3.14") # 3.14\nfloat(42)     # 42.0\n```',
-      'range': 'Generate range\n\n```zap\nrange(5)      # [0,1,2,3,4]\nrange(2, 5)   # [2,3,4]\nrange(0, 10, 2) # [0,2,4,6,8]\n```',
-      'abs': 'Absolute value\n\n```zap\nabs(-5)  # 5\n```',
-      'sqrt': 'Square root\n\n```zap\nsqrt(16)  # 4.0\n```',
-      'map': 'Map function over iterable\n\n```zap\nmap([1,2,3], double)  # [2,4,6]\n```',
-      'filter': 'Filter elements\n\n```zap\nfilter([1,2,3], even)  # [2]\n```',
-      'fn': 'Define function\n\n```zap\nfn add(a, b):\n  ret a + b\n```',
-      'class': 'Define class\n\n```zap\nclass Dog:\n  fn init(self, name):\n    self.name = name\n```',
-      'if': 'Conditional\n\n```zap\nif x > 0:\n  print("pos")\nel:\n  print("neg")\n```',
-      'for': 'For loop\n\n```zap\nfor i in range(5):\n  print(i)\n```',
-      'while': 'While loop\n\n```zap\nwhile x < 10:\n  x = x + 1\n```',
-      'ret': 'Return value\n\n```zap\nfn add(a, b):\n  ret a + b\n```',
-      'let': 'Variable declaration\n\n```zap\nlet x = 42\n```',
-      'self': 'Current instance\n\n```zap\nclass Dog:\n  fn init(self, name):\n    self.name = name\n```',
-      'and': 'Logical AND\n\n```zap\nif x > 0 and x < 10:\n  print("in range")\n```',
-      'or': 'Logical OR\n\n```zap\nif x < 0 or x > 100:\n  print("out of range")\n```',
-      'not': 'Logical NOT\n\n```zap\nif not empty(list):\n  print("has items")\n```',
+      'print': 'Print to console\n\n```zpx\nprint("Hello")\nprint(1, 2, 3)  # multiple args\n```',
+      'len': 'Length of string, list, or dict\n\n```zpx\nlen("hi")      # 2\nlen([1,2,3])   # 3\nlen({"a": 1})  # 1\n```',
+      'str': 'Convert to string\n\n```zpx\nstr(42)       # "42"\nstr([1,2])    # "[1, 2]"\n```',
+      'int': 'Convert to integer\n\n```zpx\nint("42")     # 42\nint(3.14)     # 3\n```',
+      'float': 'Convert to float\n\n```zpx\nfloat("3.14") # 3.14\nfloat(42)     # 42.0\n```',
+      'range': 'Generate range\n\n```zpx\nrange(5)      # [0,1,2,3,4]\nrange(2, 5)   # [2,3,4]\nrange(0, 10, 2) # [0,2,4,6,8]\n```',
+      'abs': 'Absolute value\n\n```zpx\nabs(-5)  # 5\n```',
+      'sqrt': 'Square root\n\n```zpx\nsqrt(16)  # 4.0\n```',
+      'map': 'Map function over iterable\n\n```zpx\nmap([1,2,3], double)  # [2,4,6]\n```',
+      'filter': 'Filter elements\n\n```zpx\nfilter([1,2,3], even)  # [2]\n```',
+      'fn': 'Define function\n\n```zpx\nfn add(a, b):\n  ret a + b\n```',
+      'class': 'Define class\n\n```zpx\nclass Dog:\n  fn init(self, name):\n    self.name = name\n```',
+      'if': 'Conditional\n\n```zpx\nif x > 0:\n  print("pos")\nel:\n  print("neg")\n```',
+      'for': 'For loop\n\n```zpx\nfor i in range(5):\n  print(i)\n```',
+      'while': 'While loop\n\n```zpx\nwhile x < 10:\n  x = x + 1\n```',
+      'ret': 'Return value\n\n```zpx\nfn add(a, b):\n  ret a + b\n```',
+      'let': 'Variable declaration\n\n```zpx\nlet x = 42\n```',
+      'self': 'Current instance\n\n```zpx\nclass Dog:\n  fn init(self, name):\n    self.name = name\n```',
+      'and': 'Logical AND\n\n```zpx\nif x > 0 and x < 10:\n  print("in range")\n```',
+      'or': 'Logical OR\n\n```zpx\nif x < 0 or x > 100:\n  print("out of range")\n```',
+      'not': 'Logical NOT\n\n```zpx\nif not empty(list):\n  print("has items")\n```',
     };
 
     if (docs[text]) {
@@ -411,7 +411,7 @@ class ZapHoverProvider {
   }
 }
 
-class ZapDefinitionProvider {
+class ZpxDefinitionProvider {
   provideDefinition(doc, pos) {
     const word = doc.getWordRangeAtPosition(pos);
     if (!word) return null;
@@ -437,7 +437,7 @@ class ZapDefinitionProvider {
   }
 }
 
-class ZapDocumentSymbolProvider {
+class ZpxDocumentSymbolProvider {
   provideDocumentSymbols(doc) {
     const symbols = [];
     const lines = doc.getText().split('\n');
@@ -478,14 +478,14 @@ class ZapDocumentSymbolProvider {
   }
 }
 
-class ZapWorkspaceSymbolProvider {
+class ZpxWorkspaceSymbolProvider {
   provideWorkspaceSymbols(query) {
     // Would need file index - placeholder
     return [];
   }
 }
 
-class ZapCodeLensProvider {
+class ZpxCodeLensProvider {
   provideCodeLenses(doc) {
     const lenses = [];
     const lines = doc.getText().split('\n');
@@ -496,11 +496,11 @@ class ZapCodeLensProvider {
         const range = new vscode.Range(i, 0, i, line.length);
         lenses.push(new vscode.CodeLens(range, {
           title: '$(play) Run',
-          command: 'zap.runFile',
+          command: 'zpx.runFile',
           tooltip: 'Run this file'
         }, {
           title: '$(beaker) Test',
-          command: 'zap.check',
+          command: 'zpx.check',
           tooltip: 'Type-check this file'
         }));
       }
@@ -508,7 +508,7 @@ class ZapCodeLensProvider {
         const range = new vscode.Range(i, 0, i, line.length);
         lenses.push(new vscode.CodeLens(range, {
           title: '$(beaker) Run Test',
-          command: 'zap.runFile'
+          command: 'zpx.runFile'
         }));
       }
     });
@@ -517,11 +517,11 @@ class ZapCodeLensProvider {
   }
 }
 
-class ZapFormatter {
+class ZpxFormatter {
   provideDocumentFormattingEdits(doc) {
     const edits = [];
     const text = doc.getText();
-    const formatted = formatZapCode(text);
+    const formatted = formatZpxCode(text);
 
     if (text !== formatted) {
       const range = new vscode.Range(doc.positionAt(0), doc.positionAt(text.length));
@@ -532,8 +532,8 @@ class ZapFormatter {
 }
 
 function deactivate() {
-  if (zapServer) {
-    zapServer.kill();
+  if (zpxServer) {
+    zpxServer.kill();
   }
 }
 

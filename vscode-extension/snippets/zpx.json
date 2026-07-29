@@ -1,0 +1,307 @@
+{
+  "Function": {
+    "prefix": "fn",
+    "body": ["fn ${1:name}(${2:params}):", "\t${3:body}"],
+    "description": "Define a function"
+  },
+  "Function with Return Type": {
+    "prefix": "fn->",
+    "body": ["fn ${1:name}(${2:params}) -> ${3:ReturnType}:", "\t${4:body}"],
+    "description": "Function with return type annotation"
+  },
+  "Async Function": {
+    "prefix": "afn",
+    "body": ["async fn ${1:name}(${2:params}):", "\t${3:body}"],
+    "description": "Define an async function"
+  },
+  "Lambda": {
+    "prefix": "=>",
+    "body": ["${1:x} => ${2:expr}"],
+    "description": "Lambda function"
+  },
+  "Class": {
+    "prefix": "class",
+    "body": ["class ${1:Name}:", "\tfn init(self${2:, params}):", "\t\t${3:body}"],
+    "description": "Define a class"
+  },
+  "Trait": {
+    "prefix": "trait",
+    "body": ["trait ${1:Name}:", "\tfn ${2:method}(self):", "\t\t${3:body}"],
+    "description": "Define a trait/interface"
+  },
+  "If": {
+    "prefix": "if",
+    "body": ["if ${1:condition}:", "\t${2:body}"],
+    "description": "If statement"
+  },
+  "Else": {
+    "prefix": "el",
+    "body": ["el:", "\t${1:body}"],
+    "description": "Else clause"
+  },
+  "Else If": {
+    "prefix": "elif",
+    "body": ["el: if ${1:condition}:", "\t${2:body}"],
+    "description": "Else-if clause"
+  },
+  "For Loop": {
+    "prefix": "for",
+    "body": ["for ${1:item} in ${2:iterable}:", "\t${3:body}"],
+    "description": "For loop"
+  },
+  "While Loop": {
+    "prefix": "while",
+    "body": ["while ${1:condition}:", "\t${2:body}"],
+    "description": "While loop"
+  },
+  "Match": {
+    "prefix": "match",
+    "body": ["match ${1:value}:", "\t${2:pattern}: ${3:result}", "el:", "\t${4:default}"],
+    "description": "Pattern matching"
+  },
+  "Try Catch": {
+    "prefix": "try",
+    "body": ["try:", "\t${1:body}", "catch ${2:err}:", "\t${3:error handling}"],
+    "description": "Error handling"
+  },
+  "Test": {
+    "prefix": "test",
+    "body": ["test ${1:name}():", "\t${2:body}"],
+    "description": "Test definition"
+  },
+  "Doc": {
+    "prefix": "doc",
+    "body": ["doc \"${1:description}\""],
+    "description": "Documentation string"
+  },
+  "Check": {
+    "prefix": "check",
+    "body": ["check ${1:name}:", "\t${2:body}"],
+    "description": "Check block"
+  },
+  "Expect": {
+    "prefix": "expect",
+    "body": ["expect ${1:condition}, \"${2:message}\""],
+    "description": "Expect assertion"
+  },
+  "Schema": {
+    "prefix": "schema",
+    "body": ["schema ${1:Name}:", "\t${2:field}: ${3:type}"],
+    "description": "Define a data schema"
+  },
+  "API Endpoint": {
+    "prefix": "api",
+    "body": ["api ${1:GET} \"${2:/path}\":", "\t${3:handler}"],
+    "description": "Define an API endpoint"
+  },
+  "Service": {
+    "prefix": "service",
+    "body": ["service ${1:Name}:", "\t${2:body}"],
+    "description": "Define a service"
+  },
+  "Database": {
+    "prefix": "database",
+    "body": ["database ${1:Name}:", "\t${2:body}"],
+    "description": "Define a database"
+  },
+  "Concurrent": {
+    "prefix": "concurrent",
+    "body": ["concurrent ${1:name}:", "\t${2:body}"],
+    "description": "Concurrent block"
+  },
+  "Permission": {
+    "prefix": "permission",
+    "body": ["permission ${1:name} ${2:action} on ${3:resource}"],
+    "description": "Define a permission"
+  },
+  "Type Alias": {
+    "prefix": "type",
+    "body": ["type ${1:Name} = ${2:Type}"],
+    "description": "Type alias"
+  },
+  "Enum": {
+    "prefix": "enum",
+    "body": ["enum ${1:Name}:", "\t${2:VARIANT}"],
+    "description": "Define an enum"
+  },
+  "Variable": {
+    "prefix": "let",
+    "body": ["let ${1:name} = ${2:value}"],
+    "description": "Declare a variable"
+  },
+  "Mutable Variable": {
+    "prefix": "mut",
+    "body": ["mut ${1:name} = ${2:value}"],
+    "description": "Declare a mutable variable"
+  },
+  "Constant": {
+    "prefix": "const",
+    "body": ["const ${1:NAME} = ${2:value}"],
+    "description": "Declare a constant"
+  },
+  "Return": {
+    "prefix": "ret",
+    "body": ["ret ${1:value}"],
+    "description": "Return a value"
+  },
+  "Print": {
+    "prefix": "print",
+    "body": ["print(${1:message})"],
+    "description": "Print to console"
+  },
+  "Import": {
+    "prefix": "import",
+    "body": ["import \"${1:module}\""],
+    "description": "Import a module"
+  },
+  "From Import": {
+    "prefix": "from",
+    "body": ["from \"${1:module}\" import ${2:name}"],
+    "description": "Import from module"
+  },
+  "List Comprehension": {
+    "prefix": "comp",
+    "body": ["[${1:expr} for ${2:item} in ${3:iterable}]"],
+    "description": "List comprehension"
+  },
+  "Dict Comprehension": {
+    "prefix": "dcomp",
+    "body": ["{${1:key}: ${2:value} for ${3:item} in ${4:iterable}}"],
+    "description": "Dictionary comprehension"
+  },
+  "Pipe": {
+    "prefix": "pipe",
+    "body": ["${1:value} |> ${2:function}"],
+    "description": "Pipe operator"
+  },
+  "List Literal": {
+    "prefix": "[]",
+    "body": ["[${1:items}]"],
+    "description": "List literal"
+  },
+  "Dict Literal": {
+    "prefix": "{}",
+    "body": ["{\"${1:key}\": ${2:value}}"],
+    "description": "Dict literal"
+  },
+  "Set Literal": {
+    "prefix": "set",
+    "body": ["{${1:items}}"],
+    "description": "Set literal"
+  },
+  "Range": {
+    "prefix": "range",
+    "body": ["range(${1:start}, ${2:end}${3:, ${4:step}})"],
+    "description": "Range expression"
+  },
+  "Regex": {
+    "prefix": "/",
+    "body": ["/${1:pattern}/${2:flags}"],
+    "description": "Regex literal"
+  },
+  "Decorator": {
+    "prefix": "@",
+    "body": ["@${1:name}(${2:args})"],
+    "description": "Decorator"
+  },
+  "Intent Performance": {
+    "prefix": "@perf",
+    "body": ["@intent_performance(\"${1:name}\", budget_ms=${2:100})", "fn ${3:name}(${4:params}):", "\t${5:body}"],
+    "description": "Performance intent decorator"
+  },
+  "Intent Reliability": {
+    "prefix": "@reliable",
+    "body": ["@intent_reliability(\"${1:name}\", retries=${2:3})", "fn ${3:name}(${4:params}):", "\t${5:body}"],
+    "description": "Reliability intent decorator"
+  },
+  "Intent Security": {
+    "prefix": "@secure",
+    "body": ["@intent_security(\"${1:name}\", capabilities=[${2:cap1, cap2}])", "fn ${3:name}(${4:params}):", "\t${5:body}"],
+    "description": "Security intent decorator"
+  },
+  "Concurrent Map": {
+    "prefix": "par_map",
+    "body": ["par_map(${1:fn}, ${2:items})"],
+    "description": "Parallel map"
+  },
+  "Concurrent Filter": {
+    "prefix": "par_filter",
+    "body": ["par_filter(${1:fn}, ${2:items})"],
+    "description": "Parallel filter"
+  },
+  "Parallel": {
+    "prefix": "parallel",
+    "body": ["parallel:", "\t${1:body1}", "\t${2:body2}"],
+    "description": "Parallel execution"
+  },
+  "HTTP Get": {
+    "prefix": "http_get",
+    "body": ["http_get(\"${1:url}\")"],
+    "description": "HTTP GET request"
+  },
+  "HTTP Post": {
+    "prefix": "http_post",
+    "body": ["http_post(\"${1:url}\", ${2:data})"],
+    "description": "HTTP POST request"
+  },
+  "JSON Parse": {
+    "prefix": "json_parse",
+    "body": ["json_parse(${1:string})"],
+    "description": "Parse JSON"
+  },
+  "JSON Stringify": {
+    "prefix": "json_stringify",
+    "body": ["json_stringify(${1:object})"],
+    "description": "Stringify to JSON"
+  },
+  "Read File": {
+    "prefix": "read_file",
+    "body": ["read_file(\"${1:path}\")"],
+    "description": "Read file contents"
+  },
+  "Write File": {
+    "prefix": "write_file",
+    "body": ["write_file(\"${1:path}\", ${2:content})"],
+    "description": "Write file"
+  },
+  "Element": {
+    "prefix": "el",
+    "body": ["element(\"${1:tag}\", {${2:props}}, [${3:children}])"],
+    "description": "Create HTML element"
+  },
+  "HTML Render": {
+    "prefix": "html",
+    "body": ["html([${1:elements}])"],
+    "description": "Render HTML"
+  },
+  "Signal": {
+    "prefix": "signal",
+    "body": ["signal(${1:initial})"],
+    "description": "Reactive signal"
+  },
+  "Effect": {
+    "prefix": "effect",
+    "body": ["effect(() => {", "\t${1:body}", "})"],
+    "description": "Reactive effect"
+  },
+  "DB Query": {
+    "prefix": "db_query",
+    "body": ["db_query(\"${1:sql}\", ${2:params})"],
+    "description": "Database query"
+  },
+  "Tensor": {
+    "prefix": "tensor",
+    "body": ["tensor(${1:data})"],
+    "description": "Create tensor"
+  },
+  "Dense Layer": {
+    "prefix": "dense",
+    "body": ["dense(${1:units}, activation=${2:relu})"],
+    "description": "Dense neural layer"
+  },
+  "Train Model": {
+    "prefix": "train",
+    "body": ["train(${1:model}, ${2:data}, epochs=${3:10})"],
+    "description": "Train ML model"
+  }
+}

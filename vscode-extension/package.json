@@ -1,109 +1,109 @@
 {
-  "name": "zap-language",
-  "displayName": "Zap Language",
+  "name": "zpx-language",
+  "displayName": "Zpx Language",
   "description": "AI-native, full-stack programming language with syntax highlighting, autocomplete, error checking, and debugging",
   "version": "0.2.0",
-  "publisher": "zap-lang",
+  "publisher": "zpx-lang",
   "icon": "icon.png",
   "engines": { "vscode": "^1.85.0" },
   "categories": ["Programming Languages", "Snippets", "Linters", "Debuggers"],
   "keywords": [
-    "zap", "ai", "language", "full-stack", "syntax highlighting",
+    "zpx", "ai", "language", "full-stack", "syntax highlighting",
     "autocomplete", "intellisense", "linter", "formatter", "debugger",
     "token-efficient", "zero-boilerplate", "self-hosting"
   ],
   "activationEvents": [
-    "onLanguage:zap",
-    "workspaceContains:**/*.zap",
-    "onCommand:zap.runFile",
-    "onCommand:zap.runProject",
-    "onCommand:zap.check",
-    "onCommand:zap.format"
+    "onLanguage:zpx",
+    "workspaceContains:**/*.zpx",
+    "onCommand:zpx.runFile",
+    "onCommand:zpx.runProject",
+    "onCommand:zpx.check",
+    "onCommand:zpx.format"
   ],
   "main": "./src/extension.js",
   "contributes": {
     "languages": [{
-      "id": "zap",
-      "aliases": ["Zap", "zap"],
-      "extensions": [".zap"],
+      "id": "zpx",
+      "aliases": ["Zpx", "zpx"],
+      "extensions": [".zpx"],
       "configuration": "./language-configuration.json",
-      "icon": { "light": "./icons/zap-light.svg", "dark": "./icons/zap-dark.svg" }
+      "icon": { "light": "./icons/zpx-light.svg", "dark": "./icons/zpx-dark.svg" }
     }],
     "grammars": [{
-      "language": "zap",
-      "scopeName": "source.zap",
-      "path": "./syntaxes/zap.tmLanguage.json"
+      "language": "zpx",
+      "scopeName": "source.zpx",
+      "path": "./syntaxes/zpx.tmLanguage.json"
     }],
     "snippets": [{
-      "language": "zap",
-      "path": "./snippets/zap.json"
+      "language": "zpx",
+      "path": "./snippets/zpx.json"
     }],
     "commands": [
-      { "command": "zap.runFile", "title": "Zap: Run File", "icon": "$(play)" },
-      { "command": "zap.runProject", "title": "Zap: Run Project", "icon": "$(play-circle)" },
-      { "command": "zap.check", "title": "Zap: Check Types", "icon": "$(beaker)" },
-      { "command": "zap.format", "title": "Zap: Format Document", "icon": "$(format)" },
-      { "command": "zap.restartServer", "title": "Zap: Restart Language Server", "icon": "$(sync)" },
-      { "command": "zap.newProject", "title": "Zap: New Project", "icon": "$(file-add)" },
-      { "command": "zap.showOutput", "title": "Zap: Show Output", "icon": "$(output)" }
+      { "command": "zpx.runFile", "title": "Zpx: Run File", "icon": "$(play)" },
+      { "command": "zpx.runProject", "title": "Zpx: Run Project", "icon": "$(play-circle)" },
+      { "command": "zpx.check", "title": "Zpx: Check Types", "icon": "$(beaker)" },
+      { "command": "zpx.format", "title": "Zpx: Format Document", "icon": "$(format)" },
+      { "command": "zpx.restartServer", "title": "Zpx: Restart Language Server", "icon": "$(sync)" },
+      { "command": "zpx.newProject", "title": "Zpx: New Project", "icon": "$(file-add)" },
+      { "command": "zpx.showOutput", "title": "Zpx: Show Output", "icon": "$(output)" }
     ],
     "menus": {
       "editor/title": [
-        { "when": "resourceLangId == zap", "command": "zap.runFile", "group": "navigation", "title": "Run" },
-        { "when": "resourceLangId == zap", "command": "zap.check", "group": "navigation", "title": "Check" }
+        { "when": "resourceLangId == zpx", "command": "zpx.runFile", "group": "navigation", "title": "Run" },
+        { "when": "resourceLangId == zpx", "command": "zpx.check", "group": "navigation", "title": "Check" }
       ],
       "editor/context": [
-        { "when": "resourceLangId == zap", "command": "zap.runFile", "group": "zap" },
-        { "when": "resourceLangId == zap", "command": "zap.check", "group": "zap" },
-        { "when": "resourceLangId == zap", "command": "zap.format", "group": "zap" }
+        { "when": "resourceLangId == zpx", "command": "zpx.runFile", "group": "zpx" },
+        { "when": "resourceLangId == zpx", "command": "zpx.check", "group": "zpx" },
+        { "when": "resourceLangId == zpx", "command": "zpx.format", "group": "zpx" }
       ],
       "explorer/context": [
-        { "when": "resourceExtname == .zap", "command": "zap.runFile", "group": "zap" }
+        { "when": "resourceExtname == .zpx", "command": "zpx.runFile", "group": "zpx" }
       ],
       "commandPalette": [
-        { "command": "zap.runFile", "when": "resourceLangId == zap" },
-        { "command": "zap.runProject", "when": "resourceLangId == zap" },
-        { "command": "zap.check", "when": "resourceLangId == zap" },
-        { "command": "zap.format", "when": "resourceLangId == zap" },
-        { "command": "zap.newProject" }
+        { "command": "zpx.runFile", "when": "resourceLangId == zpx" },
+        { "command": "zpx.runProject", "when": "resourceLangId == zpx" },
+        { "command": "zpx.check", "when": "resourceLangId == zpx" },
+        { "command": "zpx.format", "when": "resourceLangId == zpx" },
+        { "command": "zpx.newProject" }
       ]
     },
     "keybindings": [
-      { "command": "zap.runFile", "key": "f5", "when": "editorTextFocus && resourceLangId == zap" },
-      { "command": "zap.check", "key": "ctrl+shift+c", "when": "editorTextFocus && resourceLangId == zap" },
-      { "command": "zap.format", "key": "shift+alt+f", "when": "editorTextFocus && resourceLangId == zap" },
-      { "command": "editor.action.formatDocument", "key": "shift+alt+f", "when": "editorTextFocus && resourceLangId == zap" }
+      { "command": "zpx.runFile", "key": "f5", "when": "editorTextFocus && resourceLangId == zpx" },
+      { "command": "zpx.check", "key": "ctrl+shift+c", "when": "editorTextFocus && resourceLangId == zpx" },
+      { "command": "zpx.format", "key": "shift+alt+f", "when": "editorTextFocus && resourceLangId == zpx" },
+      { "command": "editor.action.formatDocument", "key": "shift+alt+f", "when": "editorTextFocus && resourceLangId == zpx" }
     ],
     "configuration": {
       "type": "object",
-      "title": "Zap",
+      "title": "Zpx",
       "properties": {
-        "zap.executablePath": {
+        "zpx.executablePath": {
           "type": "string",
-          "default": "zap",
-          "description": "Path to Zap executable"
+          "default": "zpx",
+          "description": "Path to Zpx executable"
         },
-        "zap.languageServerPath": {
+        "zpx.languageServerPath": {
           "type": "string",
           "default": "",
-          "description": "Path to Zap Language Server (optional)"
+          "description": "Path to Zpx Language Server (optional)"
         },
-        "zap.enableDiagnostics": {
+        "zpx.enableDiagnostics": {
           "type": "boolean",
           "default": true,
           "description": "Enable real-time diagnostics"
         },
-        "zap.enableFormatOnSave": {
+        "zpx.enableFormatOnSave": {
           "type": "boolean",
           "default": true,
           "description": "Format on save"
         },
-        "zap.enableLanguageServer": {
+        "zpx.enableLanguageServer": {
           "type": "boolean",
           "default": true,
           "description": "Enable language server"
         },
-        "zap.trace.server": {
+        "zpx.trace.server": {
           "type": "string",
           "enum": ["off", "messages", "verbose"],
           "default": "off",
@@ -112,12 +112,12 @@
       }
     },
     "debuggers": [{
-      "type": "zap",
-      "label": "Zap Debug",
+      "type": "zpx",
+      "label": "Zpx Debug",
       "program": "${workspaceFolder}",
-      "runtime": "zap",
+      "runtime": "zpx",
       "runtimeArgs": ["run", "--debug", "${file}"],
-      "languages": ["zap"],
+      "languages": ["zpx"],
       "configurationAttributes": {
         "launch": {
           "properties": {
@@ -130,16 +130,16 @@
       }
     }],
     "views": {
-      "zap": [
-        { "id": "zap.output", "name": "Zap Output" },
-        { "id": "zap.intents", "name": "Active Intents" }
+      "zpx": [
+        { "id": "zpx.output", "name": "Zpx Output" },
+        { "id": "zpx.intents", "name": "Active Intents" }
       ]
     },
     "viewsContainers": {
       "activitybar": [{
-        "id": "zap",
-        "title": "Zap",
-        "icon": "icons/zap-activity.svg"
+        "id": "zpx",
+        "title": "Zpx",
+        "icon": "icons/zpx-activity.svg"
       }]
     }
   },
@@ -163,9 +163,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/M-2000-0/ZAP.git"
+    "url": "https://github.com/M-2000-0/ZPX.git"
   },
-  "bugs": { "url": "https://github.com/M-2000-0/ZAP/issues" },
-  "homepage": "https://github.com/M-2000-0/ZAP/blob/main/vscode-extension/README.md",
+  "bugs": { "url": "https://github.com/M-2000-0/ZPX/issues" },
+  "homepage": "https://github.com/M-2000-0/ZPX/blob/main/vscode-extension/README.md",
   "license": "MIT"
 }

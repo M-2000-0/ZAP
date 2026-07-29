@@ -79,16 +79,16 @@ def test_cli_version_command_runs(tmp_cwd):
         capture_output=True, text=True, env=env,
     )
     assert result.returncode == 0, f"stderr={result.stderr!r}"
-    assert "Zap v" in result.stdout
+    assert "Zpx v" in result.stdout
     assert "0.2" in result.stdout
     print("  ok CLI version command runs")
 
 
 def test_cli_check_rejects_wrong_grammar(tmp_cwd):
-    """`zap check` returns non-zero exit code on grammar mismatch."""
+    """`zpx check` returns non-zero exit code on grammar mismatch."""
     import subprocess
     src = "# grammar: 0.1\nlet x = 1\n"
-    path = os.path.join(tmp_cwd, "bad.zap")
+    path = os.path.join(tmp_cwd, "bad.zpx")
     with open(path, "w") as f:
         f.write(src)
     env = os.environ.copy()
@@ -103,10 +103,10 @@ def test_cli_check_rejects_wrong_grammar(tmp_cwd):
 
 
 def test_cli_check_accepts_matching_grammar(tmp_cwd):
-    """`zap check` returns 0 on matching grammar."""
+    """`zpx check` returns 0 on matching grammar."""
     import subprocess
     src = "# grammar: 0.2\nlet x = 1\n"
-    path = os.path.join(tmp_cwd, "ok.zap")
+    path = os.path.join(tmp_cwd, "ok.zpx")
     with open(path, "w") as f:
         f.write(src)
     env = os.environ.copy()
@@ -120,11 +120,11 @@ def test_cli_check_accepts_matching_grammar(tmp_cwd):
 
 
 def test_cli_check_emits_json_on_request(tmp_cwd):
-    """`zap check --format=json` returns structured diagnostics."""
+    """`zpx check --format=json` returns structured diagnostics."""
     import subprocess
     import json
     src = "# grammar: 0.1\nlet x = 1\n"
-    path = os.path.join(tmp_cwd, "bad.zap")
+    path = os.path.join(tmp_cwd, "bad.zpx")
     with open(path, "w") as f:
         f.write(src)
     env = os.environ.copy()

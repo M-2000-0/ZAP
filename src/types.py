@@ -738,7 +738,7 @@ class TypeChecker:
         if isinstance(node.target, Identifier):
             binding = self.env.get(node.target.name)
             if binding is None:
-                # Implicit declaration (Zap allows x = 5 without let)
+                # Implicit declaration (Zpx allows x = 5 without let)
                 self.env.set(node.target.name, val_type, mutable=True)
                 return
             if not binding[1]:

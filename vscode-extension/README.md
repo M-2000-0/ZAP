@@ -1,4 +1,4 @@
-# Zap Language Extension for VS Code
+# Zpx Language Extension for VS Code
 
 AI-native full-stack programming language support with syntax highlighting, IntelliSense, diagnostics, formatting, debugging, and run integration.
 
@@ -38,7 +38,7 @@ AI-native full-stack programming language support with syntax highlighting, Inte
 - Configurable indent size
 
 ### 🏃 Run & Debug
-- **Run File** (F5): Execute current `.zap` file
+- **Run File** (F5): Execute current `.zpx` file
 - **Run Project**: Run entire workspace
 - **Type Check** (Ctrl+Shift+C): Static analysis
 - **Debug**: Launch configurations with breakpoints
@@ -50,24 +50,24 @@ AI-native full-stack programming language support with syntax highlighting, Inte
 ### 🔧 Commands
 | Command | Keybinding | Description |
 |---------|------------|-------------|
-| `zap.runFile` | F5 | Run current file |
-| `zap.runProject` | - | Run project |
-| `zap.check` | Ctrl+Shift+C | Type check |
-| `zap.format` | Shift+Alt+F | Format document |
-| `zap.newProject` | - | Create new project |
-| `zap.restartServer` | - | Restart LSP |
+| `zpx.runFile` | F5 | Run current file |
+| `zpx.runProject` | - | Run project |
+| `zpx.check` | Ctrl+Shift+C | Type check |
+| `zpx.format` | Shift+Alt+F | Format document |
+| `zpx.newProject` | - | Create new project |
+| `zpx.restartServer` | - | Restart LSP |
 
 ## Configuration
 
 ```json
 {
-  "zap.executablePath": "python -m src",
-  "zap.enableDiagnostics": true,
-  "zap.enableFormatOnSave": true,
-  "zap.enableHover": true,
-  "zap.enableCompletion": true,
-  "zap.runOnSave": false,
-  "zap.checkOnSave": true
+  "zpx.executablePath": "python -m src",
+  "zpx.enableDiagnostics": true,
+  "zpx.enableFormatOnSave": true,
+  "zpx.enableHover": true,
+  "zpx.enableCompletion": true,
+  "zpx.runOnSave": false,
+  "zpx.checkOnSave": true
 }
 ```
 
@@ -110,12 +110,12 @@ For enhanced features (cross-file navigation, workspace symbols, refactoring):
 
 ```bash
 # Install the language server
-cargo install zap-lsp  # or download binary
+cargo install zpx-lsp  # or download binary
 ```
 
 Then set in settings:
 ```json
-"zap.languageServerPath": "/path/to/zap-lsp"
+"zpx.languageServerPath": "/path/to/zpx-lsp"
 ```
 
 ## Debugging
@@ -127,9 +127,9 @@ Create `.vscode/launch.json`:
   "version": "0.2.0",
   "configurations": [
     {
-      "type": "zap",
+      "type": "zpx",
       "request": "launch",
-      "name": "Debug Zap File",
+      "name": "Debug Zpx File",
       "program": "${file}",
       "stopOnEntry": false,
       "console": "integratedTerminal"

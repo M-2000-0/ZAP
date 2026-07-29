@@ -11,7 +11,7 @@ from .context import get_context
 from .diff import generate_diff
 from .tracer import get_tracer
 
-class ZapAPIHandler(BaseHTTPRequestHandler):
+class ZpxAPIHandler(BaseHTTPRequestHandler):
     index = None
 
     def do_GET(self):
@@ -198,7 +198,7 @@ class ZapAPIHandler(BaseHTTPRequestHandler):
         self.wfile.write(json.dumps(data, indent=2, default=str).encode())
 
     def log_message(self, format, *args):
-        sys.stderr.write(f"[zap api] {args[0]} {args[1]} {args[2]}\n")
+        sys.stderr.write(f"[zpx api] {args[0]} {args[1]} {args[2]}\n")
 
     def do_OPTIONS(self):
         self.send_response(204)
@@ -209,14 +209,14 @@ class ZapAPIHandler(BaseHTTPRequestHandler):
 
 
 def serve(port=8732, host='127.0.0.1'):
-    ZapAPIHandler.index = ProjectIndex()
-    ZapAPIHandler.index.scan()
-    ZapAPIHandler.index.save()
-    print(f"[zap api] starting on http://{host}:{port}")
-    print(f"[zap api] {len(ZapAPIHandler.index.files)} files indexed")
-    server = HTTPServer((host, port), ZapAPIHandler)
+    ZpxAPIHandler.index = ProjectIndex()
+    ZpxAPIHandler.index.scan()
+    ZpxAPIHandler.index.save()
+    print(f"[zpx api] starting on http://{host}:{port}")
+    print(f"[zpx api] {len(ZpxAPIHandler.index.files)} files indexed")
+    server = HTTPServer((host, port), ZpxAPIHandler)
     try:
         server.serve_forever()
     except KeyboardInterrupt:
-        print("\n[zap api] stopped")
+        print("\n[zpx api] stopped")
         server.server_close()

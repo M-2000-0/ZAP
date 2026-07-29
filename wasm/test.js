@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-const ZapToJS = require('./zap-to-js');
+const ZapToJS = require('./zpx-to-js');
 
 const testCases = [
     {

@@ -1,7 +1,7 @@
 """
-Polyglot Kernel for ZAP.
+Polyglot Kernel for ZPX.
 
-A Jupyter-compatible kernel that runs Zap, Python, and SQL cells
+A Jupyter-compatible kernel that runs Zpx, Python, and SQL cells
 in the same notebook with shared variable namespace.
 
 Architecture:
@@ -33,11 +33,11 @@ from src.parser import Parser
 from src.lexer import Lexer
 from src.runtime.timetravel import TimeTravelRuntime
 from src.runtime.capability import CapabilityRuntime, Capability
-from src.values import ZapList, ZapDict, ZapFunction, _zap_to_py, _py_to_zap
+from src.values import ZpxList, ZpxDict, ZpxFunction, _zpx_to_py, _py_to_zpx
 
 
 class CellType(Enum):
-    ZAP = "zap"
+    ZPX = "zpx"
     PYTHON = "python"
     SQL = "sql"
     MARKDOWN = "markdown"
@@ -70,7 +70,7 @@ class PolyglotNamespace:
     """
     Shared namespace with language-specific proxies.
     
-    Allows: zap_x = 1  →  python_x == 1  →  SELECT :x
+    Allows: zpx_x = 1  →  python_x == 1  →  SELECT :x
     """
     
     def __init__(self, initial: Dict = None):
@@ -116,20 +116,20 @@ class PolyglotNamespace:
         self._callbacks.setdefault(key, []).append(callback)
     
     def to_python(self) -> Dict:
-        """Convert Zap types to Python for Python cells."""
+        """Convert Zpx types to Python for Python cells."""
         result = {}
         for k, v in self._store.items():
-            result[k] = _zap_to_py(v) if hasattr(v, '__class__') and 'Zap' in v.__class__.__name__ else v
+            result[k] = _zpx_to_py(v) if hasattr(v, '__class__') and 'Zpx' in v.__class__.__name__ else v
         return result
     
     def from_python(self, d: Dict):
-        """Update from Python dict (converts to Zap types)."""
+        """Update from Python dict (converts to Zpx types)."""
         for k, v in d.items():
-            self[k] = _py_to_zap(v) if isinstance(v, (list, dict, tuple, set)) else v
+            self[k] = _py_to_zpx(v) if isinstance(v, (list, dict, tuple, set)) else v
 
 
-class ZapExecutor:
-    """Execute Zap code in shared namespace."""
+class ZpxExecutor:
+    """Execute Zpx code in shared namespace."""
     
     def __init__(self, namespace: PolyglotNamespace, timetravel: TimeTravelRuntime = None):
         self.namespace = namespace
@@ -143,13 +143,13 @@ class ZapExecutor:
         pass
     
     def execute(self, code: str) -> Dict:
-        """Execute Zap code, return result and side effects."""
+        """Execute Zpx code, return result and side effects."""
         # Create evaluator with shared namespace
         evaluator = Evaluator()
         
         # Sync namespace INTO evaluator's global_env
         for k, v in self.namespace.items():
-            evaluator.global_env.define(k, _py_to_zap(v) if isinstance(v, (list, dict)) else v)
+            evaluator.global_env.define(k, _py_to_zpx(v) if isinstance(v, (list, dict)) else v)
         
         # Time-travel checkpoint
         snap_id = None
@@ -164,7 +164,7 @@ class ZapExecutor:
             # Sync evaluator globals BACK to namespace
             for k, v in evaluator.global_env.store.items():
                 if not k.startswith('_'):
-                    self.namespace[k] = _zap_to_py(v) if hasattr(v, '__class__') and 'Zap' in v.__class__.__name__ else v
+                    self.namespace[k] = _zpx_to_py(v) if hasattr(v, '__class__') and 'Zpx' in v.__class__.__name__ else v
             
             return {
                 "success": True,
@@ -272,7 +272,7 @@ class PolyglotKernel:
     
     Usage:
         kernel = PolyglotKernel()
-        result = kernel.execute_cell("let x = 42", "zap")
+        result = kernel.execute_cell("let x = 42", "zpx")
         result = kernel.execute_cell("print(x)", "python")  # prints 42
         result = kernel.execute_cell("SELECT :x", "sql")   # returns 42
     """
@@ -283,7 +283,7 @@ class PolyglotKernel:
             '__kernel__': self,
         })
         self.timetravel = TimeTravelRuntime(Evaluator())
-        self.zap = ZapExecutor(self.namespace, self.timetravel)
+        self.zpx = ZpxExecutor(self.namespace, self.timetravel)
         self.python = PythonExecutor(self.namespace)
         self.sql = SQLExecutor(self.namespace, db_path)
         self.state = KernelState()
@@ -307,8 +307,8 @@ class PolyglotKernel:
         cell.started_at = start
         
         # Route to appropriate executor
-        if cell_type == CellType.ZAP:
-            result = self.zap.execute(source)
+        if cell_type == CellType.ZPX:
+            result = self.zpx.execute(source)
         elif cell_type == CellType.PYTHON:
             result = self.python.execute(source)
         elif cell_type == CellType.SQL:
@@ -407,15 +407,15 @@ class PolyglotKernel:
             ],
             "metadata": {
                 "kernelspec": {
-                    "display_name": "Zap Polyglot",
-                    "language": "zap",
-                    "name": "zap-polyglot"
+                    "display_name": "Zpx Polyglot",
+                    "language": "zpx",
+                    "name": "zpx-polyglot"
                 },
                 "language_info": {
-                    "name": "zap",
+                    "name": "zpx",
                     "version": "0.2.0",
-                    "mimetype": "text/x-zap",
-                    "file_extension": ".zap"
+                    "mimetype": "text/x-zpx",
+                    "file_extension": ".zpx"
                 }
             },
             "nbformat": 4,
@@ -425,7 +425,7 @@ class PolyglotKernel:
     def import_notebook(self, nb: Dict):
         """Load notebook cells."""
         for cell in nb.get("cells", []):
-            ctype = "markdown" if cell["cell_type"] == "markdown" else "zap"
+            ctype = "markdown" if cell["cell_type"] == "markdown" else "zpx"
             self.execute_cell("\n".join(cell.get("source", [])), ctype)
 
 
@@ -433,21 +433,21 @@ class PolyglotKernel:
 # Jupyter Kernel Protocol (for IPython/Jupyter integration)
 # =============================================================================
 
-class ZapKernel:
+class ZpxKernel:
     """Jupyter kernel wrapper for PolyglotKernel."""
     
-    implementation = 'Zap Polyglot'
+    implementation = 'Zpx Polyglot'
     implementation_version = '0.2.0'
-    language = 'zap'
+    language = 'zpx'
     language_version = '0.2.0'
     language_info = {
-        'name': 'zap',
-        'mimetype': 'text/x-zap',
-        'file_extension': '.zap',
+        'name': 'zpx',
+        'mimetype': 'text/x-zpx',
+        'file_extension': '.zpx',
         'pygments_lexer': 'python',
         'codemirror_mode': 'python',
     }
-    banner = "Zap Polyglot Kernel - Zap, Python, SQL in one notebook"
+    banner = "Zpx Polyglot Kernel - Zpx, Python, SQL in one notebook"
     
     def __init__(self):
         self.kernel = PolyglotKernel()
@@ -455,8 +455,8 @@ class ZapKernel:
     
     def do_execute(self, code: str, silent: bool, store_history: bool = True,
                    user_expressions: Dict = None, allow_stdin: bool = False) -> Dict:
-        # Detect cell type from magic or default to zap
-        cell_type = "zap"
+        # Detect cell type from magic or default to zpx
+        cell_type = "zpx"
         if code.startswith("%%python"):
             cell_type = "python"
             code = code[8:].lstrip()
@@ -522,22 +522,22 @@ class ZapKernel:
 def demo():
     """Run a demo of the polyglot kernel."""
     print("=" * 60)
-    print("ZAP POLYGLOT KERNEL DEMO")
+    print("ZPX POLYGLOT KERNEL DEMO")
     print("=" * 60)
     
     kernel = PolyglotKernel()
     
-    # Cell 1: Zap - define data
-    print("\n>>> ZAP: let data = [1, 2, 3, 4, 5]")
-    r = kernel.execute_cell("let data = [1, 2, 3, 4, 5]", "zap")
+    # Cell 1: Zpx - define data
+    print("\n>>> ZPX: let data = [1, 2, 3, 4, 5]")
+    r = kernel.execute_cell("let data = [1, 2, 3, 4, 5]", "zpx")
     print(f"   Success: {r['success']}")
     
-    # Cell 2: Zap - function
-    print("\n>>> ZAP: fn double(x): ret x * 2")
-    r = kernel.execute_cell("fn double(x): ret x * 2", "zap")
+    # Cell 2: Zpx - function
+    print("\n>>> ZPX: fn double(x): ret x * 2")
+    r = kernel.execute_cell("fn double(x): ret x * 2", "zpx")
     print(f"   Success: {r['success']}")
     
-    # Cell 3: Python - use Zap data
+    # Cell 3: Python - use Zpx data
     print("\n>>> PYTHON: print('Python sees:', data)")
     r = kernel.execute_cell("print('Python sees:', data)", "python")
     print(f"   Success: {r['success']}")
@@ -551,9 +551,9 @@ def demo():
     r = kernel.execute_cell("doubled = [double(x) for x in data]", "python")
     print(f"   Success: {r['success']}")
     
-    # Cell 5: Zap - use Python result
-    print("\n>>> ZAP: print(doubled)")
-    r = kernel.execute_cell("print(doubled)", "zap")
+    # Cell 5: Zpx - use Python result
+    print("\n>>> ZPX: print(doubled)")
+    r = kernel.execute_cell("print(doubled)", "zpx")
     if r['outputs']:
         for o in r['outputs']:
             if o['output_type'] == 'stream':

@@ -1,5 +1,5 @@
 """
-Capability-Based Security Runtime for ZAP.
+Capability-Based Security Runtime for ZPX.
 
 Core principle: NO ambient authority. Every resource access requires an explicit capability.
 Capabilities are unforgeable, delegatable, and revocable.
@@ -37,7 +37,7 @@ from abc import ABC, abstractmethod
 from contextlib import contextmanager
 import threading
 
-from src.values import ZapDict, ZapList, ZapFunction, ZapBuiltin
+from src.values import ZpxDict, ZpxList, ZpxFunction, ZpxBuiltin
 
 
 # =============================================================================
@@ -345,7 +345,7 @@ class DatabaseProxy:
         self._prepared[name] = sql
         return self
     
-    def query(self, name: str, params: tuple = ()) -> ZapList:
+    def query(self, name: str, params: tuple = ()) -> ZpxList:
         if name not in self._prepared:
             raise ValueError(f"Query '{name}' not prepared")
         if not self._guard.check(self._cap, "execute", query=name):
@@ -354,7 +354,7 @@ class DatabaseProxy:
         conn = self._guard._get_conn()
         cursor = conn.execute(self._prepared[name], params)
         rows = [dict(row) for row in cursor.fetchall()]
-        return ZapList(rows)
+        return ZpxList(rows)
     
     def execute(self, name: str, params: tuple = ()) -> int:
         if name not in self._prepared:
@@ -402,7 +402,7 @@ class ProcessProxy:
 
 class CapabilityRuntime:
     """
-    Drop-in capability system for ZAP evaluator.
+    Drop-in capability system for ZPX evaluator.
     
     Usage:
         rt = CapabilityRuntime()
@@ -473,7 +473,7 @@ class CapabilityRuntime:
     def _build_capability_env(self, capabilities: List[Capability]) -> 'Environment':
         """Create an environment with capability-wrapped resources."""
         from src.environment import Environment
-        from src.values import ZapBuiltin
+        from src.values import ZpxBuiltin
         
         env = Environment()
         
@@ -490,33 +490,33 @@ class CapabilityRuntime:
             
             # Expose proxy methods as builtins
             if cap.resource_type == "filesystem":
-                env.define("fs_read", ZapBuiltin(lambda p: proxy.read(p), "fs_read"))
-                env.define("fs_write", ZapBuiltin(lambda p, c: proxy.write(p, c), "fs_write"))
-                env.define("fs_list", ZapBuiltin(lambda p: ZapList(proxy.list(p)), "fs_list"))
-                env.define("fs_exists", ZapBuiltin(lambda p: proxy.exists(p), "fs_exists"))
-                env.define("fs_mkdir", ZapBuiltin(lambda p: proxy.mkdir(p), "fs_mkdir"))
+                env.define("fs_read", ZpxBuiltin(lambda p: proxy.read(p), "fs_read"))
+                env.define("fs_write", ZpxBuiltin(lambda p, c: proxy.write(p, c), "fs_write"))
+                env.define("fs_list", ZpxBuiltin(lambda p: ZpxList(proxy.list(p)), "fs_list"))
+                env.define("fs_exists", ZpxBuiltin(lambda p: proxy.exists(p), "fs_exists"))
+                env.define("fs_mkdir", ZpxBuiltin(lambda p: proxy.mkdir(p), "fs_mkdir"))
             
             elif cap.resource_type == "network":
-                env.define("http_get", ZapBuiltin(lambda u: proxy.get(u), "http_get"))
-                env.define("http_post", ZapBuiltin(lambda u, d=None: proxy.post(u, d), "http_post"))
+                env.define("http_get", ZpxBuiltin(lambda u: proxy.get(u), "http_get"))
+                env.define("http_post", ZpxBuiltin(lambda u, d=None: proxy.post(u, d), "http_post"))
             
             elif cap.resource_type == "database":
                 # Need to register queries first
                 def make_query(name):
-                    return ZapBuiltin(lambda *args: proxy.query(name, args), f"db_{name}")
+                    return ZpxBuiltin(lambda *args: proxy.query(name, args), f"db_{name}")
                 def make_execute(name):
-                    return ZapBuiltin(lambda *args: proxy.execute(name, args), f"db_exec_{name}")
+                    return ZpxBuiltin(lambda *args: proxy.execute(name, args), f"db_exec_{name}")
                 
                 for qname in cap.permissions.get("queries", []):
                     env.define(f"db_{qname}", make_query(qname))
                     env.define(f"db_exec_{qname}", make_execute(qname))
             
             elif cap.resource_type == "process":
-                env.define("proc_run", ZapBuiltin(lambda *cmd: proxy.run(list(cmd)), "proc_run"))
+                env.define("proc_run", ZpxBuiltin(lambda *cmd: proxy.run(list(cmd)), "proc_run"))
         
         # Store capability references for introspection
-        env.define("__capabilities__", ZapList([
-            ZapDict({
+        env.define("__capabilities__", ZpxList([
+            ZpxDict({
                 "id": c.id,
                 "type": c.resource_type,
                 "permissions": c.permissions,
@@ -531,14 +531,14 @@ class CapabilityRuntime:
 
 
 # =============================================================================
-# Builtin Integration (Add to make_zap_builtins)
+# Builtin Integration (Add to make_zpx_builtins)
 # =============================================================================
 
 def _stdlib_capability(resource_type: str, **perms):
-    """Create a capability from Zap code."""
+    """Create a capability from Zpx code."""
     # This would be called from within a capability-enabled evaluator
     # For now, return a representation
-    return ZapDict({
+    return ZpxDict({
         "type": resource_type,
         "permissions": perms,
         "note": "Use capability_runtime to create real capabilities"
@@ -564,17 +564,17 @@ def _stdlib_proc_cap(commands: list):
     """Process capability: proc_cap(commands=["python", "node"])"""
     return _stdlib_capability("process", commands=commands)
 
-def _stdlib_delegate(cap: ZapDict, **restrictions):
+def _stdlib_delegate(cap: ZpxDict, **restrictions):
     """Delegate/attenuate a capability: delegate(fs_cap, read=["/public"])"""
     # In real implementation, would unwrap cap and create child
-    return ZapDict({
+    return ZpxDict({
         "delegated_from": cap.get("id", "unknown"),
         "restrictions": restrictions,
         "note": "Use CapabilityRuntime.delegate() for real delegation"
     })
 
 
-# Export for make_zap_builtins integration
+# Export for make_zpx_builtins integration
 CAPABILITY_BUILTINS = {
     'fs_cap': _stdlib_fs_cap,
     'net_cap': _stdlib_net_cap,

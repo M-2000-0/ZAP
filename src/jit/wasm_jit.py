@@ -1,12 +1,12 @@
 """
-WASM JIT Compiler for ZAP.
+WASM JIT Compiler for ZPX.
 
 Compiles hot paths (identified by time-travel profiling) to WebAssembly
 for near-native performance. Falls back to interpreter for cold paths.
 
 Architecture:
 1. Profiler identifies hot functions from time-travel data
-2. Bytecode compiler translates Zap AST to WASM bytecode
+2. Bytecode compiler translates Zpx AST to WASM bytecode
 3. WASM runtime (wasmtime) executes compiled functions
 4. Seamless interpreter fallback for unsupported features
 5. Incremental compilation - recompile when profiles change
@@ -29,7 +29,7 @@ from src.evaluator import Evaluator
 from src.parser import Parser
 from src.lexer import Lexer
 from src.runtime.timetravel import TimeTravelRuntime
-from src.values import ZapList, ZapDict, ZapFunction, ZapBuiltin, _zap_to_py, _py_to_zap
+from src.values import ZpxList, ZpxDict, ZpxFunction, ZpxBuiltin, _zpx_to_py, _py_to_zpx
 
 
 class CompilationStatus(Enum):
@@ -55,7 +55,7 @@ class WasmFunction:
 
 class BytecodeEmitter:
     """
-    Emits WASM bytecode from Zap AST.
+    Emits WASM bytecode from Zpx AST.
     
     Subset supported:
     - Arithmetic: +, -, *, /, %
@@ -215,27 +215,27 @@ class WasmJIT:
         
         return False
     
-    def compile_function(self, zap_func: ZapFunction) -> Optional[WasmFunction]:
-        """Compile a ZapFunction to WASM."""
-        if not self._engine or not self.should_compile(zap_func.name):
+    def compile_function(self, zpx_func: ZpxFunction) -> Optional[WasmFunction]:
+        """Compile a ZpxFunction to WASM."""
+        if not self._engine or not self.should_compile(zpx_func.name):
             return None
         
-        wf = WasmFunction(name=zap_func.name)
+        wf = WasmFunction(name=zpx_func.name)
         wf.status = CompilationStatus.COMPILING
         start = time.time()
         
         try:
-            # Convert ZapFunction AST to WASM
-            wasm_bytes = self._compile_ast(zap_func.body, zap_func.params)
+            # Convert ZpxFunction AST to WASM
+            wasm_bytes = self._compile_ast(zpx_func.body, zpx_func.params)
             
             # Instantiate module
             module = wasmtime.Module(self._engine, wasm_bytes)
             instance = self._linker.instantiate(self._store, module)
             
             # Get exported function
-            func_ref = instance.exports(self._store).get(zap_func.name)
+            func_ref = instance.exports(self._store).get(zpx_func.name)
             if not func_ref:
-                raise RuntimeError(f"Function {zap_func.name} not exported")
+                raise RuntimeError(f"Function {zpx_func.name} not exported")
             
             wf.module_bytes = wasm_bytes
             wf.instance = instance
@@ -243,7 +243,7 @@ class WasmJIT:
             wf.status = CompilationStatus.COMPILED
             wf.compile_time = time.time() - start
             
-            self.compiled[zap_func.name] = wf
+            self.compiled[zpx_func.name] = wf
             return wf
             
         except Exception as e:
@@ -253,7 +253,7 @@ class WasmJIT:
             return None
     
     def _compile_ast(self, body, params: List[str]) -> bytes:
-        """Convert Zap AST to WASM."""
+        """Convert Zpx AST to WASM."""
         # Simplified: generate WAT for arithmetic expressions
         func_def = {
             "name": "jit_func",
@@ -304,7 +304,7 @@ class WasmJIT:
         raise RuntimeError(f"Function {func_name} not found")
     
     def _to_wasm_val(self, val: Any):
-        """Convert Python/Zap value to WASM."""
+        """Convert Python/Zpx value to WASM."""
         import wasmtime
         if isinstance(val, int):
             return wasmtime.Val.i32(val)

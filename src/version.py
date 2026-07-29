@@ -1,12 +1,12 @@
 """
-Zap language version.
+Zpx language version.
 
 GRAMMAR_VERSION is a string that AI models and tooling can match against.
 Breaking changes to the grammar require a major version bump and a note in
 CHANGELOG.md. Additive changes (new keywords, new builtin) require a minor
 bump and a note in CHANGELOG.md. Bug fixes are patch bumps.
 
-The version is also exposed as `zap version` on the CLI and via the
+The version is also exposed as `zpx version` on the CLI and via the
 `--grammar=0.2` flag for tools that need to verify they are targeting the
 same grammar the file was written for.
 """
@@ -14,7 +14,7 @@ same grammar the file was written for.
 # Bump in lockstep with pyproject.toml. Format: MAJOR.MINOR.PATCH.
 VERSION = "0.2.0"
 
-# The grammar version this interpreter understands. If a .zap file declares
+# The grammar version this interpreter understands. If a .zpx file declares
 # a different grammar version, the parser emits a Z001 diagnostic.
 GRAMMAR_VERSION = "0.2"
 
@@ -41,7 +41,7 @@ def parse_grammar_pragma(source: str) -> str | None:
     """
     Look for a top-of-file pragma `# grammar: 0.2` and return the version
     string, or None if absent. Stops scanning at the first non-comment,
-    non-blank line. This is how .zap files declare which grammar they target.
+    non-blank line. This is how .zpx files declare which grammar they target.
     """
     for line in source.splitlines():
         stripped = line.strip()

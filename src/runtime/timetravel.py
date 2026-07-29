@@ -1,5 +1,5 @@
 """
-Time-Travel Debugging Runtime for ZAP.
+Time-Travel Debugging Runtime for ZPX.
 
 Provides:
 - checkpoint()  -> snapshot_id
@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional, Callable
 from collections import deque
 
 from src.environment import Environment
-from src.values import ZapType, ZapList, ZapDict, ZapFunction, ZapBuiltin, ZapPromise
+from src.values import ZpxType, ZpxList, ZpxDict, ZpxFunction, ZpxBuiltin, ZpxPromise
 
 
 @dataclass
@@ -102,19 +102,19 @@ class TimeTravelRuntime:
         
         if val is None or isinstance(val, (bool, int, float, str)):
             return val
-        if isinstance(val, ZapList):
-            copied = ZapList([self._deep_copy_value(v, memo) for v in val.elements])
+        if isinstance(val, ZpxList):
+            copied = ZpxList([self._deep_copy_value(v, memo) for v in val.elements])
             memo[obj_id] = copied
             return copied
-        if isinstance(val, ZapDict):
-            copied = ZapDict({k: self._deep_copy_value(v, memo) for k, v in val.entries.items()})
+        if isinstance(val, ZpxDict):
+            copied = ZpxDict({k: self._deep_copy_value(v, memo) for k, v in val.entries.items()})
             memo[obj_id] = copied
             return copied
-        if isinstance(val, ZapFunction):
+        if isinstance(val, ZpxFunction):
             return val  # functions are immutable-ish
-        if isinstance(val, ZapBuiltin):
+        if isinstance(val, ZpxBuiltin):
             return val
-        if isinstance(val, ZapPromise):
+        if isinstance(val, ZpxPromise):
             return f"<Promise:{id(val)}>"
         if isinstance(val, dict):
             copied = {k: self._deep_copy_value(v, memo) for k, v in val.items()}
@@ -222,9 +222,9 @@ class TimeTravelRuntime:
             return None
         
         for part in parts[1:]:
-            if isinstance(val, (dict, ZapDict)):
+            if isinstance(val, (dict, ZpxDict)):
                 val = val.get(part) if hasattr(val, 'get') else val.get(part)
-            elif isinstance(val, (list, ZapList)):
+            elif isinstance(val, (list, ZpxList)):
                 try:
                     val = val[int(part)]
                 except (ValueError, IndexError):
@@ -261,9 +261,9 @@ class TimeTravelRuntime:
             result = {}
             for k, v in d.items():
                 key = f"{prefix}.{k}" if prefix else k
-                if isinstance(v, (dict, ZapDict)):
+                if isinstance(v, (dict, ZpxDict)):
                     result.update(flatten(v if isinstance(v, dict) else v.entries, key))
-                elif isinstance(v, (list, ZapList)):
+                elif isinstance(v, (list, ZpxList)):
                     for i, item in enumerate(v):
                         result[f"{key}[{i}]"] = item
                 else:

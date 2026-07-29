@@ -1,10 +1,10 @@
 import json
 import os
 import time
-from .analysis import extract_file as extract_zap, build_dependency_graph
+from .analysis import extract_file as extract_zpx, build_dependency_graph
 from .adapters import extract_file as extract_any, get_adapter
 
-INDEX_FILE = '.zapindex'
+INDEX_FILE = '.zpxindex'
 
 class ProjectIndex:
     def __init__(self, root='.'):
@@ -13,12 +13,12 @@ class ProjectIndex:
         self.file_hashes = {}
         self.dep_graph = {}
 
-    SUPPORTED_EXTS = {'.zap', '.py', '.js', '.jsx', '.ts', '.tsx'}
+    SUPPORTED_EXTS = {'.zpx', '.py', '.js', '.jsx', '.ts', '.tsx'}
 
     def scan(self):
         new_files = {}
         for dirpath, _, filenames in os.walk(self.root):
-            if '.zapcontext' in dirpath or '.zapindex' in dirpath:
+            if '.zpxcontext' in dirpath or '.zpxindex' in dirpath:
                 for skip in ('node_modules', '__pycache__', '.git', '.venv', 'venv', 'env'):
                     if skip in dirpath.split(os.sep):
                         break
@@ -39,10 +39,10 @@ class ProjectIndex:
                 store[path] = self.files.get(path, {})
                 return
             ext = os.path.splitext(path)[1].lower()
-            if ext == '.zap':
-                idx = extract_zap(path)
+            if ext == '.zpx':
+                idx = extract_zpx(path)
             else:
-                idx = extract_any(path) or extract_zap(path)
+                idx = extract_any(path) or extract_zpx(path)
             store[path] = idx
             self.file_hashes[path] = h
         except Exception as e:
@@ -60,19 +60,19 @@ class ProjectIndex:
             changed = False
             for dirpath, _, filenames in os.walk(self.root):
                 for fn in filenames:
-                    if fn.endswith('.zap'):
+                    if fn.endswith('.zpx'):
                         path = os.path.join(dirpath, fn)
                         h = self._hash_file(path)
                         if self.file_hashes.get(path) != h:
                             self._index_file(path, self.files)
                             changed = True
-                            print(f"[zap index] updated: {path}")
+                            print(f"[zpx index] updated: {path}")
             removed = [p for p in self.files if not os.path.exists(p)]
             for p in removed:
                 del self.files[p]
                 del self.file_hashes[p]
                 changed = True
-                print(f"[zap index] removed: {p}")
+                print(f"[zpx index] removed: {p}")
             if changed:
                 self.dep_graph = build_dependency_graph(list(self.files.values()))
                 self.save()

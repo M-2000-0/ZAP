@@ -20,7 +20,7 @@ _EXT_MAP = {
     '.jsx': 'javascript',
     '.ts': 'javascript',
     '.tsx': 'javascript',
-    '.zap': 'zap',
+    '.zpx': 'zpx',
 }
 
 def get_adapter(filepath):

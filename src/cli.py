@@ -3,17 +3,17 @@ CLI entrypoint. The grammar-version check, the diagnostic formatting, and
 all subcommands live here.
 
 Subcommands:
-  zap run <file|folder>      execute a .zap file or folder (auto-detects entrypoint)
-  zap check <file>           parse + type-check, emit diagnostics
-  zap build <file>           check + run
-  zap repl                   interactive REPL
-  zap test [path]            run @test / expect blocks
-  zap version                print VERSION and GRAMMAR_VERSION
-  zap compile <file>         transpile to Python bytecode (stub)
-  zap diag <text>            parse human-readable diagnostic output -> JSON
-  zap init [name]            scaffold a new Zap project
-  zap install                install dependencies from zap.json
-  zap add <spec>             add and install a dependency
+  zpx run <file|folder>      execute a .zpx file or folder (auto-detects entrypoint)
+  zpx check <file>           parse + type-check, emit diagnostics
+  zpx build <file>           check + run
+  zpx repl                   interactive REPL
+  zpx test [path]            run @test / expect blocks
+  zpx version                print VERSION and GRAMMAR_VERSION
+  zpx compile <file>         transpile to Python bytecode (stub)
+  zpx diag <text>            parse human-readable diagnostic output -> JSON
+  zpx init [name]            scaffold a new Zpx project
+  zpx install                install dependencies from zpx.json
+  zpx add <spec>             add and install a dependency
 """
 
 from __future__ import annotations
@@ -54,15 +54,15 @@ def _diagnostics_from_exception(exc: BaseException, *, file: str | None = None,
 # ---------------------------------------------------------------------------
 
 _ENTRYPOINT_CANDIDATES = (
-    "main.zap",
-    "index.zap",
-    "app.zap",
-    "server.zap",
-    "run.zap",
-    "start.zap",
-    "cli.zap",
-    "api.zap",
-    "web.zap",
+    "main.zpx",
+    "index.zpx",
+    "app.zpx",
+    "server.zpx",
+    "run.zpx",
+    "start.zpx",
+    "cli.zpx",
+    "api.zpx",
+    "web.zpx",
 )
 
 
@@ -74,18 +74,18 @@ def _find_entrypoint(path: str) -> str | None:
         candidate = os.path.join(path, name)
         if os.path.exists(candidate):
             return candidate
-    # Fallback: any .zap file in the directory (first one alphabetically)
+    # Fallback: any .zpx file in the directory (first one alphabetically)
     try:
-        zap_files = sorted(f for f in os.listdir(path) if f.endswith(".zap"))
-        if zap_files:
-            return os.path.join(path, zap_files[0])
+        zpx_files = sorted(f for f in os.listdir(path) if f.endswith(".zpx"))
+        if zpx_files:
+            return os.path.join(path, zpx_files[0])
     except OSError:
         pass
     return None
 
 
 def _resolve_target(target: str) -> str:
-    """Resolve a file or folder to an executable .zap file."""
+    """Resolve a file or folder to an executable .zpx file."""
     if os.path.isfile(target):
         return target
     entrypoint = _find_entrypoint(target)
@@ -95,7 +95,7 @@ def _resolve_target(target: str) -> str:
     raise FileNotFoundError(
         f"No entrypoint found in {target!r}. "
         f"Expected one of: {', '.join(_ENTRYPOINT_CANDIDATES)} "
-        f"or any .zap file."
+        f"or any .zpx file."
     )
 
 
@@ -159,7 +159,7 @@ def run_file(filepath: str, *, diag_format: str = "text"):
 
 
 def run_path(target: str, *, diag_format: str = "text"):
-    """Run a .zap file or folder (auto-detects entrypoint)."""
+    """Run a .zpx file or folder (auto-detects entrypoint)."""
     try:
         filepath = _resolve_target(target)
     except FileNotFoundError as e:
@@ -284,10 +284,10 @@ def _easter_egg_patricio():
 
     messages = [
         "PATRICIO IS THE GOAT!",
-        "ZAP x PATRICIO = LEGENDARY",
+        "ZPX x PATRICIO = LEGENDARY",
         "El mejor programador del mundo!",
         "Patricio > Todos los demas",
-        "ZAP was built for Patricio",
+        "ZPX was built for Patricio",
         "Patricio invented WiFi (probably)",
     ]
 
@@ -333,10 +333,10 @@ def _easter_egg_patricio():
     # Phase 5: Final message
     print(f"\033[1;93m{'='*50}{reset}")
     print(f"\033[1;95m  PATRICIO MODE ACTIVATED{reset}")
-    print(f"\033[1;93m  You are now a Zap VIP.{reset}")
+    print(f"\033[1;93m  You are now a Zpx VIP.{reset}")
     print(f"\033[1;93m{'='*50}{reset}")
     print()
-    print(f"{dim}  (hint: you can also run 'zap patricio'){reset}")
+    print(f"{dim}  (hint: you can also run 'zpx patricio'){reset}")
     print()
 
 
@@ -346,7 +346,7 @@ def _easter_egg_patricio():
 
 def repl():
     import atexit
-    history_file = os.path.join(os.path.expanduser("~"), ".zap_history")
+    history_file = os.path.join(os.path.expanduser("~"), ".zpx_history")
     try:
         import readline
         readline.set_history_length(500)
@@ -365,7 +365,7 @@ def repl():
     from .version import VERSION, GRAMMAR_VERSION
 
     evaluator = Evaluator()
-    print(f"Zap REPL v{VERSION} (grammar {GRAMMAR_VERSION}) -- type 'exit' or Ctrl+C to quit")
+    print(f"Zpx REPL v{VERSION} (grammar {GRAMMAR_VERSION}) -- type 'exit' or Ctrl+C to quit")
     buffer = ""
     continuing = False
 
@@ -458,7 +458,7 @@ def version_command(_args, *, diag_format: str = "text"):
     if diag_format == "json":
         print(json.dumps({"version": VERSION, "grammar": GRAMMAR_VERSION}))
     else:
-        print(f"Zap v{VERSION}")
+        print(f"Zpx v{VERSION}")
         print(f"Grammar: {GRAMMAR_VERSION}")
 
 
@@ -467,9 +467,9 @@ def version_command(_args, *, diag_format: str = "text"):
 # ---------------------------------------------------------------------------
 
 def compile_command(filepath: str, *, out: str | None = None, diag_format: str = "text"):
-    """Compile a .zap file to cached Python bytecode.
+    """Compile a .zpx file to cached Python bytecode.
 
-    Uses .zap_cache/ for caching with automatic invalidation based on
+    Uses .zpx_cache/ for caching with automatic invalidation based on
     source hash, mtime, and grammar version.
     """
     from .diagnostics import parse_error, runtime_error, emit
@@ -551,8 +551,8 @@ def diag_command(args, *, diag_format: str = "text"):
 # ---------------------------------------------------------------------------
 
 def init_command(args, *, diag_format: str = "text"):
-    """Scaffold a new Zap project with recommended structure."""
-    name = args[0] if args else "my-zap-app"
+    """Scaffold a new Zpx project with recommended structure."""
+    name = args[0] if args else "my-zpx-app"
     target_dir = os.path.join(os.getcwd(), name)
 
     if os.path.exists(target_dir):
@@ -563,34 +563,34 @@ def init_command(args, *, diag_format: str = "text"):
 
     os.makedirs(target_dir, exist_ok=True)
 
-    # Create main.zap entrypoint
-    main_zap = f'''# {name} - Zap application
-# Run with: zap run .
+    # Create main.zpx entrypoint
+    main_zpx = f'''# {name} - Zpx application
+# Run with: zpx run .
 
 fn main()
   print("Hello from {name}!")
 
 main()
 '''
-    with open(os.path.join(target_dir, "main.zap"), "w", encoding="utf-8") as f:
-        f.write(main_zap)
+    with open(os.path.join(target_dir, "main.zpx"), "w", encoding="utf-8") as f:
+        f.write(main_zpx)
 
-    # Create zap.json config
+    # Create zpx.json config
     config = {
         "name": name,
         "version": "0.1.0",
-        "entrypoint": "main.zap",
+        "entrypoint": "main.zpx",
         "grammar": GRAMMAR_VERSION,
         "dependencies": {}
     }
     import json as _json
-    with open(os.path.join(target_dir, "zap.json"), "w", encoding="utf-8") as f:
+    with open(os.path.join(target_dir, "zpx.json"), "w", encoding="utf-8") as f:
         _json.dump(config, f, indent=2)
 
     # Create .gitignore
     gitignore = """__pycache__/
 *.pyc
-.zap_cache/
+.zpx_cache/
 .env
 *.log
 """
@@ -598,76 +598,76 @@ main()
         f.write(gitignore)
 
     print(f"Created {name}/")
-    print(f"  main.zap      - entrypoint")
-    print(f"  zap.json      - project config")
+    print(f"  main.zpx      - entrypoint")
+    print(f"  zpx.json      - project config")
     print(f"  .gitignore    - git ignore rules")
-    print(f"\nRun with: zap run {name}")
+    print(f"\nRun with: zpx run {name}")
 
 
 # ---------------------------------------------------------------------------
 # Help text
 # ---------------------------------------------------------------------------
 
-HELP_TEXT = """Zap — one language, every layer
+HELP_TEXT = """Zpx — one language, every layer
 
 Usage:
-  zap run <file.zap|folder>   execute a .zap file or folder (auto-detects entrypoint)
-  zap check <file.zap>        parse + type-check
-  zap build <file.zap>        check + run
-  zap test [path]             run @test / expect blocks
-  zap compile <file.zap>      transpile to Python bytecode
-  zap repl                    interactive REPL
-  zap version                 print version + grammar version
-  zap diag <text>             parse diagnostic text -> JSON
-  zap init [name]             scaffold a new Zap project
-  zap install                 install dependencies from zap.json
-  zap add <spec>              add and install a dependency
-  zap ai                      Zap AI — build, train, deploy AI models
-  zap help                    this message
+  zpx run <file.zpx|folder>   execute a .zpx file or folder (auto-detects entrypoint)
+  zpx check <file.zpx>        parse + type-check
+  zpx build <file.zpx>        check + run
+  zpx test [path]             run @test / expect blocks
+  zpx compile <file.zpx>      transpile to Python bytecode
+  zpx repl                    interactive REPL
+  zpx version                 print version + grammar version
+  zpx diag <text>             parse diagnostic text -> JSON
+  zpx init [name]             scaffold a new Zpx project
+  zpx install                 install dependencies from zpx.json
+  zpx add <spec>              add and install a dependency
+  zpx ai                      Zpx AI — build, train, deploy AI models
+  zpx help                    this message
 
 Common flags:
   --format=json               emit diagnostics as JSON (run, check, build, test)
   --no-color                  disable ANSI colors
 
 Entrypoint detection for folders (in order):
-  main.zap, index.zap, app.zap, server.zap, run.zap, start.zap, cli.zap, api.zap, web.zap
+  main.zpx, index.zpx, app.zpx, server.zpx, run.zpx, start.zpx, cli.zpx, api.zpx, web.zpx
 
 Examples:
-  zap run main.zap            # run a single file
-  zap run .                   # run current folder (finds main.zap, index.zap, etc.)
-  zap run ./my-app            # run folder ./my-app
-  zap init my-api             # create new project in ./my-api
-  zap ai init my-model        # create new AI project
-  zap ai scan                 # scan WiFi networks
-  zap check main.zap --format=json  # machine-readable diagnostics for AI
+  zpx run main.zpx            # run a single file
+  zpx run .                   # run current folder (finds main.zpx, index.zpx, etc.)
+  zpx run ./my-app            # run folder ./my-app
+  zpx init my-api             # create new project in ./my-api
+  zpx ai init my-model        # create new AI project
+  zpx ai scan                 # scan WiFi networks
+  zpx check main.zpx --format=json  # machine-readable diagnostics for AI
 """
 
-AI_HELP_TEXT = """Zap AI — Build AI models for free, fast, cheap
+AI_HELP_TEXT = """Zpx AI — Build AI models for free, fast, cheap
 
 Usage:
-  zap ai init [name]          scaffold a new AI project
-  zap ai train [file.zap]     run training script
-  zap ai wifi <ssid> [pass]   connect to WiFi
-  zap ai scan                 scan for WiFi networks
-  zap ai status               show WiFi status
-  zap ai fetch <url>          fetch data from URL
-  zap ai help                 this message
+  zpx ai init [name]          scaffold a new AI project
+  zpx ai train [file.zpx]     run training script
+  zpx ai wifi <ssid> [pass]   connect to WiFi
+  zpx ai scan                 scan for WiFi networks
+  zpx ai status               show WiFi status
+  zpx ai fetch <url>          fetch data from URL
+  zpx ai help                 this message
 
 Examples:
-  zap ai init my-model        # create project with model scaffold
-  zap ai scan                 # list available WiFi networks
-  zap ai wifi MyNetwork pass  # connect to WiFi
-  zap ai fetch https://...    # fetch data from URL
-  zap ai train main.zap       # run training
+  zpx ai init my-model        # create project with model scaffold
+  zpx ai scan                 # list available WiFi networks
+  zpx ai wifi MyNetwork pass  # connect to WiFi
+  zpx ai fetch https://...    # fetch data from URL
+  zpx ai train main.zpx       # run training
 """
 
 
 # ---------------------------------------------------------------------------
-# Zap AI commands
+# Zpx AI commands
 # ---------------------------------------------------------------------------
 
 def ai_command(args, diag_format="text"):
-    """Handle 'zap ai' subcommands: init, train, evaluate, wifi, scan."""
+    """Handle 'zpx ai' subcommands: init, train, evaluate, wifi, scan."""
     if not args:
         print(AI_HELP_TEXT, file=sys.stderr)
         sys.exit(1)
@@ -695,13 +695,13 @@ def ai_command(args, diag_format="text"):
 
 
 def _ai_init(args):
-    """Create a new Zap AI project scaffold."""
+    """Create a new Zpx AI project scaffold."""
     name = args[0] if args else "my-ai-model"
     os.makedirs(name, exist_ok=True)
 
-    # main.zap — AI training script
-    main_zap = f'''# {name} — Zap AI Project
-import "lib/zap_ai.zap"
+    # main.zpx — AI training script
+    main_zpx = f'''# {name} — Zpx AI Project
+import "lib/zpx_ai.zpx"
 
 # Load your dataset
 # let data = load_csv("data/dataset.csv")
@@ -720,11 +720,11 @@ let m = classifier(784, 10, h1=128, h2=64)
 # Save
 # save(trained, "model.json")
 
-print("Zap AI project ready!")
+print("Zpx AI project ready!")
 '''
 
-    with open(os.path.join(name, "main.zap"), "w") as f:
-        f.write(main_zap)
+    with open(os.path.join(name, "main.zpx"), "w") as f:
+        f.write(main_zpx)
 
     # data/ directory
     os.makedirs(os.path.join(name, "data"), exist_ok=True)
@@ -734,21 +734,21 @@ print("Zap AI project ready!")
     with open(os.path.join(name, "data", "sample.csv"), "w") as f:
         f.write(sample_csv)
 
-    # zap.json
+    # zpx.json
     import json
-    zap_json = {"name": name, "version": "1.0.0", "type": "ai"}
-    with open(os.path.join(name, "zap.json"), "w") as f:
-        json.dump(zap_json, f, indent=2)
+    zpx_json = {"name": name, "version": "1.0.0", "type": "ai"}
+    with open(os.path.join(name, "zpx.json"), "w") as f:
+        json.dump(zpx_json, f, indent=2)
 
-    print(f"  Zap AI project '{name}' created!")
-    print(f"  cd {name} && zap run main.zap")
+    print(f"  Zpx AI project '{name}' created!")
+    print(f"  cd {name} && zpx run main.zpx")
 
 
 def _ai_train(args, diag_format):
     """Run a training script."""
     if not args:
-        # Default to main.zap
-        target = "main.zap"
+        # Default to main.zpx
+        target = "main.zpx"
     else:
         target = args[0]
     run_path(target, diag_format=diag_format)
@@ -758,7 +758,7 @@ def _ai_wifi(args):
     """Connect to WiFi."""
     from .values import _stdlib_wifi_connect
     if not args:
-        print("usage: zap ai wifi <ssid> [password]", file=sys.stderr)
+        print("usage: zpx ai wifi <ssid> [password]", file=sys.stderr)
         sys.exit(1)
     ssid = args[0]
     password = args[1] if len(args) > 1 else None
@@ -802,7 +802,7 @@ def _ai_fetch(args):
     """Fetch data from URL."""
     from .values import _stdlib_web_fetch
     if not args:
-        print("usage: zap ai fetch <url>", file=sys.stderr)
+        print("usage: zpx ai fetch <url>", file=sys.stderr)
         sys.exit(1)
     url = args[0]
     data = _stdlib_web_fetch(url, as_json=True)
@@ -856,12 +856,12 @@ def main(argv=None):
         run_path(args[0], diag_format=diag_format)
     elif cmd == "check":
         if not args:
-            print("usage: zap check <file.zap>", file=sys.stderr)
+            print("usage: zpx check <file.zpx>", file=sys.stderr)
             sys.exit(1)
         check_file(args[0], diag_format=diag_format)
     elif cmd == "build":
         if not args:
-            print("usage: zap build <file.zap>", file=sys.stderr)
+            print("usage: zpx build <file.zpx>", file=sys.stderr)
             sys.exit(1)
         build_file(args[0], diag_format=diag_format)
     elif cmd == "test":
@@ -870,7 +870,7 @@ def main(argv=None):
         version_command(args, diag_format=diag_format)
     elif cmd == "compile":
         if not args:
-            print("usage: zap compile <file.zap> [--out <path>]", file=sys.stderr)
+            print("usage: zpx compile <file.zpx> [--out <path>]", file=sys.stderr)
             sys.exit(1)
         # Parse --out flag
         out = None
@@ -884,7 +884,7 @@ def main(argv=None):
                 compile_args.append(args[i])
                 i += 1
         if not compile_args:
-            print("usage: zap compile <file.zap> [--out <path>]", file=sys.stderr)
+            print("usage: zpx compile <file.zpx> [--out <path>]", file=sys.stderr)
             sys.exit(1)
         compile_command(compile_args[0], out=out, diag_format=diag_format)
     elif cmd == "diag":

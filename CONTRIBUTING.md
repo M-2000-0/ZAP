@@ -1,20 +1,20 @@
-# Contributing to Zap
+# Contributing to Zpx
 
-Thank you for your interest in contributing to Zap! We're building the language that AI models actually want to write, and we need your help.
+Thank you for your interest in contributing to Zpx! We're building the language that AI models actually want to write, and we need your help.
 
 ## Why Contribute?
 
 - **Shape the future of coding** — You're not just contributing to a language, you're helping define how AI and humans will write code together
 - **Learn a new paradigm** — Experience what a language designed for AI code generation looks like
-- **Build something real** — Zap is self-hosting (written in Zap), so your contributions directly improve the language itself
+- **Build something real** — Zpx is self-hosting (written in Zpx), so your contributions directly improve the language itself
 
 ## Quick Start
 
 ```bash
 # Clone and run
-git clone https://github.com/M-2000-0/ZAP.git
-cd ZAP
-python -m src run examples/hello.zap
+git clone https://github.com/M-2000-0/ZPX.git
+cd ZPX
+python -m src run examples/hello.zpx
 
 # Run tests
 python -m pytest tests/ -q
@@ -22,9 +22,9 @@ python -m pytest tests/ -q
 
 ## Ways to Contribute
 
-### 1. Try Zap and Give Feedback
+### 1. Try Zpx and Give Feedback
 
-The easiest way to contribute is to **use Zap** and tell us what works and what doesn't:
+The easiest way to contribute is to **use Zpx** and tell us what works and what doesn't:
 
 - Try the examples in `examples/`
 - Write your own code
@@ -33,7 +33,7 @@ The easiest way to contribute is to **use Zap** and tell us what works and what 
 
 ### 2. Fix Bugs
 
-Look at [open issues](https://github.com/M-2000-0/ZAP/issues) for bugs to fix.
+Look at [open issues](https://github.com/M-2000-0/ZPX/issues) for bugs to fix.
 
 ### 3. Add Features
 
@@ -48,11 +48,11 @@ Check the [roadmap](README.md#roadmap) for planned features. If you see somethin
 
 ### 5. Add Examples
 
-Create example `.zap` files that showcase the language. Good examples help new users learn.
+Create example `.zpx` files that showcase the language. Good examples help new users learn.
 
 ### 6. Port Builtins
 
-Help port the 248+ builtins from Python to Zap in `self_host/builtins.zap`.
+Help port the 248+ builtins from Python to Zpx in `self_host/builtins.zpx`.
 
 ## Architecture
 
@@ -67,26 +67,26 @@ src/
   types.py          - Type system
   cli.py            - Command-line interface
 
-self_host/          - Zap interpreter written in Zap
-  tokens.zap        - Token system
-  lexer.zap         - Lexer
-  parser.zap        - Parser
-  ast_nodes.zap     - AST definitions
-  env.zap           - Environment/scoping
-  evaluator.zap     - Evaluator
-  builtins.zap      - Standard library
+self_host/          - Zpx interpreter written in Zpx
+  tokens.zpx        - Token system
+  lexer.zpx         - Lexer
+  parser.zpx        - Parser
+  ast_nodes.zpx     - AST definitions
+  env.zpx           - Environment/scoping
+  evaluator.zpx     - Evaluator
+  builtins.zpx      - Standard library
 
 lib/                - Standard library
-  db.zap            - Database operations
-  deploy.zap        - Deployment helpers
-  strings.zap       - String utilities
-  http.zap          - HTTP client
-  zap_ai.zap        - AI/ML primitives
+  db.zpx            - Database operations
+  deploy.zpx        - Deployment helpers
+  strings.zpx       - String utilities
+  http.zpx          - HTTP client
+  zpx_ai.zpx        - AI/ML primitives
 ```
 
 ## Code Style
 
-### Zap Files
+### Zpx Files
 
 - Use `#` for comments (not `//`)
 - Use `ret` for return (not `return`)
@@ -140,7 +140,7 @@ python test_self_hosting.py
 pip install -e .
 
 # Run in development mode
-python -m src run your_file.zap
+python -m src run your_file.zpx
 
 # Run tests
 python -m pytest tests/ -q
@@ -148,7 +148,7 @@ python -m pytest tests/ -q
 
 ## Questions?
 
-Open a [discussion](https://github.com/M-2000-0/ZAP/discussions) or ask in issues.
+Open a [discussion](https://github.com/M-2000-0/ZPX/discussions) or ask in issues.
 
 ## Code of Conduct
 

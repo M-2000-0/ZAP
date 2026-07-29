@@ -1,4 +1,4 @@
-# Zap Language Specification v0.1
+# Zpx Language Specification v0.1
 
 ## Comments
 
@@ -9,9 +9,9 @@
 
 ## Variables
 
-```zap
+```zpx
 let x = 42            # Immutable binding
-let name = "Zap"      # String
+let name = "Zpx"      # String
 let flag = true       # Boolean
 let empty = none      # Null value
 ```
@@ -26,7 +26,7 @@ let empty = none      # Null value
 - **None**: `none`
 
 ### Collections
-```zap
+```zpx
 let nums = [1, 2, 3]              # List
 let pair = ["key", "value"]       # List (use as tuple)
 let name_at = ["Alice": 90]       # Dict
@@ -49,7 +49,7 @@ let name_at = ["Alice": 90]       # Dict
 ## Control Flow
 
 ### If/Else
-```zap
+```zpx
 if x > 0:
   print("positive")
 el: if x == 0:
@@ -59,7 +59,7 @@ el:
 ```
 
 ### While Loop
-```zap
+```zpx
 let i = 0
 while i < 10:
   print(i)
@@ -67,7 +67,7 @@ while i < 10:
 ```
 
 ### For Loop
-```zap
+```zpx
 for item in [1, 2, 3]:
   print(item)
 
@@ -76,7 +76,7 @@ for i in range(5):
 ```
 
 ### Break and Continue
-```zap
+```zpx
 while true:
   let val = get_input()
   if val == "quit":
@@ -87,14 +87,14 @@ while true:
 ```
 
 ### Return
-```zap
+```zpx
 fn add(a, b):
   ret a + b
 ```
 
 ## Functions
 
-```zap
+```zpx
 fn greet(name):
   print("Hello, " + name)
 
@@ -108,7 +108,7 @@ greet_with_default("Bob", "Hey")
 
 ## Classes
 
-```zap
+```zpx
 class Point:
   fn init(self, x, y):
     self.x = x
@@ -127,7 +127,7 @@ print(p.to_string())
 ```
 
 ### Inheritance
-```zap
+```zpx
 class Animal:
   fn init(self, name):
     self.name = name
@@ -142,7 +142,7 @@ class Dog(Animal):
 
 ## String Operations
 
-```zap
+```zpx
 let s = "Hello, World!"
 len(s)              # 12
 s[0]                # "H"
@@ -157,7 +157,7 @@ s[0:5]              # "Hello"
 
 ## List Operations
 
-```zap
+```zpx
 let lst = [1, 2, 3]
 lst.append(4)       # [1, 2, 3, 4]
 lst.remove(0)       # removes element at index 0
@@ -168,7 +168,7 @@ lst[-1]             # last element
 
 ## Dict Operations
 
-```zap
+```zpx
 let d = ["name": "Alice", "age": 30]
 d["name"]           # "Alice"
 d["email"] = "a@b.com"
@@ -237,7 +237,7 @@ d["email"]          # "a@b.com"
 ### Error Handling
 | Function | Description |
 |----------|-------------|
-| `raise(msg)` | Raise a Zap error |
+| `raise(msg)` | Raise a Zpx error |
 | `exit()` | Exit the program |
 
 ### JSON/IO

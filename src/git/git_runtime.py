@@ -1,5 +1,5 @@
 """
-Git-as-Language for ZAP.
+Git-as-Language for ZPX.
 
 Version control IS the language. No separate git CLI needed.
 
@@ -35,7 +35,7 @@ from src.runtime.capability import CapabilityRuntime, Capability
 from src.evaluator import Evaluator
 from src.parser import Parser
 from src.lexer import Lexer
-from src.values import ZapList, ZapDict, _zap_to_py, _py_to_zap
+from src.values import ZpxList, ZpxDict, _zpx_to_py, _py_to_zpx
 
 
 class GitObjectType(Enum):
@@ -62,7 +62,7 @@ class Commit(GitObject):
     """Git commit object."""
     parents: List[str] = field(default_factory=list)
     message: str = ""
-    author: str = "zap"
+    author: str = "zpx"
     timestamp: float = field(default_factory=time.time)
     metadata: Dict = field(default_factory=dict)
     
@@ -101,7 +101,7 @@ class GitRuntime:
     """
     Git-as-Language runtime.
     
-    Every ZAP session is a Git repository. Checkpoints are commits.
+    Every ZPX session is a Git repository. Checkpoints are commits.
     Time-travel = checkout. Branches = experiments. Merge = combine.
     """
     
@@ -112,7 +112,7 @@ class GitRuntime:
         self.capability = capability or CapabilityRuntime(self.evaluator)
         
         # Git repo
-        self.repo_path = Path(repo_path or os.path.join(os.getcwd(), ".zap_git"))
+        self.repo_path = Path(repo_path or os.path.join(os.getcwd(), ".zpx_git"))
         self.repo_path.mkdir(parents=True, exist_ok=True)
         (self.repo_path / "objects").mkdir(exist_ok=True)
         (self.repo_path / "refs" / "heads").mkdir(parents=True, exist_ok=True)
@@ -153,7 +153,7 @@ class GitRuntime:
                         data=json.dumps(commit_data.get("tree", {})).encode(),
                         parents=commit_data.get("parents", []),
                         message=commit_data.get("message", ""),
-                        author=commit_data.get("author", "zap"),
+                        author=commit_data.get("author", "zpx"),
                         timestamp=commit_data.get("timestamp", time.time()),
                         metadata=commit_data.get("metadata", {}),
                     )
@@ -196,7 +196,7 @@ class GitRuntime:
             data=tree,
             parents=[],
             message="Initial commit",
-            author="zap",
+            author="zpx",
             metadata={"initial": True},
         )
         self._save_commit(commit)
@@ -212,11 +212,11 @@ class GitRuntime:
         return hashlib.sha256(json.dumps(tree_data, sort_keys=True).encode()).hexdigest()[:16]
     
     def _serialize_value(self, v: Any) -> Any:
-        """Serialize Zap values to JSON-compatible."""
-        if hasattr(v, '__class__') and 'Zap' in v.__class__.__name__:
-            if isinstance(v, (ZapList, ZapDict)):
-                return _zap_to_py(v)
-            # Skip other Zap types (builtins, functions, etc.)
+        """Serialize Zpx values to JSON-compatible."""
+        if hasattr(v, '__class__') and 'Zpx' in v.__class__.__name__:
+            if isinstance(v, (ZpxList, ZpxDict)):
+                return _zpx_to_py(v)
+            # Skip other Zpx types (builtins, functions, etc.)
             return None
         if isinstance(v, (str, int, float, bool, type(None))):
             return v
@@ -235,7 +235,7 @@ class GitRuntime:
                 tree_data = json.loads(commit.data)
                 # Restore to evaluator
                 for k, v in tree_data.items():
-                    self.timetravel.evaluator.global_env.define(k, _py_to_zap(v))
+                    self.timetravel.evaluator.global_env.define(k, _py_to_zpx(v))
                 break
             except Exception:
                 continue
@@ -244,13 +244,13 @@ class GitRuntime:
     # Core Git Operations
     # =========================================================================
     
-    def commit(self, message: str = None, author: str = "zap") -> str:
+    def commit(self, message: str = None, author: str = "zpx") -> str:
         """
         Create a commit from current state.
         
         Usage:
-            zap> commit("feat: add user auth")
-            zap> commit()  # auto-message from diff
+            zpx> commit("feat: add user auth")
+            zpx> commit()  # auto-message from diff
         """
         # Get current tree
         tree_hash = self._capture_tree()
@@ -313,9 +313,9 @@ class GitRuntime:
         Checkout a commit, branch, or tag.
         
         Usage:
-            zap> checkout("main")
-            zap> checkout("abc123")
-            zap> checkout("v1.0")
+            zpx> checkout("main")
+            zpx> checkout("abc123")
+            zpx> checkout("v1.0")
         """
         # Resolve target to commit hash
         commit_hash = self._resolve_ref(target)
@@ -367,8 +367,8 @@ class GitRuntime:
         Create a new branch.
         
         Usage:
-            zap> branch("feature/auth")
-            zap> branch("experiment", "abc123")
+            zpx> branch("feature/auth")
+            zpx> branch("experiment", "abc123")
         """
         if start_point:
             commit_hash = self._resolve_ref(start_point)
@@ -389,8 +389,8 @@ class GitRuntime:
         Merge another branch into current branch.
         
         Usage:
-            zap> merge("feature/auth")
-            zap> merge("experiment", "Merge experiment")
+            zpx> merge("feature/auth")
+            zpx> merge("experiment", "Merge experiment")
         """
         source_hash = self._resolve_ref(source)
         target_hash = self.branches[self.current_branch].commit_hash
@@ -500,9 +500,9 @@ class GitRuntime:
         Show diff between two states.
         
         Usage:
-            zap> diff()  # working tree vs HEAD
-            zap> diff("main")  # working tree vs main
-            zap> diff("feature", "main")  # feature vs main
+            zpx> diff()  # working tree vs HEAD
+            zpx> diff("main")  # working tree vs main
+            zpx> diff("feature", "main")  # feature vs main
         """
         if target is None:
             target_tree = self._get_tree_data()
@@ -566,7 +566,7 @@ class GitRuntime:
         tag_file.write_text(commit_hash)
         
         # Store tag message
-        tag_data = {"commit": commit_hash, "message": message, "tagger": "zap", "timestamp": time.time()}
+        tag_data = {"commit": commit_hash, "message": message, "tagger": "zpx", "timestamp": time.time()}
         (self.repo_path / "refs" / "tags" / f"{name}.json").write_text(json.dumps(tag_data))
         
         return True
@@ -648,11 +648,11 @@ class GitRuntime:
 
 
 # =========================================================================
-# Integration with ZAP Language
+# Integration with ZPX Language
 # =========================================================================
 
 def _stdlib_git_commit(message: str = None):
-    """ZAP builtin: commit(message)"""
+    """ZPX builtin: commit(message)"""
     from src.runtime.timetravel import TimeTravelRuntime
     from src.runtime.capability import CapabilityRuntime
     

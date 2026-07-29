@@ -869,7 +869,7 @@ class Parser:
             while self.match(TokenType.COMMA):
                 names.append(self.expect(TokenType.IDENTIFIER).value)
             return ImportStmt(module, names, from_module=module, line=tok.line, col=tok.col)
-        # Support both `import lib.strings` and `import "lib/strings.zap"`
+        # Support both `import lib.strings` and `import "lib/strings.zpx"`
         if self.peek().type == TokenType.STRING:
             module = self.advance().value
             return ImportStmt(module, None, line=tok.line, col=tok.col)

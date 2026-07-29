@@ -9,17 +9,17 @@ import concurrent.futures
 from .environment import Environment
 from concurrent.futures import ThreadPoolExecutor
 
-class ZapType:
+class ZpxType:
     pass
 
-class ZapObject(ZapType):
+class ZpxObject(ZpxType):
     def __init__(self, methods=None, fields=None, base=None):
         self.methods = methods or {}
         self.fields = fields or {}
         self.base = base
 
 
-class ZapPromise(ZapType):
+class ZpxPromise(ZpxType):
     """A Promise/Future for async/await support."""
     def __init__(self, coro=None):
         self._coro = coro
@@ -78,7 +78,7 @@ class ZapPromise(ZapType):
         return "Promise(pending)"
 
 
-class ZapFunction(ZapType):
+class ZpxFunction(ZpxType):
     def __init__(self, name, params, body, closure, return_type=None, is_async=False,
                  is_method=False, decorators=None, contracts=None):
         self.name = name
@@ -144,7 +144,7 @@ class ZapFunction(ZapType):
             
             # Return a promise that wraps the async execution
             coro = _run_async()
-            return ZapPromise(coro)
+            return ZpxPromise(coro)
         
         # Sync execution
         try:
@@ -170,17 +170,17 @@ class ZapFunction(ZapType):
     def __call__(self, *args):
         return self._call(*args)
 
-class ZapBuiltin(ZapType):
+class ZpxBuiltin(ZpxType):
     def __init__(self, fn, name=''):
         self.fn = fn
         self.name = name
 
-class BoundMethod(ZapType):
+class BoundMethod(ZpxType):
     def __init__(self, fn, self_obj):
         self.fn = fn
         self.self_obj = self_obj
 
-class ZapTensor(ZapType):
+class ZpxTensor(ZpxType):
     __slots__ = ('data', 'shape', '_flat')
     def __init__(self, data, shape=None):
         self.data = data
@@ -212,7 +212,7 @@ class ZapTensor(ZapType):
             total *= d
         if len(flat) != total:
             raise ValueError(f"cannot reshape tensor of {len(flat)} elements into {dims}")
-        return ZapTensor(self._unflatten(flat, list(dims)), list(dims))
+        return ZpxTensor(self._unflatten(flat, list(dims)), list(dims))
 
     def _flatten(self, d):
         if isinstance(d, list):
@@ -245,7 +245,7 @@ class ZapTensor(ZapType):
         a = self.data
         b = other.data
         result = [[sum(a[i][k] * b[k][j] for k in range(k1)) for j in range(n)] for i in range(m)]
-        return ZapTensor(result, [m, n])
+        return ZpxTensor(result, [m, n])
 
     def _getitem(self, d, idx):
         if isinstance(idx, tuple):
@@ -266,7 +266,7 @@ class ZapTensor(ZapType):
     def _map(self, op):
         flat = self._flatten(self.data)
         result = [op(x) for x in flat]
-        return ZapTensor(self._unflatten(result, self.shape), list(self.shape))
+        return ZpxTensor(self._unflatten(result, self.shape), list(self.shape))
 
     def __add__(self, other):
         return self._elementwise(other, lambda a, b: a + b)
@@ -299,18 +299,18 @@ class ZapTensor(ZapType):
         return self._elementwise(other, lambda a, b: a ** b)
 
     def _elementwise(self, other, op):
-        if isinstance(other, ZapTensor):
+        if isinstance(other, ZpxTensor):
             if self.shape != other.shape:
                 raise ValueError(f"shape mismatch: {self.shape} vs {other.shape}")
             flat1 = self._flatten(self.data)
             flat2 = other._flatten(other.data)
             result = [op(a, b) for a, b in zip(flat1, flat2)]
-            return ZapTensor(self._unflatten(result, self.shape), list(self.shape))
+            return ZpxTensor(self._unflatten(result, self.shape), list(self.shape))
         flat = self._flatten(self.data)
         result = [op(x, other) for x in flat]
-        return ZapTensor(self._unflatten(result, self.shape), list(self.shape))
+        return ZpxTensor(self._unflatten(result, self.shape), list(self.shape))
 
-class ZapList(ZapType):
+class ZpxList(ZpxType):
     def __init__(self, elements):
         self.elements = list(elements)
 
@@ -327,9 +327,9 @@ class ZapList(ZapType):
     def __repr__(self):
         return f"[{', '.join(repr(e) for e in self.elements)}]"
 
-class ZapDict(ZapType):
+class ZpxDict(ZpxType):
     def __init__(self, entries=None):
-        if isinstance(entries, ZapDict):
+        if isinstance(entries, ZpxDict):
             self.entries = dict(entries.entries)
         elif entries is not None:
             self.entries = dict(entries)
@@ -355,7 +355,7 @@ class ZapDict(ZapType):
         items = ', '.join(f"{k!r}: {v!r}" for k, v in self.entries.items())
         return f"{{{items}}}"
 
-class ZapRange(ZapType):
+class ZpxRange(ZpxType):
     def __init__(self, start, stop, step=1):
         self.start = start
         self.stop = stop
@@ -386,26 +386,26 @@ def _builtin_isinstance(obj, cls):
         return cls is None
     if obj is cls:
         return True
-    # Handle native Zap types (ZapList, ZapDict, etc.)
+    # Handle native Zpx types (ZpxList, ZpxDict, etc.)
     type_map = {
-        ZapList: ZapList,
-        ZapDict: ZapDict,
-        ZapObject: ZapObject,
-        ZapRange: ZapRange,
-        ZapFunction: ZapFunction,
-        ZapBuiltin: ZapBuiltin,
-        ZapType: ZapType,
-        ZapTensor: ZapTensor,
+        ZpxList: ZpxList,
+        ZpxDict: ZpxDict,
+        ZpxObject: ZpxObject,
+        ZpxRange: ZpxRange,
+        ZpxFunction: ZpxFunction,
+        ZpxBuiltin: ZpxBuiltin,
+        ZpxType: ZpxType,
+        ZpxTensor: ZpxTensor,
     }
     if cls in type_map:
         return isinstance(obj, type_map[cls])
-    # Handle ZapObject class hierarchy (for self-hosted class definitions)
-    if isinstance(obj, ZapObject):
+    # Handle ZpxObject class hierarchy (for self-hosted class definitions)
+    if isinstance(obj, ZpxObject):
         current = obj.base
         while current is not None:
             if current is cls:
                 return True
-            if isinstance(current, ZapObject):
+            if isinstance(current, ZpxObject):
                 current = current.base
             else:
                 break
@@ -416,79 +416,79 @@ def _builtin_raise(msg):
     raise RuntimeError(str(msg))
 
 def _builtin_call_host_fn(fn, args):
-    if isinstance(args, ZapList):
+    if isinstance(args, ZpxList):
         py_args = args.elements
     else:
         py_args = list(args)
-    if isinstance(fn, ZapBuiltin):
+    if isinstance(fn, ZpxBuiltin):
         return fn.fn(*py_args)
-    if isinstance(fn, ZapFunction):
+    if isinstance(fn, ZpxFunction):
         return fn(*py_args)
     return fn(*py_args)
 
-def make_zap_builtins():
+def make_zpx_builtins():
     env = Environment()
     builtins = {
-        'print': ZapBuiltin(lambda *args: print(*[_zap_to_str(a) for a in args]), 'print'),
-        'len': ZapBuiltin(lambda x: _builtin_len(x), 'len'),
-        'range': ZapBuiltin(lambda *a: _builtin_range(*a), 'range'),
-        'int': ZapBuiltin(lambda x: int(x), 'int'),
-        'float': ZapBuiltin(lambda x: float(x), 'float'),
-        'str': ZapBuiltin(lambda x: _zap_to_str(x), 'str'),
-        'list': ZapBuiltin(lambda x: _builtin_list(x), 'list'),
-        'type': ZapBuiltin(lambda x: type(x).__name__, 'type'),
-        'isinstance': ZapBuiltin(lambda obj, cls: _builtin_isinstance(obj, cls), 'isinstance'),
-        'getattr': ZapBuiltin(lambda obj, name: getattr(obj, name) if isinstance(obj, (ZapDict, ZapList)) else getattr(obj, name), 'getattr'),
-        'raise': ZapBuiltin(lambda msg: _builtin_raise(msg), 'raise'),
-        'call_host_fn': ZapBuiltin(lambda fn, args: _builtin_call_host_fn(fn, args), 'call_host_fn'),
-        'abs': ZapBuiltin(abs, 'abs'),
-        'max': ZapBuiltin(_builtin_max, 'max'),
-        'min': ZapBuiltin(_builtin_min, 'min'),
-        'sum': ZapBuiltin(_builtin_sum, 'sum'),
-        'round': ZapBuiltin(round, 'round'),
-        'map': ZapBuiltin(_builtin_map, 'map'),
-        'filter': ZapBuiltin(_builtin_filter, 'filter'),
-        'tensor': ZapBuiltin(lambda data, shape=None: _builtin_tensor(data, shape), 'tensor'),
-        'zeros': ZapBuiltin(lambda *shape: _builtin_zeros(list(shape)), 'zeros'),
-        'ones': ZapBuiltin(lambda *shape: _builtin_ones(list(shape)), 'ones'),
-        'reshape': ZapBuiltin(lambda t, *dims: t.reshape(*dims), 'reshape'),
-        'random': ZapBuiltin(lambda: random.random(), 'random'),
-        'randint': ZapBuiltin(random.randint, 'randint'),
-        'exp': ZapBuiltin(_math_unary(math.exp), 'exp'),
-        'log': ZapBuiltin(_math_unary(math.log), 'log'),
-        'sin': ZapBuiltin(_math_unary(math.sin), 'sin'),
-        'cos': ZapBuiltin(_math_unary(math.cos), 'cos'),
-        'floor': ZapBuiltin(_math_unary(math.floor), 'floor'),
-        'ceil': ZapBuiltin(_math_unary(math.ceil), 'ceil'),
-        'sqrt': ZapBuiltin(_math_unary(math.sqrt), 'sqrt'),
-        'say': ZapBuiltin(lambda *args: print(*[_zap_to_str(a) for a in args]), 'say'),
-        'show': ZapBuiltin(lambda *args: print(*[_zap_to_str(a) for a in args]), 'show'),
-        'ask': ZapBuiltin(lambda prompt='': input(str(prompt)), 'ask'),
-        'now': ZapBuiltin(lambda: _datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'now'),
-        'wait': ZapBuiltin(lambda secs: _time.sleep(secs), 'wait'),
-        'clear': ZapBuiltin(lambda: _os.system('cls' if _os.name == 'nt' else 'clear'), 'clear'),
-        'today': ZapBuiltin(lambda: _datetime.date.today().strftime('%Y-%m-%d'), 'today'),
-        'get': ZapBuiltin(lambda name: _builtin_get(name), 'get'),
-        'context_set': ZapBuiltin(lambda key, value: _builtin_context_set(key, value), 'context_set'),
-        'context_get': ZapBuiltin(lambda key, default=None: _builtin_context_get(key, default), 'context_get'),
-        'context_save': ZapBuiltin(lambda: _builtin_context_save(), 'context_save'),
-        'context_intents': ZapBuiltin(lambda: _builtin_context_intents(), 'context_intents'),
-        'context_add_convention': ZapBuiltin(lambda text: _builtin_context_add_convention(text), 'context_add_convention'),
-        'context_add_decision': ZapBuiltin(lambda text: _builtin_context_add_decision(text), 'context_add_decision'),
-        'pmap': ZapBuiltin(lambda fn, items: _builtin_pmap(fn, items), 'pmap'),
-        'parallel': ZapBuiltin(lambda *fns: _builtin_parallel(*fns), 'parallel'),
-        'retry': ZapBuiltin(lambda fn, retries=3, delay=0: _builtin_retry(fn, retries, delay), 'retry'),
+        'print': ZpxBuiltin(lambda *args: print(*[_zpx_to_str(a) for a in args]), 'print'),
+        'len': ZpxBuiltin(lambda x: _builtin_len(x), 'len'),
+        'range': ZpxBuiltin(lambda *a: _builtin_range(*a), 'range'),
+        'int': ZpxBuiltin(lambda x: int(x), 'int'),
+        'float': ZpxBuiltin(lambda x: float(x), 'float'),
+        'str': ZpxBuiltin(lambda x: _zpx_to_str(x), 'str'),
+        'list': ZpxBuiltin(lambda x: _builtin_list(x), 'list'),
+        'type': ZpxBuiltin(lambda x: type(x).__name__, 'type'),
+        'isinstance': ZpxBuiltin(lambda obj, cls: _builtin_isinstance(obj, cls), 'isinstance'),
+        'getattr': ZpxBuiltin(lambda obj, name: getattr(obj, name) if isinstance(obj, (ZpxDict, ZpxList)) else getattr(obj, name), 'getattr'),
+        'raise': ZpxBuiltin(lambda msg: _builtin_raise(msg), 'raise'),
+        'call_host_fn': ZpxBuiltin(lambda fn, args: _builtin_call_host_fn(fn, args), 'call_host_fn'),
+        'abs': ZpxBuiltin(abs, 'abs'),
+        'max': ZpxBuiltin(_builtin_max, 'max'),
+        'min': ZpxBuiltin(_builtin_min, 'min'),
+        'sum': ZpxBuiltin(_builtin_sum, 'sum'),
+        'round': ZpxBuiltin(round, 'round'),
+        'map': ZpxBuiltin(_builtin_map, 'map'),
+        'filter': ZpxBuiltin(_builtin_filter, 'filter'),
+        'tensor': ZpxBuiltin(lambda data, shape=None: _builtin_tensor(data, shape), 'tensor'),
+        'zeros': ZpxBuiltin(lambda *shape: _builtin_zeros(list(shape)), 'zeros'),
+        'ones': ZpxBuiltin(lambda *shape: _builtin_ones(list(shape)), 'ones'),
+        'reshape': ZpxBuiltin(lambda t, *dims: t.reshape(*dims), 'reshape'),
+        'random': ZpxBuiltin(lambda: random.random(), 'random'),
+        'randint': ZpxBuiltin(random.randint, 'randint'),
+        'exp': ZpxBuiltin(_math_unary(math.exp), 'exp'),
+        'log': ZpxBuiltin(_math_unary(math.log), 'log'),
+        'sin': ZpxBuiltin(_math_unary(math.sin), 'sin'),
+        'cos': ZpxBuiltin(_math_unary(math.cos), 'cos'),
+        'floor': ZpxBuiltin(_math_unary(math.floor), 'floor'),
+        'ceil': ZpxBuiltin(_math_unary(math.ceil), 'ceil'),
+        'sqrt': ZpxBuiltin(_math_unary(math.sqrt), 'sqrt'),
+        'say': ZpxBuiltin(lambda *args: print(*[_zpx_to_str(a) for a in args]), 'say'),
+        'show': ZpxBuiltin(lambda *args: print(*[_zpx_to_str(a) for a in args]), 'show'),
+        'ask': ZpxBuiltin(lambda prompt='': input(str(prompt)), 'ask'),
+        'now': ZpxBuiltin(lambda: _datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'now'),
+        'wait': ZpxBuiltin(lambda secs: _time.sleep(secs), 'wait'),
+        'clear': ZpxBuiltin(lambda: _os.system('cls' if _os.name == 'nt' else 'clear'), 'clear'),
+        'today': ZpxBuiltin(lambda: _datetime.date.today().strftime('%Y-%m-%d'), 'today'),
+        'get': ZpxBuiltin(lambda name: _builtin_get(name), 'get'),
+        'context_set': ZpxBuiltin(lambda key, value: _builtin_context_set(key, value), 'context_set'),
+        'context_get': ZpxBuiltin(lambda key, default=None: _builtin_context_get(key, default), 'context_get'),
+        'context_save': ZpxBuiltin(lambda: _builtin_context_save(), 'context_save'),
+        'context_intents': ZpxBuiltin(lambda: _builtin_context_intents(), 'context_intents'),
+        'context_add_convention': ZpxBuiltin(lambda text: _builtin_context_add_convention(text), 'context_add_convention'),
+        'context_add_decision': ZpxBuiltin(lambda text: _builtin_context_add_decision(text), 'context_add_decision'),
+        'pmap': ZpxBuiltin(lambda fn, items: _builtin_pmap(fn, items), 'pmap'),
+        'parallel': ZpxBuiltin(lambda *fns: _builtin_parallel(*fns), 'parallel'),
+        'retry': ZpxBuiltin(lambda fn, retries=3, delay=0: _builtin_retry(fn, retries, delay), 'retry'),
     }
     for name, val in builtins.items():
         env.define(name, val)
     # Host evaluator types for self-hosted isinstance checks
-    env.define('ZapList', ZapList)
-    env.define('ZapDict', ZapDict)
-    env.define('ZapObject', ZapObject)
-    env.define('ZapRange', ZapRange)
-    env.define('ZapFunction', ZapFunction)
-    env.define('ZapBuiltin', ZapBuiltin)
-    env.define('ZapType', ZapType)
+    env.define('ZpxList', ZpxList)
+    env.define('ZpxDict', ZpxDict)
+    env.define('ZpxObject', ZpxObject)
+    env.define('ZpxRange', ZpxRange)
+    env.define('ZpxFunction', ZpxFunction)
+    env.define('ZpxBuiltin', ZpxBuiltin)
+    env.define('ZpxType', ZpxType)
     # String operations
     string_fns = {
         'upper': _stdlib_upper, 'lower': _stdlib_lower, 'strip': _stdlib_strip,
@@ -498,8 +498,8 @@ def make_zap_builtins():
         'reverse': _stdlib_reverse, 'trim': _stdlib_trim,
     }
     for name, fn in string_fns.items():
-        env.define(name, ZapBuiltin(fn, name))
-    env.define('format', ZapBuiltin(lambda t, d: _stdlib_format(t, **_zap_to_py(d) if isinstance(d, ZapDict) else {}), 'format'))
+        env.define(name, ZpxBuiltin(fn, name))
+    env.define('format', ZpxBuiltin(lambda t, d: _stdlib_format(t, **_zpx_to_py(d) if isinstance(d, ZpxDict) else {}), 'format'))
 
     # Regex operations
     regex_fns = {
@@ -511,7 +511,7 @@ def make_zap_builtins():
         'regex_fullmatch': _stdlib_regex_fullmatch,
     }
     for name, fn in regex_fns.items():
-        env.define(name, ZapBuiltin(fn, name))
+        env.define(name, ZpxBuiltin(fn, name))
 
     # File I/O
     file_fns = {
@@ -521,15 +521,15 @@ def make_zap_builtins():
         'remove': _stdlib_remove, 'file_size': _stdlib_file_size,
     }
     for name, fn in file_fns.items():
-        env.define(name, ZapBuiltin(fn, name))
+        env.define(name, ZpxBuiltin(fn, name))
 
     # JSON
-    env.define('json_parse', ZapBuiltin(_stdlib_json_parse, 'json_parse'))
-    env.define('json_stringify', ZapBuiltin(_stdlib_json_stringify, 'json_stringify'))
+    env.define('json_parse', ZpxBuiltin(_stdlib_json_parse, 'json_parse'))
+    env.define('json_stringify', ZpxBuiltin(_stdlib_json_stringify, 'json_stringify'))
 
     # HTTP
-    env.define('http_get', ZapBuiltin(_stdlib_http_get, 'http_get'))
-    env.define('http_post', ZapBuiltin(_stdlib_http_post, 'http_post'))
+    env.define('http_get', ZpxBuiltin(_stdlib_http_get, 'http_get'))
+    env.define('http_post', ZpxBuiltin(_stdlib_http_post, 'http_post'))
 
     # Crypto / encoding
     crypto_fns = {
@@ -538,7 +538,7 @@ def make_zap_builtins():
         'uuid': _stdlib_uuid, 'random_string': _stdlib_random_string,
     }
     for name, fn in crypto_fns.items():
-        env.define(name, ZapBuiltin(fn, name))
+        env.define(name, ZpxBuiltin(fn, name))
 
     # OS / system
     os_fns = {
@@ -547,7 +547,7 @@ def make_zap_builtins():
         'time': _stdlib_time,
     }
     for name, fn in os_fns.items():
-        env.define(name, ZapBuiltin(fn, name))
+        env.define(name, ZpxBuiltin(fn, name))
 
     # Collections / iter tools
     coll_fns = {
@@ -557,119 +557,119 @@ def make_zap_builtins():
         'unique': _stdlib_unique, 'any': _stdlib_any, 'all': _stdlib_all,
     }
     for name, fn in coll_fns.items():
-        env.define(name, ZapBuiltin(fn, name))
+        env.define(name, ZpxBuiltin(fn, name))
 
     # Frontend DSL
-    env.define('element', ZapBuiltin(_stdlib_element, 'element'))
-    env.define('html', ZapBuiltin(_stdlib_html_render, 'html'))
-    env.define('render', ZapBuiltin(_stdlib_html_render, 'render'))
-    env.define('html_escape', ZapBuiltin(_stdlib_html_escape, 'html_escape'))
-    env.define('css', ZapBuiltin(lambda s: str(s), 'css'))
-    env.define('signal', ZapBuiltin(_stdlib_signal, 'signal'))
-    env.define('effect', ZapBuiltin(_stdlib_effect, 'effect'))
+    env.define('element', ZpxBuiltin(_stdlib_element, 'element'))
+    env.define('html', ZpxBuiltin(_stdlib_html_render, 'html'))
+    env.define('render', ZpxBuiltin(_stdlib_html_render, 'render'))
+    env.define('html_escape', ZpxBuiltin(_stdlib_html_escape, 'html_escape'))
+    env.define('css', ZpxBuiltin(lambda s: str(s), 'css'))
+    env.define('signal', ZpxBuiltin(_stdlib_signal, 'signal'))
+    env.define('effect', ZpxBuiltin(_stdlib_effect, 'effect'))
 
     # Zero-boilerplate: HTTP server, config, watch, subprocess
-    env.define('http_server', ZapBuiltin(_stdlib_http_server, 'http_server'))
-    env.define('config', ZapBuiltin(_stdlib_config, 'config'))
-    env.define('watch', ZapBuiltin(_stdlib_watch, 'watch'))
-    env.define('run', ZapBuiltin(_stdlib_run, 'run'))
-    env.define('serve', ZapBuiltin(_stdlib_serve, 'serve'))
+    env.define('http_server', ZpxBuiltin(_stdlib_http_server, 'http_server'))
+    env.define('config', ZpxBuiltin(_stdlib_config, 'config'))
+    env.define('watch', ZpxBuiltin(_stdlib_watch, 'watch'))
+    env.define('run', ZpxBuiltin(_stdlib_run, 'run'))
+    env.define('serve', ZpxBuiltin(_stdlib_serve, 'serve'))
 
     # Parallel collections (zero-boilerplate parallelization)
-    env.define('par_map', ZapBuiltin(_stdlib_par_map, 'par_map'))
-    env.define('par_filter', ZapBuiltin(_stdlib_par_filter, 'par_filter'))
-    env.define('par_for', ZapBuiltin(_stdlib_par_for, 'par_for'))
+    env.define('par_map', ZpxBuiltin(_stdlib_par_map, 'par_map'))
+    env.define('par_filter', ZpxBuiltin(_stdlib_par_filter, 'par_filter'))
+    env.define('par_for', ZpxBuiltin(_stdlib_par_for, 'par_for'))
 
     # Database / SQLite
-    env.define('db_open', ZapBuiltin(_stdlib_db_open, 'db_open'))
-    env.define('db_query', ZapBuiltin(_stdlib_db_query, 'db_query'))
-    env.define('db_query_one', ZapBuiltin(_stdlib_db_query_one, 'db_query_one'))
-    env.define('db_exec', ZapBuiltin(_stdlib_db_exec, 'db_exec'))
-    env.define('db_transaction', ZapBuiltin(_stdlib_db_transaction, 'db_transaction'))
-    env.define('db_migrate', ZapBuiltin(_stdlib_db_migrate, 'db_migrate'))
-    env.define('db_tables', ZapBuiltin(_stdlib_db_tables, 'db_tables'))
-    env.define('db_schema', ZapBuiltin(_stdlib_db_schema, 'db_schema'))
-    env.define('db_close', ZapBuiltin(_stdlib_db_close, 'db_close'))
+    env.define('db_open', ZpxBuiltin(_stdlib_db_open, 'db_open'))
+    env.define('db_query', ZpxBuiltin(_stdlib_db_query, 'db_query'))
+    env.define('db_query_one', ZpxBuiltin(_stdlib_db_query_one, 'db_query_one'))
+    env.define('db_exec', ZpxBuiltin(_stdlib_db_exec, 'db_exec'))
+    env.define('db_transaction', ZpxBuiltin(_stdlib_db_transaction, 'db_transaction'))
+    env.define('db_migrate', ZpxBuiltin(_stdlib_db_migrate, 'db_migrate'))
+    env.define('db_tables', ZpxBuiltin(_stdlib_db_tables, 'db_tables'))
+    env.define('db_schema', ZpxBuiltin(_stdlib_db_schema, 'db_schema'))
+    env.define('db_close', ZpxBuiltin(_stdlib_db_close, 'db_close'))
 
-    # === Zap AI: WiFi / Network ===
-    env.define('wifi_scan', ZapBuiltin(_stdlib_wifi_scan, 'wifi_scan'))
-    env.define('wifi_connect', ZapBuiltin(_stdlib_wifi_connect, 'wifi_connect'))
-    env.define('wifi_status', ZapBuiltin(_stdlib_wifi_status, 'wifi_status'))
+    # === Zpx AI: WiFi / Network ===
+    env.define('wifi_scan', ZpxBuiltin(_stdlib_wifi_scan, 'wifi_scan'))
+    env.define('wifi_connect', ZpxBuiltin(_stdlib_wifi_connect, 'wifi_connect'))
+    env.define('wifi_status', ZpxBuiltin(_stdlib_wifi_status, 'wifi_status'))
 
-    # === Zap AI: Data Loading ===
-    env.define('csv_load', ZapBuiltin(_stdlib_csv_load, 'csv_load'))
-    env.define('csv_save', ZapBuiltin(_stdlib_csv_save, 'csv_save'))
-    env.define('json_load', ZapBuiltin(_stdlib_json_load, 'json_load'))
-    env.define('json_save', ZapBuiltin(_stdlib_json_save, 'json_save'))
-    env.define('image_load', ZapBuiltin(_stdlib_image_load, 'image_load'))
-    env.define('image_save', ZapBuiltin(_stdlib_image_save, 'image_save'))
-    env.define('web_fetch', ZapBuiltin(_stdlib_web_fetch, 'web_fetch'))
-    env.define('download', ZapBuiltin(_stdlib_download, 'download'))
+    # === Zpx AI: Data Loading ===
+    env.define('csv_load', ZpxBuiltin(_stdlib_csv_load, 'csv_load'))
+    env.define('csv_save', ZpxBuiltin(_stdlib_csv_save, 'csv_save'))
+    env.define('json_load', ZpxBuiltin(_stdlib_json_load, 'json_load'))
+    env.define('json_save', ZpxBuiltin(_stdlib_json_save, 'json_save'))
+    env.define('image_load', ZpxBuiltin(_stdlib_image_load, 'image_load'))
+    env.define('image_save', ZpxBuiltin(_stdlib_image_save, 'image_save'))
+    env.define('web_fetch', ZpxBuiltin(_stdlib_web_fetch, 'web_fetch'))
+    env.define('download', ZpxBuiltin(_stdlib_download, 'download'))
 
-    # === Zap AI: Neural Network Primitives ===
-    env.define('dense', ZapBuiltin(_stdlib_dense, 'dense'))
-    env.define('dense_from_weights', ZapBuiltin(_stdlib_dense_from_weights, 'dense_from_weights'))
-    env.define('relu', ZapBuiltin(_stdlib_relu, 'relu'))
-    env.define('sigmoid', ZapBuiltin(_stdlib_sigmoid, 'sigmoid'))
-    env.define('softmax', ZapBuiltin(_stdlib_softmax, 'softmax'))
-    env.define('tanh', ZapBuiltin(_stdlib_tanh, 'tanh'))
-    env.define('leaky_relu', ZapBuiltin(_stdlib_leaky_relu, 'leaky_relu'))
-    env.define('elu', ZapBuiltin(_stdlib_elu, 'elu'))
+    # === Zpx AI: Neural Network Primitives ===
+    env.define('dense', ZpxBuiltin(_stdlib_dense, 'dense'))
+    env.define('dense_from_weights', ZpxBuiltin(_stdlib_dense_from_weights, 'dense_from_weights'))
+    env.define('relu', ZpxBuiltin(_stdlib_relu, 'relu'))
+    env.define('sigmoid', ZpxBuiltin(_stdlib_sigmoid, 'sigmoid'))
+    env.define('softmax', ZpxBuiltin(_stdlib_softmax, 'softmax'))
+    env.define('tanh', ZpxBuiltin(_stdlib_tanh, 'tanh'))
+    env.define('leaky_relu', ZpxBuiltin(_stdlib_leaky_relu, 'leaky_relu'))
+    env.define('elu', ZpxBuiltin(_stdlib_elu, 'elu'))
 
-    # === Zap AI: Loss Functions ===
-    env.define('mse_loss', ZapBuiltin(_stdlib_mse_loss, 'mse_loss'))
-    env.define('cross_entropy_loss', ZapBuiltin(_stdlib_cross_entropy_loss, 'cross_entropy_loss'))
-    env.define('mae_loss', ZapBuiltin(_stdlib_mae_loss, 'mae_loss'))
-    env.define('bce_loss', ZapBuiltin(_stdlib_bce_loss, 'bce_loss'))
+    # === Zpx AI: Loss Functions ===
+    env.define('mse_loss', ZpxBuiltin(_stdlib_mse_loss, 'mse_loss'))
+    env.define('cross_entropy_loss', ZpxBuiltin(_stdlib_cross_entropy_loss, 'cross_entropy_loss'))
+    env.define('mae_loss', ZpxBuiltin(_stdlib_mae_loss, 'mae_loss'))
+    env.define('bce_loss', ZpxBuiltin(_stdlib_bce_loss, 'bce_loss'))
 
-    # === Zap AI: Model Building & Training ===
-    env.define('model', ZapBuiltin(_stdlib_model, 'model'))
-    env.define('train', ZapBuiltin(_stdlib_train, 'train'))
-    env.define('predict', ZapBuiltin(_stdlib_predict, 'predict'))
-    env.define('save_model', ZapBuiltin(_stdlib_save_model, 'save_model'))
-    env.define('load_model', ZapBuiltin(_stdlib_load_model, 'load_model'))
-    env.define('model_summary', ZapBuiltin(_stdlib_model_summary, 'model_summary'))
+    # === Zpx AI: Model Building & Training ===
+    env.define('model', ZpxBuiltin(_stdlib_model, 'model'))
+    env.define('train', ZpxBuiltin(_stdlib_train, 'train'))
+    env.define('predict', ZpxBuiltin(_stdlib_predict, 'predict'))
+    env.define('save_model', ZpxBuiltin(_stdlib_save_model, 'save_model'))
+    env.define('load_model', ZpxBuiltin(_stdlib_load_model, 'load_model'))
+    env.define('model_summary', ZpxBuiltin(_stdlib_model_summary, 'model_summary'))
 
-    # === Zap AI: Data Utilities ===
-    env.define('normalize', ZapBuiltin(_stdlib_normalize, 'normalize'))
-    env.define('split_data', ZapBuiltin(_stdlib_split_data, 'split_data'))
-    env.define('batch', ZapBuiltin(_stdlib_batch, 'batch'))
-    env.define('one_hot', ZapBuiltin(_stdlib_one_hot, 'one_hot'))
-    env.define('argmax', ZapBuiltin(_stdlib_argmax, 'argmax'))
-    env.define('accuracy', ZapBuiltin(_stdlib_accuracy, 'accuracy'))
-    env.define('seed', ZapBuiltin(_stdlib_seed, 'seed'))
+    # === Zpx AI: Data Utilities ===
+    env.define('normalize', ZpxBuiltin(_stdlib_normalize, 'normalize'))
+    env.define('split_data', ZpxBuiltin(_stdlib_split_data, 'split_data'))
+    env.define('batch', ZpxBuiltin(_stdlib_batch, 'batch'))
+    env.define('one_hot', ZpxBuiltin(_stdlib_one_hot, 'one_hot'))
+    env.define('argmax', ZpxBuiltin(_stdlib_argmax, 'argmax'))
+    env.define('accuracy', ZpxBuiltin(_stdlib_accuracy, 'accuracy'))
+    env.define('seed', ZpxBuiltin(_stdlib_seed, 'seed'))
 
     # === Auth Primitives ===
-    env.define('jwt_encode', ZapBuiltin(_stdlib_jwt_encode, 'jwt_encode'))
-    env.define('jwt_decode', ZapBuiltin(_stdlib_jwt_decode, 'jwt_decode'))
-    env.define('jwt_verify', ZapBuiltin(_stdlib_jwt_verify, 'jwt_verify'))
-    env.define('hash_password', ZapBuiltin(_stdlib_hash_password, 'hash_password'))
-    env.define('verify_password', ZapBuiltin(_stdlib_verify_password, 'verify_password'))
-    env.define('basic_auth_encode', ZapBuiltin(_stdlib_basic_auth_encode, 'basic_auth_encode'))
-    env.define('basic_auth_decode', ZapBuiltin(_stdlib_basic_auth_decode, 'basic_auth_decode'))
-    env.define('session_create', ZapBuiltin(_stdlib_session_create, 'session_create'))
-    env.define('session_validate', ZapBuiltin(_stdlib_session_validate, 'session_validate'))
+    env.define('jwt_encode', ZpxBuiltin(_stdlib_jwt_encode, 'jwt_encode'))
+    env.define('jwt_decode', ZpxBuiltin(_stdlib_jwt_decode, 'jwt_decode'))
+    env.define('jwt_verify', ZpxBuiltin(_stdlib_jwt_verify, 'jwt_verify'))
+    env.define('hash_password', ZpxBuiltin(_stdlib_hash_password, 'hash_password'))
+    env.define('verify_password', ZpxBuiltin(_stdlib_verify_password, 'verify_password'))
+    env.define('basic_auth_encode', ZpxBuiltin(_stdlib_basic_auth_encode, 'basic_auth_encode'))
+    env.define('basic_auth_decode', ZpxBuiltin(_stdlib_basic_auth_decode, 'basic_auth_decode'))
+    env.define('session_create', ZpxBuiltin(_stdlib_session_create, 'session_create'))
+    env.define('session_validate', ZpxBuiltin(_stdlib_session_validate, 'session_validate'))
 
     # === Background Jobs — Queue, Cron ===
-    env.define('queue_create', ZapBuiltin(_stdlib_queue_create, 'queue_create'))
-    env.define('queue_add', ZapBuiltin(_stdlib_queue_add, 'queue_add'))
-    env.define('queue_status', ZapBuiltin(_stdlib_queue_status, 'queue_status'))
-    env.define('cron_create', ZapBuiltin(_stdlib_cron_create, 'cron_create'))
-    env.define('cron_add', ZapBuiltin(_stdlib_cron_add, 'cron_add'))
-    env.define('cron_stop', ZapBuiltin(_stdlib_cron_stop, 'cron_stop'))
-    env.define('cron_list', ZapBuiltin(_stdlib_cron_list, 'cron_list'))
+    env.define('queue_create', ZpxBuiltin(_stdlib_queue_create, 'queue_create'))
+    env.define('queue_add', ZpxBuiltin(_stdlib_queue_add, 'queue_add'))
+    env.define('queue_status', ZpxBuiltin(_stdlib_queue_status, 'queue_status'))
+    env.define('cron_create', ZpxBuiltin(_stdlib_cron_create, 'cron_create'))
+    env.define('cron_add', ZpxBuiltin(_stdlib_cron_add, 'cron_add'))
+    env.define('cron_stop', ZpxBuiltin(_stdlib_cron_stop, 'cron_stop'))
+    env.define('cron_list', ZpxBuiltin(_stdlib_cron_list, 'cron_list'))
 
     # === AI Primitives — Prompt Templates, LLM, RAG ===
-    env.define('prompt', ZapBuiltin(_stdlib_prompt_template, 'prompt'))
-    env.define('llm', ZapBuiltin(_stdlib_llm_complete, 'llm'))
-    env.define('llm_chat', ZapBuiltin(_stdlib_llm_chat, 'llm_chat'))
-    env.define('embedding', ZapBuiltin(_stdlib_embedding, 'embedding'))
-    env.define('cosine_sim', ZapBuiltin(_stdlib_cosine_similarity, 'cosine_sim'))
-    env.define('rag_store', ZapBuiltin(_stdlib_rag_store, 'rag_store'))
-    env.define('rag_search', ZapBuiltin(_stdlib_rag_search, 'rag_search'))
+    env.define('prompt', ZpxBuiltin(_stdlib_prompt_template, 'prompt'))
+    env.define('llm', ZpxBuiltin(_stdlib_llm_complete, 'llm'))
+    env.define('llm_chat', ZpxBuiltin(_stdlib_llm_chat, 'llm_chat'))
+    env.define('embedding', ZpxBuiltin(_stdlib_embedding, 'embedding'))
+    env.define('cosine_sim', ZpxBuiltin(_stdlib_cosine_similarity, 'cosine_sim'))
+    env.define('rag_store', ZpxBuiltin(_stdlib_rag_store, 'rag_store'))
+    env.define('rag_search', ZpxBuiltin(_stdlib_rag_search, 'rag_search'))
 
     # Dict helpers
-    env.define('has_key', ZapBuiltin(lambda d, k: k in (d.entries if isinstance(d, ZapDict) else d), 'has_key'))
+    env.define('has_key', ZpxBuiltin(lambda d, k: k in (d.entries if isinstance(d, ZpxDict) else d), 'has_key'))
 
     # --- Short aliases (token optimization) ---
     short = {
@@ -697,7 +697,7 @@ def make_zap_builtins():
         'ew': 'endswith',          # ew("hi", "i")
         'trim': 'strip',           # trim("  hi  ")
         'rev': 'reverse',          # rev("abc")
-        # Zap AI short aliases
+        # Zpx AI short aliases
         'csv': 'csv_load',         # csv("data.csv")
         'jload': 'json_load',      # jload("data.json")
         'jsave': 'json_save',      # jsave("out.json", data)
@@ -769,18 +769,18 @@ def _tensor_iter(t):
     return iter(flat)
 
 def _builtin_sum(x):
-    if isinstance(x, ZapTensor):
+    if isinstance(x, ZpxTensor):
         return sum(_tensor_iter(x))
-    if isinstance(x, ZapList):
+    if isinstance(x, ZpxList):
         return sum(x.elements)
     return sum(x)
 
 def _builtin_max(*args):
     if len(args) == 1:
         x = args[0]
-        if isinstance(x, ZapTensor):
+        if isinstance(x, ZpxTensor):
             return max(_tensor_iter(x))
-        if isinstance(x, ZapList):
+        if isinstance(x, ZpxList):
             return max(x.elements)
         return max(x)
     return max(*args)
@@ -788,37 +788,37 @@ def _builtin_max(*args):
 def _builtin_min(*args):
     if len(args) == 1:
         x = args[0]
-        if isinstance(x, ZapTensor):
+        if isinstance(x, ZpxTensor):
             return min(_tensor_iter(x))
-        if isinstance(x, ZapList):
+        if isinstance(x, ZpxList):
             return min(x.elements)
         return min(x)
     return min(*args)
 
 def _builtin_list(x):
-    if isinstance(x, ZapList):
+    if isinstance(x, ZpxList):
         return x
-    if isinstance(x, ZapRange):
-        return ZapList(list(x._iter()))
-    if isinstance(x, ZapTensor):
-        return ZapList(x._flatten(x.data))
-    return ZapList(list(x))
+    if isinstance(x, ZpxRange):
+        return ZpxList(list(x._iter()))
+    if isinstance(x, ZpxTensor):
+        return ZpxList(x._flatten(x.data))
+    return ZpxList(list(x))
 
 def _builtin_map(xs, fn):
-    if isinstance(xs, ZapList):
-        return ZapList([fn(x) for x in xs.elements])
-    if isinstance(xs, ZapTensor):
+    if isinstance(xs, ZpxList):
+        return ZpxList([fn(x) for x in xs.elements])
+    if isinstance(xs, ZpxTensor):
         flat = xs._flatten(xs.data)
-        return ZapList([fn(x) for x in flat])
-    return ZapList([fn(x) for x in xs])
+        return ZpxList([fn(x) for x in flat])
+    return ZpxList([fn(x) for x in xs])
 
 def _builtin_filter(xs, fn):
-    if isinstance(xs, ZapList):
-        return ZapList([x for x in xs.elements if fn(x)])
-    if isinstance(xs, ZapTensor):
+    if isinstance(xs, ZpxList):
+        return ZpxList([x for x in xs.elements if fn(x)])
+    if isinstance(xs, ZpxTensor):
         flat = xs._flatten(xs.data)
-        return ZapList([x for x in flat if fn(x)])
-    return ZapList([x for x in xs if fn(x)])
+        return ZpxList([x for x in flat if fn(x)])
+    return ZpxList([x for x in xs if fn(x)])
 
 def _builtin_get(name):
     from .evaluator import Evaluator
@@ -842,50 +842,50 @@ def _builtin_len(x):
 
 def _builtin_range(*args):
     if len(args) == 1:
-        return ZapRange(0, args[0])
+        return ZpxRange(0, args[0])
     if len(args) == 2:
-        return ZapRange(args[0], args[1])
+        return ZpxRange(args[0], args[1])
     if len(args) == 3:
-        return ZapRange(args[0], args[1], args[2])
+        return ZpxRange(args[0], args[1], args[2])
     raise TypeError("range takes 1-3 arguments")
 
 def _unwrap(obj):
-    if isinstance(obj, ZapList):
+    if isinstance(obj, ZpxList):
         return [_unwrap(e) for e in obj.elements]
-    if isinstance(obj, ZapTensor):
+    if isinstance(obj, ZpxTensor):
         return obj.data
     return obj
 
 def _math_unary(fn):
     def wrapped(x):
-        if isinstance(x, ZapTensor):
+        if isinstance(x, ZpxTensor):
             return x._map(fn)
         return fn(x)
     return wrapped
 
 def _builtin_tensor(data, shape=None):
-    if isinstance(data, ZapTensor):
+    if isinstance(data, ZpxTensor):
         return data
     data = _unwrap(data)
     if shape is not None:
         shape = _unwrap(shape)
     if isinstance(data, (int, float)):
-        return ZapTensor([data], shape or [1])
-    return ZapTensor(data, shape)
+        return ZpxTensor([data], shape or [1])
+    return ZpxTensor(data, shape)
 
 def _builtin_zeros(shape):
     shape = _unwrap(shape)
     if len(shape) == 1:
-        return ZapTensor([0] * shape[0], list(shape))
+        return ZpxTensor([0] * shape[0], list(shape))
     sub = _builtin_zeros(shape[1:])
-    return ZapTensor([sub.data] * shape[0], list(shape))
+    return ZpxTensor([sub.data] * shape[0], list(shape))
 
 def _builtin_ones(shape):
     shape = _unwrap(shape)
     if len(shape) == 1:
-        return ZapTensor([1] * shape[0], list(shape))
+        return ZpxTensor([1] * shape[0], list(shape))
     sub = _builtin_ones(shape[1:])
-    return ZapTensor([sub.data] * shape[0], list(shape))
+    return ZpxTensor([sub.data] * shape[0], list(shape))
 
 def _builtin_context_set(key, value):
     from .context import get_context, save_context
@@ -907,7 +907,7 @@ def _builtin_context_save():
 def _builtin_context_intents():
     from .context import get_context
     ctx = get_context()
-    return ZapList(ctx.data.get('intents', []))
+    return ZpxList(ctx.data.get('intents', []))
 
 def _builtin_context_add_convention(text):
     from .context import get_context, save_context
@@ -925,12 +925,12 @@ def _builtin_context_add_decision(text):
 
 def _builtin_pmap(fn, items):
     from concurrent.futures import ThreadPoolExecutor
-    if isinstance(items, ZapList):
+    if isinstance(items, ZpxList):
         items = items.elements
     with ThreadPoolExecutor() as pool:
         futures = [pool.submit(fn, item) for item in items]
         results = [f.result() for f in futures]
-    return ZapList(results)
+    return ZpxList(results)
 
 def _builtin_parallel(*fns):
     from concurrent.futures import ThreadPoolExecutor, wait
@@ -938,7 +938,7 @@ def _builtin_parallel(*fns):
         futures = [pool.submit(fn) for fn in fns]
         wait(futures)
         results = [f.result() for f in futures]
-    return ZapList(results)
+    return ZpxList(results)
 
 def _builtin_retry(fn, retries=3, delay=0):
     def wrapper(*args):
@@ -951,7 +951,7 @@ def _builtin_retry(fn, retries=3, delay=0):
                 if attempt < int(retries) and delay:
                     _time.sleep(float(delay))
         raise last_err
-    return ZapBuiltin(wrapper, 'retry_wrapper')
+    return ZpxBuiltin(wrapper, 'retry_wrapper')
 
 
 # ---------------------------------------------------------------------------
@@ -962,10 +962,10 @@ def _stdlib_upper(s): return str(s).upper()
 def _stdlib_lower(s): return str(s).lower()
 def _stdlib_strip(s): return str(s).strip()
 def _stdlib_split(s, sep=None, maxsplit=-1):
-    if sep is None: return ZapList(str(s).split())
-    return ZapList(str(s).split(str(sep), maxsplit if maxsplit >= 0 else -1))
+    if sep is None: return ZpxList(str(s).split())
+    return ZpxList(str(s).split(str(sep), maxsplit if maxsplit >= 0 else -1))
 def _stdlib_join(sep, items):
-    if isinstance(items, ZapList): items = [str(x) for x in items.elements]
+    if isinstance(items, ZpxList): items = [str(x) for x in items.elements]
     return str(sep).join(str(x) for x in items)
 def _stdlib_replace(s, old, new): return str(s).replace(str(old), str(new))
 def _stdlib_startswith(s, prefix): return str(s).startswith(str(prefix))
@@ -990,9 +990,9 @@ def _stdlib_regex_search(pattern, s):
     m = re.search(str(pattern), str(s))
     if m is None:
         return None
-    return ZapDict({
+    return ZpxDict({
         'match': m.group(0),
-        'groups': ZapList(list(m.groups())) if m.groups() else ZapList([]),
+        'groups': ZpxList(list(m.groups())) if m.groups() else ZpxList([]),
         'start': m.start(),
         'end': m.end(),
     })
@@ -1004,14 +1004,14 @@ def _stdlib_regex_replace(pattern, s, repl, count=0):
 def _stdlib_regex_split(pattern, s, maxsplit=0):
     import re
     parts = re.split(str(pattern), str(s), int(maxsplit) if maxsplit > 0 else 0)
-    return ZapList(parts)
+    return ZpxList(parts)
 
 def _stdlib_regex_findall(pattern, s):
     import re
     matches = re.findall(str(pattern), str(s))
     if matches and isinstance(matches[0], tuple):
-        return ZapList([ZapList(list(m)) for m in matches])
-    return ZapList(matches)
+        return ZpxList([ZpxList(list(m)) for m in matches])
+    return ZpxList(matches)
 
 def _stdlib_regex_fullmatch(pattern, s):
     import re
@@ -1031,7 +1031,7 @@ def _stdlib_append_file(path, content):
 def _stdlib_file_exists(path):
     return __import__('os').path.exists(str(path))
 def _stdlib_list_dir(path):
-    return ZapList(__import__('os').listdir(str(path)))
+    return ZpxList(__import__('os').listdir(str(path)))
 def _stdlib_mkdir(path):
     __import__('os').makedirs(str(path), exist_ok=True)
     return True
@@ -1042,9 +1042,9 @@ def _stdlib_file_size(path):
     return __import__('os').path.getsize(str(path))
 
 def _stdlib_json_parse(s):
-    return _py_to_zap(__import__('json').loads(str(s)))
+    return _py_to_zpx(__import__('json').loads(str(s)))
 def _stdlib_json_stringify(obj, indent=2):
-    return __import__('json').dumps(_zap_to_py(obj), indent=int(indent))
+    return __import__('json').dumps(_zpx_to_py(obj), indent=int(indent))
 
 def _stdlib_http_get(url):
     try:
@@ -1057,7 +1057,7 @@ def _stdlib_http_post(url, data=None, content_type='application/json'):
     try:
         import urllib.request
         import json
-        body = json.dumps(_zap_to_py(data)).encode('utf-8') if data is not None else None
+        body = json.dumps(_zpx_to_py(data)).encode('utf-8') if data is not None else None
         req = urllib.request.Request(str(url), data=body,
                                       headers={'Content-Type': str(content_type)},
                                       method='POST')
@@ -1099,42 +1099,42 @@ def _stdlib_time():
     return _time.time()
 
 def _stdlib_sort(items, key=None, reverse=False):
-    if isinstance(items, ZapList):
+    if isinstance(items, ZpxList):
         lst = list(items.elements)
         if callable(key):
             lst.sort(key=key, reverse=bool(reverse))
         else:
             lst.sort(reverse=bool(reverse))
-        return ZapList(lst)
+        return ZpxList(lst)
     raise TypeError("sort requires a list")
 def _stdlib_reversed(items):
-    if isinstance(items, ZapList):
-        return ZapList(reversed(items.elements))
+    if isinstance(items, ZpxList):
+        return ZpxList(reversed(items.elements))
     raise TypeError("reversed requires a list")
 def _stdlib_zip(*lists):
     import itertools
-    lists = [l.elements if isinstance(l, ZapList) else l for l in lists]
-    return ZapList([ZapList(group) for group in zip(*lists)])
+    lists = [l.elements if isinstance(l, ZpxList) else l for l in lists]
+    return ZpxList([ZpxList(group) for group in zip(*lists)])
 def _stdlib_enumerate(items, start=0):
-    if isinstance(items, ZapList):
-        return ZapList([(i, v) for i, v in enumerate(items.elements, int(start))])
+    if isinstance(items, ZpxList):
+        return ZpxList([(i, v) for i, v in enumerate(items.elements, int(start))])
     raise TypeError("enumerate requires a list")
 def _stdlib_flatten(items):
     def _flat(x):
-        if isinstance(x, ZapList):
+        if isinstance(x, ZpxList):
             for e in x.elements:
                 yield from _flat(e)
         else:
             yield x
-    return ZapList(list(_flat(items)))
+    return ZpxList(list(_flat(items)))
 def _stdlib_chunk(items, size):
-    if isinstance(items, ZapList):
+    if isinstance(items, ZpxList):
         lst = items.elements
         sz = int(size)
-        return ZapList([ZapList(lst[i:i+sz]) for i in range(0, len(lst), sz)])
+        return ZpxList([ZpxList(lst[i:i+sz]) for i in range(0, len(lst), sz)])
     raise TypeError("chunk requires a list")
 def _stdlib_unique(items):
-    if isinstance(items, ZapList):
+    if isinstance(items, ZpxList):
         seen = set()
         result = []
         for e in items.elements:
@@ -1146,14 +1146,14 @@ def _stdlib_unique(items):
                 # Unhashable element - fall back to O(n^2) linear scan
                 if e not in result:
                     result.append(e)
-        return ZapList(result)
+        return ZpxList(result)
     raise TypeError("unique requires a list")
 def _stdlib_any(items):
-    if isinstance(items, ZapList):
+    if isinstance(items, ZpxList):
         return any(_is_truthy_std(e) for e in items.elements)
     raise TypeError("any requires a list")
 def _stdlib_all(items):
-    if isinstance(items, ZapList):
+    if isinstance(items, ZpxList):
         return all(_is_truthy_std(e) for e in items.elements)
     raise TypeError("all requires a list")
 
@@ -1164,9 +1164,9 @@ def _is_truthy_std(val):
         return val != 0
     if isinstance(val, str):
         return len(val) > 0
-    if isinstance(val, ZapList):
+    if isinstance(val, ZpxList):
         return len(val.elements) > 0
-    if isinstance(val, ZapDict):
+    if isinstance(val, ZpxDict):
         return len(val.entries) > 0
     return True
 
@@ -1190,14 +1190,14 @@ _VOID_ELEMENTS = frozenset({
 def _flat_children(children):
     result = []
     for c in children:
-        if isinstance(c, ZapList):
+        if isinstance(c, ZpxList):
             result.extend(c.elements)
         else:
             result.append(c)
     return result
 
 def _ensure_list(v):
-    if isinstance(v, ZapList):
+    if isinstance(v, ZpxList):
         return v.elements
     if isinstance(v, list):
         return v
@@ -1207,7 +1207,7 @@ def _stdlib_element(tag, attrs=None, children=None):
     tag = str(tag)
     attrs_str = ""
     if attrs is not None:
-        if isinstance(attrs, ZapDict):
+        if isinstance(attrs, ZpxDict):
             d = attrs.entries
         elif isinstance(attrs, dict):
             d = attrs
@@ -1245,7 +1245,7 @@ def _stdlib_html_escape(s):
 _SIGNAL_COUNTER = [0]
 _SIGNAL_REGISTRY = {}
 
-class _ZapSignal:
+class _ZpxSignal:
     def __init__(self, value):
         self._value = value
         self._subs = []
@@ -1271,25 +1271,25 @@ class _ZapSignal:
         return f"Signal({self._value!r})"
 
 def _stdlib_signal(initial=None):
-    return _ZapSignal(initial)
+    return _ZpxSignal(initial)
 
 def _stdlib_effect(signal, fn):
-    if isinstance(signal, _ZapSignal):
+    if isinstance(signal, _ZpxSignal):
         signal.sub(fn)
         fn(signal.get())
     return True
 
 
 def _stdlib_config(path=None):
-    """Load JSON config from zap.json (or a custom path).
-    If no path is provided, looks for zap.json in the current file's directory.
+    """Load JSON config from zpx.json (or a custom path).
+    If no path is provided, looks for zpx.json in the current file's directory.
     If a relative path is provided, resolves it relative to the current file's directory."""
     import os, json
     from .evaluator import Evaluator
     
-    # If no path provided, default to zap.json
+    # If no path provided, default to zpx.json
     if path is None:
-        path = "zap.json"
+        path = "zpx.json"
     
     # Resolve relative paths relative to the current file's directory
     if not os.path.isabs(str(path)):
@@ -1299,10 +1299,10 @@ def _stdlib_config(path=None):
             path = os.path.join(base_dir, str(path))
     
     if not os.path.exists(str(path)):
-        return ZapDict({})
+        return ZpxDict({})
     with open(str(path), "r", encoding="utf-8") as f:
         data = json.load(f)
-    return _py_to_zap(data)
+    return _py_to_zpx(data)
 
 
 def _stdlib_watch(path, fn):
@@ -1315,7 +1315,7 @@ def _stdlib_watch(path, fn):
         files = []
         for root, _, fs in os.walk(path):
             for f in fs:
-                if f.endswith(".zap"):
+                if f.endswith(".zpx"):
                     files.append(os.path.join(root, f))
         def _get_mtimes():
             return {f: os.path.getmtime(f) for f in files if os.path.exists(f)}
@@ -1347,8 +1347,8 @@ def _stdlib_run(cmd, args=None):
     import subprocess
     cmd = str(cmd)
     if args is not None:
-        if isinstance(args, ZapList):
-            args = [_zap_to_py(a) for a in args.elements]
+        if isinstance(args, ZpxList):
+            args = [_zpx_to_py(a) for a in args.elements]
         cmd = [cmd] + list(args)
     else:
         cmd = cmd.split()
@@ -1365,9 +1365,9 @@ def _stdlib_http_server(port=3000, handler=None, routes=None):
 
     routes_map = {}
     if routes is not None:
-        if isinstance(routes, ZapDict):
+        if isinstance(routes, ZpxDict):
             for k, v in routes.entries.items():
-                routes_map[_zap_to_py(k)] = v
+                routes_map[_zpx_to_py(k)] = v
 
     class _Handler(BaseHTTPRequestHandler):
         def _send(self, code, body, content_type="text/html"):
@@ -1381,8 +1381,8 @@ def _stdlib_http_server(port=3000, handler=None, routes=None):
             if path in routes_map:
                 try:
                     result = routes_map[path]()
-                    if isinstance(result, ZapDict):
-                        self._send(200, _json.dumps(_zap_to_py(result)), "application/json")
+                    if isinstance(result, ZpxDict):
+                        self._send(200, _json.dumps(_zpx_to_py(result)), "application/json")
                     else:
                         self._send(200, str(result))
                 except Exception as e:
@@ -1395,8 +1395,8 @@ def _stdlib_http_server(port=3000, handler=None, routes=None):
             if path in routes_map:
                 try:
                     result = routes_map[path]()
-                    if isinstance(result, ZapDict):
-                        self._send(200, _json.dumps(_zap_to_py(result)), "application/json")
+                    if isinstance(result, ZpxDict):
+                        self._send(200, _json.dumps(_zpx_to_py(result)), "application/json")
                     else:
                         self._send(200, str(result))
                 except Exception as e:
@@ -1408,7 +1408,7 @@ def _stdlib_http_server(port=3000, handler=None, routes=None):
             pass  # Suppress logging
 
     server = HTTPServer(("0.0.0.0", int(port)), _Handler)
-    print(f"  Zap server listening on :{port}")
+    print(f"  Zpx server listening on :{port}")
     server.serve_forever()
     return True
 
@@ -1420,36 +1420,36 @@ def _stdlib_serve(port=3000, routes=None):
 
 def _stdlib_par_map(fn, items, workers=None):
     """Parallel map - applies fn to each item in items using a thread pool.
-    Returns a ZapList with the results in order."""
+    Returns a ZpxList with the results in order."""
     import concurrent.futures
-    if isinstance(items, ZapList):
+    if isinstance(items, ZpxList):
         items = list(items.elements)
     else:
         items = list(items)
     workers = workers or min(len(items), 4) or 1
     with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
         results = list(pool.map(fn, items))
-    return ZapList(results)
+    return ZpxList(results)
 
 
 def _stdlib_par_filter(fn, items, workers=None):
     """Parallel filter - keeps items where fn(item) is truthy."""
     import concurrent.futures
-    if isinstance(items, ZapList):
+    if isinstance(items, ZpxList):
         items = list(items.elements)
     else:
         items = list(items)
     workers = workers or min(len(items), 4) or 1
     with concurrent.futures.ThreadPoolExecutor(max_workers=workers) as pool:
         results = [item for item, keep in zip(items, pool.map(fn, items)) if keep]
-    return ZapList(results)
+    return ZpxList(results)
 
 
 def _stdlib_par_for(items, fn, workers=None):
     """Parallel for-each - calls fn(item) for each item in parallel.
     Returns True when all items are processed."""
     import concurrent.futures
-    if isinstance(items, ZapList):
+    if isinstance(items, ZpxList):
         items = list(items.elements)
     else:
         items = list(items)
@@ -1497,10 +1497,10 @@ def _stdlib_db_exec(name, sql, params=None):
     cursor = conn.cursor()
     try:
         if params:
-            if isinstance(params, ZapList):
-                params = [_zap_to_py(p) for p in params.elements]
-            elif isinstance(params, ZapDict):
-                params = _zap_to_py(params)
+            if isinstance(params, ZpxList):
+                params = [_zpx_to_py(p) for p in params.elements]
+            elif isinstance(params, ZpxDict):
+                params = _zpx_to_py(params)
             cursor.execute(sql, params)
         else:
             cursor.execute(sql)
@@ -1517,15 +1517,15 @@ def _stdlib_db_query(name, sql, params=None):
     cursor = conn.cursor()
     try:
         if params:
-            if isinstance(params, ZapList):
-                params = [_zap_to_py(p) for p in params.elements]
-            elif isinstance(params, ZapDict):
-                params = _zap_to_py(params)
+            if isinstance(params, ZpxList):
+                params = [_zpx_to_py(p) for p in params.elements]
+            elif isinstance(params, ZpxDict):
+                params = _zpx_to_py(params)
             cursor.execute(sql, params)
         else:
             cursor.execute(sql)
         rows = cursor.fetchall()
-        return ZapList([ZapDict({k: row[k] for k in row.keys()}) for row in rows])
+        return ZpxList([ZpxDict({k: row[k] for k in row.keys()}) for row in rows])
     except Exception as e:
         raise RuntimeError(f"SQL error: {e}")
 
@@ -1536,16 +1536,16 @@ def _stdlib_db_query_one(name, sql, params=None):
     cursor = conn.cursor()
     try:
         if params:
-            if isinstance(params, ZapList):
-                params = [_zap_to_py(p) for p in params.elements]
-            elif isinstance(params, ZapDict):
-                params = _zap_to_py(params)
+            if isinstance(params, ZpxList):
+                params = [_zpx_to_py(p) for p in params.elements]
+            elif isinstance(params, ZpxDict):
+                params = _zpx_to_py(params)
             cursor.execute(sql, params)
         else:
             cursor.execute(sql)
         row = cursor.fetchone()
         if row:
-            return ZapDict({k: row[k] for k in row.keys()})
+            return ZpxDict({k: row[k] for k in row.keys()})
         return None
     except Exception as e:
         raise RuntimeError(f"SQL error: {e}")
@@ -1571,7 +1571,7 @@ def _stdlib_db_migrate(name, migrations):
     cursor = conn.cursor()
     # Create migrations table if not exists
     cursor.execute("""
-        CREATE TABLE IF NOT EXISTS _zap_migrations (
+        CREATE TABLE IF NOT EXISTS _zpx_migrations (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT UNIQUE NOT NULL,
             applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -1580,11 +1580,11 @@ def _stdlib_db_migrate(name, migrations):
     conn.commit()
     
     # Get already applied migrations
-    cursor.execute("SELECT name FROM _zap_migrations")
+    cursor.execute("SELECT name FROM _zpx_migrations")
     applied = {row[0] for row in cursor.fetchall()}
     
     for i, migration in enumerate(migrations):
-        if isinstance(migration, ZapDict):
+        if isinstance(migration, ZpxDict):
             mig_name = str(migration.entries.get('name', f"migration_{i}"))
             up_sql = str(migration.entries.get('up', ''))
             down_sql = str(migration.entries.get('down', ''))
@@ -1602,7 +1602,7 @@ def _stdlib_db_migrate(name, migrations):
                 stmt = stmt.strip()
                 if stmt:
                     cursor.execute(stmt)
-            cursor.execute("INSERT INTO _zap_migrations (name) VALUES (?)", (mig_name,))
+            cursor.execute("INSERT INTO _zpx_migrations (name) VALUES (?)", (mig_name,))
             conn.commit()
         except Exception as e:
             conn.rollback()
@@ -1616,7 +1616,7 @@ def _stdlib_db_tables(name):
     conn = _get_conn(name)
     cursor = conn.cursor()
     cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE '_%'")
-    return ZapList([row[0] for row in cursor.fetchall()])
+    return ZpxList([row[0] for row in cursor.fetchall()])
 
 
 def _stdlib_db_schema(name, table):
@@ -1628,23 +1628,23 @@ def _stdlib_db_schema(name, table):
     cursor = conn.cursor()
     cursor.execute(f"PRAGMA table_info(`{table}`)")
     cols = cursor.fetchall()
-    return ZapList([ZapDict({k: row[k] for k in row.keys()}) for row in cols])
+    return ZpxList([ZpxDict({k: row[k] for k in row.keys()}) for row in cols])
 
 
-def _py_to_zap(obj):
+def _py_to_zpx(obj):
     if isinstance(obj, dict):
-        return ZapDict({_py_to_zap(k): _py_to_zap(v) for k, v in obj.items()})
+        return ZpxDict({_py_to_zpx(k): _py_to_zpx(v) for k, v in obj.items()})
     if isinstance(obj, list):
-        return ZapList([_py_to_zap(e) for e in obj])
+        return ZpxList([_py_to_zpx(e) for e in obj])
     if isinstance(obj, tuple):
-        return ZapList([_py_to_zap(e) for e in obj])
+        return ZpxList([_py_to_zpx(e) for e in obj])
     return obj
 
-def _zap_to_str(obj):
-    if isinstance(obj, ZapObject):
+def _zpx_to_str(obj):
+    if isinstance(obj, ZpxObject):
         if 'repr' in obj.methods:
             fn = obj.methods['repr']
-            if isinstance(fn, ZapFunction):
+            if isinstance(fn, ZpxFunction):
                 try:
                     result = fn(obj)
                     if result is not None:
@@ -1656,36 +1656,36 @@ def _zap_to_str(obj):
             for k, v in list(obj.fields.items())[:5]:
                 if k != 'self':
                     try:
-                        parts.append(f"{k}={_zap_to_str(v)}")
+                        parts.append(f"{k}={_zpx_to_str(v)}")
                     except Exception:
                         parts.append(f"{k}=...")
             if parts:
                 return "{" + ", ".join(parts) + "}"
         return "Object"
-    if isinstance(obj, ZapDict):
+    if isinstance(obj, ZpxDict):
         items = []
         for k, v in list(obj.entries.items())[:5]:
-            items.append(f"{_zap_to_str(k)}: {_zap_to_str(v)}")
+            items.append(f"{_zpx_to_str(k)}: {_zpx_to_str(v)}")
         return "{" + ", ".join(items) + "}"
-    if isinstance(obj, ZapList):
-        items = [_zap_to_str(e) for e in obj.elements[:10]]
+    if isinstance(obj, ZpxList):
+        items = [_zpx_to_str(e) for e in obj.elements[:10]]
         return "[" + ", ".join(items) + "]"
     return str(obj)
 
-def _zap_to_py(obj):
-    if isinstance(obj, ZapDict):
-        return {_zap_to_py(k): _zap_to_py(v) for k, v in obj.entries.items()}
-    if isinstance(obj, ZapList):
-        return [_zap_to_py(e) for e in obj.elements]
-    if isinstance(obj, ZapTensor):
+def _zpx_to_py(obj):
+    if isinstance(obj, ZpxDict):
+        return {_zpx_to_py(k): _zpx_to_py(v) for k, v in obj.entries.items()}
+    if isinstance(obj, ZpxList):
+        return [_zpx_to_py(e) for e in obj.elements]
+    if isinstance(obj, ZpxTensor):
         return obj.data
-    if isinstance(obj, ZapRange):
+    if isinstance(obj, ZpxRange):
         return list(obj._iter())
     return obj
 
 
 # ===========================================================================
-# Zap AI — WiFi, Data Loading, Neural Networks, Training
+# Zpx AI — WiFi, Data Loading, Neural Networks, Training
 # ===========================================================================
 
 # ---------------------------------------------------------------------------
@@ -1713,7 +1713,7 @@ def _stdlib_wifi_scan():
                     current['security'] = line.split(':', 1)[1].strip()
             if current:
                 networks.append(current)
-            return ZapList([ZapDict({k: v for k, v in n.items()}) for n in networks])
+            return ZpxList([ZpxDict({k: v for k, v in n.items()}) for n in networks])
         else:
             result = subprocess.run(['nmcli', '-t', '-f', 'SSID,SIGNAL,SECURITY', 'dev', 'wifi', 'list'],
                                     capture_output=True, text=True, timeout=10)
@@ -1722,9 +1722,9 @@ def _stdlib_wifi_scan():
                 parts = line.split(':')
                 if len(parts) >= 3:
                     networks.append({'ssid': parts[0], 'signal': parts[1] + '%', 'security': parts[2]})
-            return ZapList([ZapDict({k: v for k, v in n.items()}) for n in networks])
+            return ZpxList([ZpxDict({k: v for k, v in n.items()}) for n in networks])
     except Exception as e:
-        return ZapList([])
+        return ZpxList([])
 
 def _stdlib_wifi_connect(ssid, password=None):
     """Connect to a WiFi network."""
@@ -1761,17 +1761,17 @@ def _stdlib_wifi_status():
                     info['signal'] = line.split(':', 1)[1].strip()
                 elif 'Speed' in line:
                     info['speed'] = line.split(':', 1)[1].strip()
-            return ZapDict(info) if info else ZapDict({'state': 'disconnected'})
+            return ZpxDict(info) if info else ZpxDict({'state': 'disconnected'})
         else:
             result = subprocess.run(['nmcli', '-t', '-f', 'ACTIVE,SSID,SIGNAL', 'dev', 'wifi', 'list'],
                                     capture_output=True, text=True, timeout=10)
             for line in result.stdout.strip().split('\n'):
                 parts = line.split(':')
                 if len(parts) >= 3 and parts[0] == 'yes':
-                    return ZapDict({'ssid': parts[1], 'signal': parts[2] + '%', 'state': 'connected'})
-            return ZapDict({'state': 'disconnected'})
+                    return ZpxDict({'ssid': parts[1], 'signal': parts[2] + '%', 'state': 'connected'})
+            return ZpxDict({'state': 'disconnected'})
     except Exception:
-        return ZapDict({'state': 'unknown'})
+        return ZpxDict({'state': 'unknown'})
 
 
 # ---------------------------------------------------------------------------
@@ -1791,42 +1791,42 @@ def _stdlib_csv_load(path, delimiter=',', has_header=True):
         else:
             for row in reader:
                 rows.append(row)
-    return ZapList([ZapDict({k: v for k, v in r.items()}) if isinstance(r, dict) else ZapList(r) for r in rows])
+    return ZpxList([ZpxDict({k: v for k, v in r.items()}) if isinstance(r, dict) else ZpxList(r) for r in rows])
 
 def _stdlib_csv_save(path, data, delimiter=','):
     """Save data to CSV. data is list of dicts or list of lists."""
     import csv
-    if isinstance(data, ZapList):
+    if isinstance(data, ZpxList):
         data = data.elements
     if not data:
         return False
     with open(str(path), 'w', newline='', encoding='utf-8') as f:
-        if isinstance(data[0], ZapDict):
+        if isinstance(data[0], ZpxDict):
             headers = list(data[0].entries.keys())
             writer = csv.DictWriter(f, fieldnames=headers, delimiter=str(delimiter))
             writer.writeheader()
             for row in data:
-                writer.writerow({k: _zap_to_py(v) for k, v in row.entries.items()})
+                writer.writerow({k: _zpx_to_py(v) for k, v in row.entries.items()})
         else:
             writer = csv.writer(f, delimiter=str(delimiter))
             for row in data:
-                if isinstance(row, ZapList):
+                if isinstance(row, ZpxList):
                     writer.writerow(row.elements)
                 else:
                     writer.writerow(row)
     return True
 
 def _stdlib_json_load(path):
-    """Load JSON file and return Zap value."""
+    """Load JSON file and return Zpx value."""
     import json
     with open(str(path), 'r', encoding='utf-8') as f:
-        return _py_to_zap(json.load(f))
+        return _py_to_zpx(json.load(f))
 
 def _stdlib_json_save(path, data):
     """Save data as JSON file."""
     import json
     with open(str(path), 'w', encoding='utf-8') as f:
-        json.dump(_zap_to_py(data), f, indent=2)
+        json.dump(_zpx_to_py(data), f, indent=2)
     return True
 
 def _stdlib_image_load(path):
@@ -1835,9 +1835,9 @@ def _stdlib_image_load(path):
         from PIL import Image
         img = Image.open(str(path)).convert('RGB')
         pixels = list(img.getdata())
-        return ZapDict({
+        return ZpxDict({
             'width': img.width, 'height': img.height,
-            'pixels': ZapList([ZapList(list(p)) for p in pixels])
+            'pixels': ZpxList([ZpxList(list(p)) for p in pixels])
         })
     except ImportError:
         raise RuntimeError("Pillow not installed. Run: pip install Pillow")
@@ -1846,8 +1846,8 @@ def _stdlib_image_save(path, width, height, pixels):
     """Save an image from pixel data. pixels is list of [r,g,b] tuples."""
     try:
         from PIL import Image
-        if isinstance(pixels, ZapList):
-            pixels = [tuple(p.elements) if isinstance(p, ZapList) else tuple(p) for p in pixels.elements]
+        if isinstance(pixels, ZpxList):
+            pixels = [tuple(p.elements) if isinstance(p, ZpxList) else tuple(p) for p in pixels.elements]
         img = Image.new('RGB', (int(width), int(height)))
         img.putdata(pixels)
         img.save(str(path))
@@ -1862,7 +1862,7 @@ def _stdlib_web_fetch(url, as_json=False):
     data = resp.read().decode('utf-8')
     if as_json:
         import json
-        return _py_to_zap(json.loads(data))
+        return _py_to_zpx(json.loads(data))
     return data
 
 def _stdlib_download(url, path):
@@ -1876,18 +1876,18 @@ def _stdlib_download(url, path):
 # Neural Network Primitives
 # ---------------------------------------------------------------------------
 
-class ZapNeuralLayer:
+class ZpxNeuralLayer:
     """A single neural network layer (dense/linear)."""
     def __init__(self, weights, biases, activation='linear'):
-        self.weights = weights  # ZapTensor
-        self.biases = biases    # ZapTensor
+        self.weights = weights  # ZpxTensor
+        self.biases = biases    # ZpxTensor
         self.activation = activation
         self._cache = {}  # for backprop
 
     def __repr__(self):
         return f"Layer(weights={self.weights.shape}, activation={self.activation})"
 
-class ZapModel:
+class ZpxModel:
     """A neural network model composed of layers."""
     def __init__(self, layers=None, loss='mse', optimizer='sgd', lr=0.01):
         self.layers = layers or []
@@ -1904,64 +1904,64 @@ def _stdlib_dense(in_size, out_size, activation='relu'):
     import random
     weights = [[random.gauss(0, (2.0 / in_size) ** 0.5) for _ in range(out_size)] for _ in range(in_size)]
     biases = [0.0] * out_size
-    return ZapNeuralLayer(ZapTensor(weights, [in_size, out_size]), ZapTensor(biases, [out_size]), activation)
+    return ZpxNeuralLayer(ZpxTensor(weights, [in_size, out_size]), ZpxTensor(biases, [out_size]), activation)
 
 def _stdlib_dense_from_weights(weights, biases, activation='relu'):
     """Create a dense layer from existing weights and biases."""
-    if isinstance(weights, ZapTensor):
+    if isinstance(weights, ZpxTensor):
         w = weights
     else:
-        w = ZapTensor(_unwrap(weights))
-    if isinstance(biases, ZapTensor):
+        w = ZpxTensor(_unwrap(weights))
+    if isinstance(biases, ZpxTensor):
         b = biases
     else:
-        b = ZapTensor(_unwrap(biases))
-    return ZapNeuralLayer(w, b, activation)
+        b = ZpxTensor(_unwrap(biases))
+    return ZpxNeuralLayer(w, b, activation)
 
 # Activation functions
 def _stdlib_relu(x):
-    if isinstance(x, ZapTensor):
+    if isinstance(x, ZpxTensor):
         return x._map(lambda v: max(0, v))
     return max(0, x)
 
 def _stdlib_sigmoid(x):
     import math
-    if isinstance(x, ZapTensor):
+    if isinstance(x, ZpxTensor):
         return x._map(lambda v: 1.0 / (1.0 + math.exp(-max(-500, min(500, v)))))
     return 1.0 / (1.0 + math.exp(-max(-500, min(500, x))))
 
 def _stdlib_softmax(x):
     import math
-    if isinstance(x, ZapTensor):
+    if isinstance(x, ZpxTensor):
         flat = x._flatten(x.data)
         max_val = max(flat)
         exps = [math.exp(v - max_val) for v in flat]
         total = sum(exps)
         result = [v / total for v in exps]
-        return ZapTensor(x._unflatten(result, x.shape), list(x.shape))
+        return ZpxTensor(x._unflatten(result, x.shape), list(x.shape))
     return x
 
 def _stdlib_tanh(x):
     import math
-    if isinstance(x, ZapTensor):
+    if isinstance(x, ZpxTensor):
         return x._map(lambda v: math.tanh(v))
     return math.tanh(x)
 
 def _stdlib_leaky_relu(x, alpha=0.01):
-    if isinstance(x, ZapTensor):
+    if isinstance(x, ZpxTensor):
         return x._map(lambda v: v if v > 0 else alpha * v)
     return x if x > 0 else alpha * x
 
 def _stdlib_elu(x, alpha=1.0):
     import math
-    if isinstance(x, ZapTensor):
+    if isinstance(x, ZpxTensor):
         return x._map(lambda v: v if v > 0 else alpha * (math.exp(v) - 1))
     return x if x > 0 else alpha * (math.exp(x) - 1)
 
 # Loss functions
 def _stdlib_mse_loss(predicted, target):
     """Mean Squared Error loss."""
-    if isinstance(predicted, ZapTensor) and isinstance(target, ZapTensor):
+    if isinstance(predicted, ZpxTensor) and isinstance(target, ZpxTensor):
         p = predicted._flatten(predicted.data)
         t = target._flatten(target.data)
         n = len(p)
@@ -1971,7 +1971,7 @@ def _stdlib_mse_loss(predicted, target):
 def _stdlib_cross_entropy_loss(predicted, target):
     """Cross-entropy loss for classification."""
     import math
-    if isinstance(predicted, ZapTensor) and isinstance(target, ZapTensor):
+    if isinstance(predicted, ZpxTensor) and isinstance(target, ZpxTensor):
         p = predicted._flatten(predicted.data)
         t = target._flatten(target.data)
         n = len(p)
@@ -1982,7 +1982,7 @@ def _stdlib_cross_entropy_loss(predicted, target):
 
 def _stdlib_mae_loss(predicted, target):
     """Mean Absolute Error loss."""
-    if isinstance(predicted, ZapTensor) and isinstance(target, ZapTensor):
+    if isinstance(predicted, ZpxTensor) and isinstance(target, ZpxTensor):
         p = predicted._flatten(predicted.data)
         t = target._flatten(target.data)
         n = len(p)
@@ -1993,7 +1993,7 @@ def _stdlib_bce_loss(predicted, target):
     """Binary Cross-Entropy loss."""
     import math
     eps = 1e-7
-    if isinstance(predicted, ZapTensor) and isinstance(target, ZapTensor):
+    if isinstance(predicted, ZpxTensor) and isinstance(target, ZpxTensor):
         p = predicted._flatten(predicted.data)
         t = target._flatten(target.data)
         n = len(p)
@@ -2007,23 +2007,23 @@ def _stdlib_bce_loss(predicted, target):
 
 def _stdlib_model(loss='mse', lr=0.01):
     """Create a neural network model."""
-    model = ZapModel(loss=loss, lr=lr)
+    model = ZpxModel(loss=loss, lr=lr)
     return model
 
 def _forward_pass(model, input_data):
     """Forward pass through all layers."""
     x = input_data
     for layer in model.layers:
-        if isinstance(x, ZapTensor) and isinstance(layer.weights, ZapTensor):
+        if isinstance(x, ZpxTensor) and isinstance(layer.weights, ZpxTensor):
             x = x.matmul(layer.weights)
-            if isinstance(layer.biases, ZapTensor):
+            if isinstance(layer.biases, ZpxTensor):
                 bias = layer.biases
-                if isinstance(x, ZapTensor):
+                if isinstance(x, ZpxTensor):
                     flat_x = x._flatten(x.data)
                     flat_b = bias._flatten(bias.data)
                     n = len(flat_x)
                     result = [flat_x[i] + flat_b[i % len(flat_b)] for i in range(n)]
-                    x = ZapTensor(x._unflatten(result, x.shape), list(x.shape))
+                    x = ZpxTensor(x._unflatten(result, x.shape), list(x.shape))
         # Apply activation
         if layer.activation == 'relu':
             x = _stdlib_relu(x)
@@ -2040,7 +2040,7 @@ def _forward_pass(model, input_data):
 def _stdlib_train(model, x_data, y_data, epochs=100, batch_size=32, verbose=True):
     """Train a model using simple gradient descent (numerical approximation).
     Returns the trained model with training history."""
-    if not isinstance(model, ZapModel):
+    if not isinstance(model, ZpxModel):
         raise RuntimeError("train requires a Model")
     lr = model.lr
 
@@ -2048,30 +2048,30 @@ def _stdlib_train(model, x_data, y_data, epochs=100, batch_size=32, verbose=True
         epoch_loss = 0
         n_samples = 1
 
-        if isinstance(x_data, ZapTensor) and isinstance(y_data, ZapTensor):
+        if isinstance(x_data, ZpxTensor) and isinstance(y_data, ZpxTensor):
             x_flat = x_data._flatten(x_data.data)
             y_flat = y_data._flatten(y_data.data)
             n_samples = len(x_flat)
-        elif isinstance(x_data, ZapList):
+        elif isinstance(x_data, ZpxList):
             n_samples = len(x_data.elements)
 
         # Simple SGD: perturb weights slightly and measure loss change
         for layer in model.layers:
-            if isinstance(layer.weights, ZapTensor):
+            if isinstance(layer.weights, ZpxTensor):
                 w_flat = layer.weights._flatten(layer.weights.data)
                 grad = []
                 for i in range(len(w_flat)):
                     old = w_flat[i]
                     # Numerical gradient
                     w_flat[i] = old + lr * 0.01
-                    layer.weights = ZapTensor(
+                    layer.weights = ZpxTensor(
                         layer.weights._unflatten(w_flat, layer.weights.shape),
                         list(layer.weights.shape))
                     pred_plus = _forward_pass(model, x_data)
                     loss_plus = _stdlib_mse_loss(pred_plus, y_data) if model.loss == 'mse' else _stdlib_cross_entropy_loss(pred_plus, y_data)
 
                     w_flat[i] = old - lr * 0.01
-                    layer.weights = ZapTensor(
+                    layer.weights = ZpxTensor(
                         layer.weights._unflatten(w_flat, layer.weights.shape),
                         list(layer.weights.shape))
                     pred_minus = _forward_pass(model, x_data)
@@ -2083,15 +2083,15 @@ def _stdlib_train(model, x_data, y_data, epochs=100, batch_size=32, verbose=True
 
                 # Update weights
                 new_w = [w_flat[i] - lr * grad[i] for i in range(len(w_flat))]
-                layer.weights = ZapTensor(
+                layer.weights = ZpxTensor(
                     layer.weights._unflatten(new_w, layer.weights.shape),
                     list(layer.weights.shape))
 
                 # Update biases
-                if isinstance(layer.biases, ZapTensor):
+                if isinstance(layer.biases, ZpxTensor):
                     b_flat = layer.biases._flatten(layer.biases.data)
                     new_b = [b - lr * 0.001 for b in b_flat]
-                    layer.biases = ZapTensor(
+                    layer.biases = ZpxTensor(
                         layer.biases._unflatten(new_b, layer.biases.shape),
                         list(layer.biases.shape))
 
@@ -2113,14 +2113,14 @@ def _stdlib_train(model, x_data, y_data, epochs=100, batch_size=32, verbose=True
 
 def _stdlib_predict(model, input_data):
     """Run prediction through the model."""
-    if not isinstance(model, ZapModel):
+    if not isinstance(model, ZpxModel):
         raise RuntimeError("predict requires a Model")
     return _forward_pass(model, input_data)
 
 def _stdlib_save_model(model, path):
     """Save a trained model to a file (JSON)."""
     import json
-    if not isinstance(model, ZapModel):
+    if not isinstance(model, ZpxModel):
         raise RuntimeError("save_model requires a Model")
     data = {
         'loss': model.loss,
@@ -2130,11 +2130,11 @@ def _stdlib_save_model(model, path):
     }
     for layer in model.layers:
         data['layers'].append({
-            'weights': layer.weights.data if isinstance(layer.weights, ZapTensor) else layer.weights,
-            'biases': layer.biases.data if isinstance(layer.biases, ZapTensor) else layer.biases,
+            'weights': layer.weights.data if isinstance(layer.weights, ZpxTensor) else layer.weights,
+            'biases': layer.biases.data if isinstance(layer.biases, ZpxTensor) else layer.biases,
             'activation': layer.activation,
-            'weights_shape': layer.weights.shape if isinstance(layer.weights, ZapTensor) else [],
-            'biases_shape': layer.biases.shape if isinstance(layer.biases, ZapTensor) else [],
+            'weights_shape': layer.weights.shape if isinstance(layer.weights, ZpxTensor) else [],
+            'biases_shape': layer.biases.shape if isinstance(layer.biases, ZpxTensor) else [],
         })
     with open(str(path), 'w') as f:
         json.dump(data, f)
@@ -2145,16 +2145,16 @@ def _stdlib_load_model(path):
     import json
     with open(str(path), 'r') as f:
         data = json.load(f)
-    model = ZapModel(loss=data.get('loss', 'mse'), lr=data.get('lr', 0.01))
+    model = ZpxModel(loss=data.get('loss', 'mse'), lr=data.get('lr', 0.01))
     for layer_data in data.get('layers', []):
-        w = ZapTensor(layer_data['weights'], layer_data.get('weights_shape', []))
-        b = ZapTensor(layer_data['biases'], layer_data.get('biases_shape', []))
-        model.layers.append(ZapNeuralLayer(w, b, layer_data.get('activation', 'linear')))
+        w = ZpxTensor(layer_data['weights'], layer_data.get('weights_shape', []))
+        b = ZpxTensor(layer_data['biases'], layer_data.get('biases_shape', []))
+        model.layers.append(ZpxNeuralLayer(w, b, layer_data.get('activation', 'linear')))
     return model
 
 def _stdlib_model_summary(model):
     """Get a summary of the model architecture."""
-    if not isinstance(model, ZapModel):
+    if not isinstance(model, ZpxModel):
         raise RuntimeError("model_summary requires a Model")
     lines = []
     lines.append(f"Model: {len(model.layers)} layers")
@@ -2163,15 +2163,15 @@ def _stdlib_model_summary(model):
     total_params = 0
     for i, layer in enumerate(model.layers):
         w_count = 1
-        if isinstance(layer.weights, ZapTensor):
+        if isinstance(layer.weights, ZpxTensor):
             for s in layer.weights.shape:
                 w_count *= s
         b_count = 1
-        if isinstance(layer.biases, ZapTensor):
+        if isinstance(layer.biases, ZpxTensor):
             for s in layer.biases.shape:
                 b_count *= s
         total_params += w_count + b_count
-        w_shape = layer.weights.shape if isinstance(layer.weights, ZapTensor) else '?'
+        w_shape = layer.weights.shape if isinstance(layer.weights, ZpxTensor) else '?'
         lines.append(f"  Layer {i}: Dense({w_shape}, activation={layer.activation}) — {w_count + b_count} params")
     lines.append(f"Total parameters: {total_params}")
     if model.training_history:
@@ -2186,9 +2186,9 @@ def _stdlib_model_summary(model):
 
 def _stdlib_normalize(data, method='minmax'):
     """Normalize tensor/list data. method: 'minmax' or 'zscore'."""
-    if isinstance(data, ZapTensor):
+    if isinstance(data, ZpxTensor):
         flat = data._flatten(data.data)
-    elif isinstance(data, ZapList):
+    elif isinstance(data, ZpxList):
         flat = list(data.elements)
     else:
         return data
@@ -2205,58 +2205,58 @@ def _stdlib_normalize(data, method='minmax'):
     else:
         normed = flat
 
-    if isinstance(data, ZapTensor):
-        return ZapTensor(data._unflatten(normed, data.shape), list(data.shape))
-    return ZapList(normed)
+    if isinstance(data, ZpxTensor):
+        return ZpxTensor(data._unflatten(normed, data.shape), list(data.shape))
+    return ZpxList(normed)
 
 def _stdlib_split_data(x, y, ratio=0.8):
     """Split data into train/test sets. ratio is fraction for training."""
-    if isinstance(x, ZapTensor):
+    if isinstance(x, ZpxTensor):
         x_flat = x._flatten(x.data)
-    elif isinstance(x, ZapList):
+    elif isinstance(x, ZpxList):
         x_flat = list(x.elements)
     else:
         x_flat = list(x)
-    if isinstance(y, ZapTensor):
+    if isinstance(y, ZpxTensor):
         y_flat = y._flatten(y.data)
-    elif isinstance(y, ZapList):
+    elif isinstance(y, ZpxList):
         y_flat = list(y.elements)
     else:
         y_flat = list(y)
 
     n = int(len(x_flat) * float(ratio))
-    x_train = ZapList(x_flat[:n])
-    x_test = ZapList(x_flat[n:])
-    y_train = ZapList(y_flat[:n])
-    y_test = ZapList(y_flat[n:])
-    return ZapList([x_train, x_test, y_train, y_test])
+    x_train = ZpxList(x_flat[:n])
+    x_test = ZpxList(x_flat[n:])
+    y_train = ZpxList(y_flat[:n])
+    y_test = ZpxList(y_flat[n:])
+    return ZpxList([x_train, x_test, y_train, y_test])
 
 def _stdlib_batch(data, batch_size):
     """Split data into batches of given size."""
-    if isinstance(data, ZapList):
+    if isinstance(data, ZpxList):
         items = list(data.elements)
     else:
         items = list(data)
     bs = int(batch_size)
-    batches = [ZapList(items[i:i+bs]) for i in range(0, len(items), bs)]
-    return ZapList(batches)
+    batches = [ZpxList(items[i:i+bs]) for i in range(0, len(items), bs)]
+    return ZpxList(batches)
 
 def _stdlib_one_hot(indices, num_classes):
     """Convert integer indices to one-hot encoded tensors."""
-    if isinstance(indices, ZapList):
+    if isinstance(indices, ZpxList):
         indices = indices.elements
     result = []
     for idx in indices:
         row = [0.0] * int(num_classes)
         row[int(idx)] = 1.0
         result.append(row)
-    return ZapTensor(result, [len(result), int(num_classes)])
+    return ZpxTensor(result, [len(result), int(num_classes)])
 
 def _stdlib_argmax(data):
     """Return the index of the maximum value."""
-    if isinstance(data, ZapTensor):
+    if isinstance(data, ZpxTensor):
         flat = data._flatten(data.data)
-    elif isinstance(data, ZapList):
+    elif isinstance(data, ZpxList):
         flat = list(data.elements)
     else:
         flat = list(data)
@@ -2264,15 +2264,15 @@ def _stdlib_argmax(data):
 
 def _stdlib_accuracy(predicted, targets):
     """Compute classification accuracy."""
-    if isinstance(predicted, ZapTensor):
+    if isinstance(predicted, ZpxTensor):
         p_flat = predicted._flatten(predicted.data)
-    elif isinstance(predicted, ZapList):
+    elif isinstance(predicted, ZpxList):
         p_flat = list(predicted.elements)
     else:
         p_flat = list(predicted)
-    if isinstance(targets, ZapTensor):
+    if isinstance(targets, ZpxTensor):
         t_flat = targets._flatten(targets.data)
-    elif isinstance(targets, ZapList):
+    elif isinstance(targets, ZpxList):
         t_flat = list(targets.elements)
     else:
         t_flat = list(targets)
@@ -2305,7 +2305,7 @@ def _stdlib_jwt_encode(payload, secret, algorithm='HS256'):
     def b64url_raw(data):
         return base64.urlsafe_b64encode(data).rstrip(b'=').decode()
     header_enc = b64url(header)
-    payload_py = _zap_to_py(payload) if isinstance(payload, ZapDict) else payload
+    payload_py = _zpx_to_py(payload) if isinstance(payload, ZpxDict) else payload
     if isinstance(payload_py, dict):
         payload_py['iat'] = int(time.time())
     payload_enc = b64url(payload_py)
@@ -2351,7 +2351,7 @@ def _stdlib_jwt_decode(token, secret, verify=True):
     payload = json.loads(b64url_decode(payload_enc))
     if 'exp' in payload and time.time() > payload['exp']:
         raise RuntimeError("JWT token expired")
-    return _py_to_zap(payload)
+    return _py_to_zpx(payload)
 
 def _stdlib_jwt_verify(token, secret):
     """Verify a JWT token signature. Returns true if valid."""
@@ -2392,7 +2392,7 @@ def _stdlib_basic_auth_decode(encoded):
     import base64
     decoded = base64.b64decode(str(encoded)).decode()
     parts = decoded.split(':', 1)
-    return ZapDict({'username': parts[0], 'password': parts[1] if len(parts) > 1 else ''})
+    return ZpxDict({'username': parts[0], 'password': parts[1] if len(parts) > 1 else ''})
 
 def _stdlib_session_create(user_id, data=None):
     """Create a session dict for a user."""
@@ -2404,15 +2404,15 @@ def _stdlib_session_create(user_id, data=None):
         'expires_at': int(time.time()) + 3600,
     }
     if data is not None:
-        if isinstance(data, ZapDict):
+        if isinstance(data, ZpxDict):
             for k, v in data.entries.items():
                 session[k] = v
-    return ZapDict(session)
+    return ZpxDict(session)
 
 def _stdlib_session_validate(session, max_age=3600):
     """Check if a session is valid (not expired)."""
     import time
-    if isinstance(session, ZapDict):
+    if isinstance(session, ZpxDict):
         expires = session.entries.get('expires_at', 0)
         return time.time() < expires
     return False
@@ -2422,7 +2422,7 @@ def _stdlib_session_validate(session, max_age=3600):
 # Background Jobs — Cron, Queues, Workers
 # ===========================================================================
 
-class ZapQueue:
+class ZpxQueue:
     """Thread-safe job queue."""
     def __init__(self, name='default'):
         import threading
@@ -2458,7 +2458,7 @@ class ZapQueue:
         with self.lock:
             return sum(1 for j in self.jobs if j['status'] == 'pending')
 
-class ZapCron:
+class ZpxCron:
     """Simple cron-like scheduler."""
     def __init__(self):
         import threading
@@ -2494,59 +2494,59 @@ class ZapCron:
         return True
 
     def list_jobs(self):
-        return ZapList([ZapDict({'name': j['name'], 'interval': j['interval']}) for j in self.jobs])
+        return ZpxList([ZpxDict({'name': j['name'], 'interval': j['interval']}) for j in self.jobs])
 
 _CRON_INSTANCES = {}
 _QUEUE_INSTANCES = {}
 
 def _stdlib_queue_create(name='default'):
     """Create a job queue."""
-    q = ZapQueue(name)
+    q = ZpxQueue(name)
     _QUEUE_INSTANCES[name] = q
     return q
 
 def _stdlib_queue_add(q, fn):
     """Add a job to a queue."""
-    if isinstance(q, ZapQueue):
+    if isinstance(q, ZpxQueue):
         job_id = q.add(fn)
         return job_id
     raise RuntimeError("queue_add requires a queue")
 
 def _stdlib_queue_status(q):
     """Get queue status."""
-    if isinstance(q, ZapQueue):
-        return ZapDict({
+    if isinstance(q, ZpxQueue):
+        return ZpxDict({
             'name': q.name,
             'pending': q.pending_count(),
             'total': len(q.jobs),
         })
-    return ZapDict({})
+    return ZpxDict({})
 
 def _stdlib_cron_create(name='default'):
     """Create a cron scheduler."""
-    c = ZapCron()
+    c = ZpxCron()
     _CRON_INSTANCES[name] = c
     return c
 
 def _stdlib_cron_add(c, fn, interval):
     """Add a recurring job to a cron scheduler."""
-    if isinstance(c, ZapCron):
+    if isinstance(c, ZpxCron):
         c.add(fn, interval)
         return True
     raise RuntimeError("cron_add requires a cron scheduler")
 
 def _stdlib_cron_stop(c):
     """Stop a cron scheduler."""
-    if isinstance(c, ZapCron):
+    if isinstance(c, ZpxCron):
         c.stop()
         return True
     return False
 
 def _stdlib_cron_list(c):
     """List cron jobs."""
-    if isinstance(c, ZapCron):
+    if isinstance(c, ZpxCron):
         return c.list_jobs()
-    return ZapList([])
+    return ZpxList([])
 
 
 # ===========================================================================
@@ -2592,8 +2592,8 @@ def _stdlib_llm_chat(messages, model='gpt-3.5-turbo', api_key=None, max_tokens=1
     if not key:
         raise RuntimeError("No API key. Set OPENAI_API_KEY or pass api_key.")
     
-    if isinstance(messages, ZapList):
-        msgs = [_zap_to_py(m) for m in messages.elements]
+    if isinstance(messages, ZpxList):
+        msgs = [_zpx_to_py(m) for m in messages.elements]
     else:
         msgs = messages
     
@@ -2611,7 +2611,7 @@ def _stdlib_llm_chat(messages, model='gpt-3.5-turbo', api_key=None, max_tokens=1
     try:
         resp = urllib.request.urlopen(req, timeout=60)
         data = json.loads(resp.read().decode())
-        return _py_to_zap(data['choices'][0]['message'])
+        return _py_to_zpx(data['choices'][0]['message'])
     except Exception as e:
         raise RuntimeError(f"LLM API error: {e}")
 
@@ -2634,18 +2634,18 @@ def _stdlib_embedding(text, model='text-embedding-ada-002', api_key=None):
     try:
         resp = urllib.request.urlopen(req, timeout=30)
         data = json.loads(resp.read().decode())
-        return ZapTensor(data['data'][0]['embedding'])
+        return ZpxTensor(data['data'][0]['embedding'])
     except Exception as e:
         raise RuntimeError(f"Embedding API error: {e}")
 
 def _stdlib_cosine_similarity(a, b):
     """Compute cosine similarity between two tensors/vectors."""
-    if isinstance(a, ZapTensor) and isinstance(b, ZapTensor):
+    if isinstance(a, ZpxTensor) and isinstance(b, ZpxTensor):
         flat_a = a._flatten(a.data)
         flat_b = b._flatten(b.data)
-    elif isinstance(a, ZapList):
+    elif isinstance(a, ZpxList):
         flat_a = list(a.elements)
-        flat_b = list(b.elements) if isinstance(b, ZapList) else list(b)
+        flat_b = list(b.elements) if isinstance(b, ZpxList) else list(b)
     else:
         flat_a = list(a)
         flat_b = list(b)
@@ -2668,13 +2668,13 @@ def _stdlib_rag_store(documents, collection_name='default'):
         _stdlib_rag_store._collections[collection_name] = []
     
     store = _stdlib_rag_store._collections[collection_name]
-    if isinstance(documents, ZapList):
+    if isinstance(documents, ZpxList):
         docs = documents.elements
     else:
         docs = [documents]
     
     for doc in docs:
-        if isinstance(doc, ZapDict):
+        if isinstance(doc, ZpxDict):
             text = doc.entries.get('text', str(doc))
             metadata = doc.entries
         else:
@@ -2682,16 +2682,16 @@ def _stdlib_rag_store(documents, collection_name='default'):
             metadata = {'text': text}
         store.append({'text': text, 'metadata': metadata})
     
-    return ZapList([ZapDict(d) for d in store])
+    return ZpxList([ZpxDict(d) for d in store])
 
 def _stdlib_rag_search(query, collection_name='default', top_k=3):
     """Search a RAG collection for relevant documents."""
     if not hasattr(_stdlib_rag_store, '_collections'):
-        return ZapList([])
+        return ZpxList([])
     
     store = _stdlib_rag_store._collections.get(collection_name, [])
     if not store:
-        return ZapList([])
+        return ZpxList([])
     
     # Simple keyword-based search (no API needed)
     query_lower = str(query).lower()
@@ -2704,4 +2704,4 @@ def _stdlib_rag_search(query, collection_name='default', top_k=3):
     
     scored.sort(key=lambda x: -x[0])
     results = [{'text': d['text'], 'metadata': d['metadata'], 'score': s} for s, d in scored[:int(top_k)]]
-    return ZapList([ZapDict(r) for r in results])
+    return ZpxList([ZpxDict(r) for r in results])

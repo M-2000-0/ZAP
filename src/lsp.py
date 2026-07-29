@@ -4,13 +4,13 @@ import os
 import traceback
 from .indexer import ProjectIndex
 from .adapters import extract_file, get_adapter
-from .analysis import extract_file as extract_zap
+from .analysis import extract_file as extract_zpx
 from .lexer import Lexer
 from .parser import Parser
 from .types import TypeChecker
 
 
-class ZapLSP:
+class ZpxLSP:
     def __init__(self, root_uri=None):
         self.index = ProjectIndex(root=root_uri or os.getcwd())
         self.index.scan()
@@ -70,7 +70,7 @@ class ZapLSP:
         return {
             'capabilities': self.capabilities,
             'serverInfo': {
-                'name': 'zap-lsp',
+                'name': 'zpx-lsp',
                 'version': '0.1',
             },
         }
@@ -336,8 +336,8 @@ class ZapLSP:
     # --- diagnostics ---
 
     def _analyze_document(self, uri, text):
-        """Run parser + type checker on a .zap document, return diagnostics."""
-        if not text or not uri.endswith('.zap'):
+        """Run parser + type checker on a .zpx document, return diagnostics."""
+        if not text or not uri.endswith('.zpx'):
             return []
         try:
             lexer = Lexer(text, uri)
@@ -386,7 +386,7 @@ class ZapLSP:
             },
             'severity': severity,  # 1=error, 2=warning, 3=info
             'message': message,
-            'source': 'zap-lsp',
+            'source': 'zpx-lsp',
         }
 
     def _publish_diagnostics(self, uri, text):
@@ -404,13 +404,13 @@ class ZapLSP:
         filepath = self._uri_to_path(uri)
         ext = os.path.splitext(filepath)[1].lower()
         try:
-            if ext == '.zap':
-                # For in-memory .zap files, use a write+index approach
+            if ext == '.zpx':
+                # For in-memory .zpx files, use a write+index approach
                 if not os.path.exists(filepath):
                     os.makedirs(os.path.dirname(filepath), exist_ok=True)
                     with open(filepath, 'w') as f:
                         f.write(text)
-                idx = extract_zap(filepath)
+                idx = extract_zpx(filepath)
             else:
                 adapter = get_adapter(filepath)
                 if adapter and hasattr(adapter, 'extract_source'):
@@ -471,7 +471,7 @@ def _send_notification(lsp, method, params):
 
 def run_lsp():
     """Run the LSP server over stdin/stdout."""
-    lsp = ZapLSP()
+    lsp = ZpxLSP()
     lsp._send_notification = lambda m, p: _send_notification(lsp, m, p)
     import sys
     stdin = sys.stdin.buffer

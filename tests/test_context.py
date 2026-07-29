@@ -1,4 +1,4 @@
-"""Tests for the .zapcontext dedup behavior."""
+"""Tests for the .zpxcontext dedup behavior."""
 
 import json
 import os
@@ -7,12 +7,12 @@ import tempfile
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from src.context import ZapContext, get_context, reset_context_singleton
+from src.context import ZpxContext, get_context, reset_context_singleton
 
 
 def test_add_intent_dedupes():
     """Re-adding the same intent is a no-op."""
-    ctx = ZapContext()
+    ctx = ZpxContext()
     ctx.add_intent("build a dashboard")
     ctx.add_intent("build a dashboard")
     ctx.add_intent("build a dashboard")
@@ -23,7 +23,7 @@ def test_add_intent_dedupes():
 
 def test_add_intent_updates_status():
     """Re-adding the same intent with a different status updates the entry."""
-    ctx = ZapContext()
+    ctx = ZpxContext()
     ctx.add_intent("foo", status="pending")
     ctx.add_intent("foo", status="done")
     assert len(ctx.data["intents"]) == 1
@@ -32,7 +32,7 @@ def test_add_intent_updates_status():
 
 
 def test_add_decision_dedupes():
-    ctx = ZapContext()
+    ctx = ZpxContext()
     ctx.add_decision("use tensor @@ for matrix multiply")
     ctx.add_decision("use tensor @@ for matrix multiply")
     assert len(ctx.data["decisions"]) == 1
@@ -40,7 +40,7 @@ def test_add_decision_dedupes():
 
 
 def test_add_api_dedupes_by_name():
-    ctx = ZapContext()
+    ctx = ZpxContext()
     ctx.add_api("TaskService", "service with 5 methods", ["create", "get"])
     ctx.add_api("TaskService", "service with 5 methods", ["create", "get", "list"])
     assert len(ctx.data["apis"]) == 1
@@ -49,7 +49,7 @@ def test_add_api_dedupes_by_name():
 
 
 def test_add_endpoint_to_existing():
-    ctx = ZapContext()
+    ctx = ZpxContext()
     ctx.add_api("Foo", "", ["a", "b"])
     ctx.add_endpoint("Foo", "c")
     ctx.add_endpoint("Foo", "a")  # duplicate
@@ -73,7 +73,7 @@ def test_legacy_duplicate_file_migrates():
         json.dump(legacy, f)
         path = f.name
     try:
-        ctx = ZapContext.load_and_dedupe(path)
+        ctx = ZpxContext.load_and_dedupe(path)
         assert len(ctx.data["intents"]) == 1, f"got {len(ctx.data['intents'])}"
         assert len(ctx.data["decisions"]) == 1
         assert len(ctx.data["conventions"]) == 1
@@ -84,7 +84,7 @@ def test_legacy_duplicate_file_migrates():
 
 
 def test_save_load_roundtrip_preserves_dedup():
-    ctx = ZapContext()
+    ctx = ZpxContext()
     ctx.add_intent("a")
     ctx.add_intent("a")
     ctx.add_intent("b")
@@ -95,7 +95,7 @@ def test_save_load_roundtrip_preserves_dedup():
     try:
         ctx.save(path)
         # Don't use the singleton loader — verify a fresh load stays deduped.
-        loaded = ZapContext.load_and_dedupe(path)
+        loaded = ZpxContext.load_and_dedupe(path)
         assert len(loaded.data["intents"]) == 2
         assert len(loaded.data["decisions"]) == 1
         print("  ok save/load roundtrip stays deduped")
@@ -118,7 +118,7 @@ def test_get_context_dedupes_on_load():
     try:
         reset_context_singleton()
         # Patch DEFAULT_FILE temporarily via load()
-        ctx = ZapContext.load_and_dedupe(path)
+        ctx = ZpxContext.load_and_dedupe(path)
         assert len(ctx.data["intents"]) == 1
         print("  ok singleton-style load dedupes")
     finally:

@@ -1,18 +1,18 @@
 """
-`zap test` — the Zap test runner.
+`zpx test` — the Zpx test runner.
 
-A test in Zap is any `expect` statement or any `check:` block anywhere in
+A test in Zpx is any `expect` statement or any `check:` block anywhere in
 the program. The runner walks the AST, executes the program, and turns
 each assertion into a pass/fail entry. Output is a human summary by
 default and JSON when `--format=json` is requested.
 
 Test discovery:
-  1. If a path is given, recurse into it for .zap files.
+  1. If a path is given, recurse into it for .zpx files.
   2. Otherwise, recurse from the current directory.
   3. Files starting with `test_` or in a `tests/` directory are
-     preferred, but every .zap file is loaded.
+     preferred, but every .zpx file is loaded.
 
-Each file runs in a fresh Evaluator with the on-disk `.zapcontext` as its
+Each file runs in a fresh Evaluator with the on-disk `.zpxcontext` as its
 memory. This mirrors the way real projects are run.
 
 The runner does NOT halt on the first failure. It collects all
@@ -115,9 +115,9 @@ class RunSummary:
 
 
 def discover_files(path: str) -> list[str]:
-    """Recurse into `path` and return every .zap file found."""
+    """Recurse into `path` and return every .zpx file found."""
     if os.path.isfile(path):
-        return [path] if path.endswith(".zap") else []
+        return [path] if path.endswith(".zpx") else []
     if not os.path.isdir(path):
         return []
     out: list[str] = []
@@ -126,7 +126,7 @@ def discover_files(path: str) -> list[str]:
         if "__pycache__" in root or "/.git" in root or "\\.git" in root:
             continue
         for name in sorted(files):
-            if name.endswith(".zap"):
+            if name.endswith(".zpx"):
                 out.append(os.path.join(root, name))
     return out
 
@@ -330,9 +330,9 @@ def run_tests(path: str, *, diag_format: str = "text") -> RunSummary:
     summary = RunSummary()
     if not files:
         if diag_format == "json":
-            print(json.dumps({"error": "no .zap files found", "path": path}))
+            print(json.dumps({"error": "no .zpx files found", "path": path}))
         else:
-            print(f"no .zap files found under {path!r}", file=sys.stderr)
+            print(f"no .zpx files found under {path!r}", file=sys.stderr)
         return summary
     for f in files:
         summary.files.append(run_file(f))

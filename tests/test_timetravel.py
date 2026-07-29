@@ -56,12 +56,12 @@ def test_query():
         snap = rt.checkpoint("init")
         # Query from snapshot
         val = rt.query(snap, "user.name")
-        assert val == "Zap"
+        assert val == "Zpx"
         # Query nested
         val = rt.query(snap, "config.debug")
         assert val is True
     run_test("Query Snapshot", '''
-let user = ["name": "Zap", "version": "0.2"]
+let user = ["name": "Zpx", "version": "0.2"]
 let config = ["debug": true, "port": 8080]
 ''', check)
 

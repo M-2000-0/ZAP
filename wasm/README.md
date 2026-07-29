@@ -1,6 +1,6 @@
-# Zap WebAssembly Target
+# Zpx WebAssembly Target
 
-Compile Zap code to WebAssembly for browser execution.
+Compile Zpx code to WebAssembly for browser execution.
 
 ## Status
 
@@ -8,7 +8,7 @@ Compile Zap code to WebAssembly for browser execution.
 
 ## How It Works
 
-1. Zap code is transpiled to JavaScript
+1. Zpx code is transpiled to JavaScript
 2. JavaScript is compiled to WebAssembly using existing tools
 3. WebAssembly runs in the browser
 
@@ -17,8 +17,8 @@ Compile Zap code to WebAssembly for browser execution.
 ### From CLI
 
 ```bash
-# Compile Zap to WebAssembly
-zap compile main.zap --target wasm
+# Compile Zpx to WebAssembly
+zpx compile main.zpx --target wasm
 
 # This generates:
 # - main.wasm (WebAssembly binary)
@@ -31,13 +31,13 @@ zap compile main.zap --target wasm
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Zap WebAssembly</title>
+    <title>Zpx WebAssembly</title>
 </head>
 <body>
     <script src="main.js"></script>
     <script>
-        // Call Zap functions from JavaScript
-        const result = zap.add(2, 3);
+        // Call Zpx functions from JavaScript
+        const result = zpx.add(2, 3);
         console.log(result);  // 5
     </script>
 </body>
@@ -48,10 +48,10 @@ zap compile main.zap --target wasm
 
 ```javascript
 // Load the WebAssembly module
-const zap = await ZapModule.init();
+const zpx = await ZpxModule.init();
 
-// Call Zap functions
-const result = zap.fibonacci(10);
+// Call Zpx functions
+const result = zpx.fibonacci(10);
 console.log(result);  // 55
 ```
 
@@ -72,9 +72,9 @@ console.log(result);  // 55
 
 ## Example
 
-### Zap Code
+### Zpx Code
 
-```zap
+```zpx
 fn fibonacci(n):
   if n <= 1:
     ret n
