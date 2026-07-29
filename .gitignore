@@ -4,6 +4,7 @@ __pycache__/
 *.pyo
 *.pyd
 .zap_cache/
+.zap_git/
 
 # Virtual environments
 .venv/
