@@ -216,7 +216,16 @@ class GitRuntime:
         if hasattr(v, '__class__') and 'Zap' in v.__class__.__name__:
             if isinstance(v, (ZapList, ZapDict)):
                 return _zap_to_py(v)
-        return v
+            # Skip other Zap types (builtins, functions, etc.)
+            return None
+        if isinstance(v, (str, int, float, bool, type(None))):
+            return v
+        if isinstance(v, (list, dict, tuple, set)):
+            try:
+                return json.loads(json.dumps(v))
+            except Exception:
+                return str(v)
+        return str(v)
     
     def _restore_tree(self, tree_hash: str):
         """Restore namespace from tree."""
