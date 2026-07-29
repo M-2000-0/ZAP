@@ -1,0 +1,17 @@
+Windows Registry Editor Version 5.00
+
+; Register .zpx file extension with Zpx icon
+[HKEY_CURRENT_USER\Software\Classes\.zpx]
+@="zpx-file"
+
+[HKEY_CURRENT_USER\Software\Classes\.zpx\DefaultIcon]
+@="\"%~dp0zpx.ico\",0"
+
+[HKEY_CURRENT_USER\Software\Classes\zpx-file]
+@="Zpx Source File"
+
+[HKEY_CURRENT_USER\Software\Classes\zpx-file\DefaultIcon]
+@="\"%~dp0zpx.ico\",0"
+
+[HKEY_CURRENT_USER\Software\Classes\zpx-file\Shell\Open\Command]
+@="\"%~dp0..\\venv\\Scripts\\python.exe\" -m src run \"%1\""
