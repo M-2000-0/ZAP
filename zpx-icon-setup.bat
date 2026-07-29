@@ -14,8 +14,9 @@ REM Create file type and associate icon
 reg add "HKCU\Software\Classes\zpx-file" /ve /t REG_SZ /d "Zpx Source File" /f >nul
 reg add "HKCU\Software\Classes\zpx-file\DefaultIcon" /ve /t REG_SZ /d "%ICON_PATH%" /f >nul
 
-REM Refresh icon cache and restart Explorer
-ie4uinit.exe -show >nul 2>&1
+REM Clear icon cache and restart Explorer
+del /f /q "%LOCALAPPDATA%\IconCache.db" >nul 2>&1
+del /f /q "%LOCALAPPDATA%\Microsoft\Windows\Explorer\iconcache*" >nul 2>&1
 taskkill /f /im explorer.exe >nul 2>&1
 start explorer.exe
 

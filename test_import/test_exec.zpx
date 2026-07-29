@@ -1,0 +1,15 @@
+fn _exec_node(node_type, config, context)
+  if node_type == "trigger":
+    ret {event: "manual_trigger", data: context["data"]}
+  if node_type == "webhook":
+    ret {event: "webhook", path: config["path"], body: context["data"]}
+  if node_type == "http_request":
+    let url = config["url"]
+    ret {status: "ok", url: url}
+  ret {error: "unknown"}
+
+fn main()
+  let result = _exec_node("trigger", {}, {data: "test"})
+  print(result)
+
+main()

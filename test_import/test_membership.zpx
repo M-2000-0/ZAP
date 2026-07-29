@@ -1,0 +1,6 @@
+let s = [1, 2, 3, 4, 5]
+let found = false
+for x in s:
+  if x == 3:
+    found = true
+print(found)

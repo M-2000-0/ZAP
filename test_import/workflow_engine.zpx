@@ -1,0 +1,184 @@
+schema Workflow:
+  id: str
+  name: str
+  nodes: list
+  edges: list
+  created_at: str
+  updated_at: str
+  status: str
+
+schema NodeInstance:
+  id: str
+  node_type: str
+  config: dict
+  position: dict
+
+schema Edge:
+  source: str
+  target: str
+  source_port: str
+  target_port: str
+
+let _workflows: dict = {}
+let _id_counter: int = 0
+let _results: dict = {}
+
+fn _new_id()
+  _id_counter = _id_counter + 1
+  ret str(_id_counter)
+
+fn _topo_sort(nodes, edges)
+  let adj: dict = {}
+  for n in nodes:
+    adj[n.id] = []
+  for e in edges:
+    adj[e.source].append(e.target)
+  let visited: list = []
+  let remaining: list = []
+  for n in nodes:
+    remaining.append(n.id)
+  let changed: bool = true
+  while changed:
+    changed = false
+    let next_remaining: list = []
+    for nid in remaining:
+      let is_root: bool = true
+      for e in edges:
+        if e.target == nid:
+          let src_found: bool = false
+          for v in visited:
+            if v == e.source:
+              src_found = true
+          if not src_found:
+            is_root = false
+      if is_root:
+        visited.append(nid)
+        changed = true
+      else:
+        next_remaining.append(nid)
+    remaining = next_remaining
+  if len(visited) != len(nodes):
+    ret none
+  ret visited
+
+fn create_workflow(name)
+  let id = _new_id()
+  let wf = {
+    id: id,
+    name: name,
+    nodes: [],
+    edges: [],
+    created_at: str(_stdlib_time()),
+    updated_at: str(_stdlib_time()),
+    status: "draft"
+  }
+  _workflows[id] = wf
+  ret wf
+
+fn add_node(workflow, node_type, config)
+  let node_id = _new_id()
+  let node = {
+    id: node_id,
+    node_node_node_type: node_type,
+    config: config,
+    position: {x: 0, y: 0}
+  }
+  workflow.nodes.append(node)
+  workflow.updated_at = str(_stdlib_time())
+  ret node
+
+fn add_edge(workflow, source_id, target_id, source_port, target_port)
+  let edge = {
+    source: source_id,
+    target: target_id,
+    source_port: source_port,
+    target_port: target_port
+  }
+  workflow.edges.append(edge)
+  workflow.updated_at = str(_stdlib_time())
+  ret edge
+
+fn remove_node(workflow, node_id)
+  let new_nodes = []
+  for n in workflow.nodes:
+    if n.id != node_id:
+      new_nodes.append(n)
+  workflow.nodes = new_nodes
+  let new_edges = []
+  for e in workflow.edges:
+    if e.source != node_id and e.target != node_id:
+      new_edges.append(e)
+  workflow.edges = new_edges
+  workflow.updated_at = str(_stdlib_time())
+  ret true
+
+fn get_workflow(workflow_id)
+  if workflow_id in _workflows:
+    ret _workflows[workflow_id]
+  ret none
+
+fn list_workflows()
+  ret _workflows
+
+fn save_workflow(workflow)
+  _workflows[workflow.id] = workflow
+  ret workflow
+
+fn delete_workflow(workflow_id)
+  if workflow_id in _workflows:
+    let new_wfs = {}
+    for k in _workflows:
+      if k != workflow_id:
+        new_wfs[k] = _workflows[k]
+    _workflows = new_wfs
+    ret true
+  ret false
+
+fn execute_workflow(workflow, input_data)
+  let sorted_ids = _topo_sort(workflow.nodes, workflow.edges)
+  if sorted_ids == none:
+    ret {error: "Cycle detected in workflow", status: "failed"}
+  let ctx = {data: input_data, workflow: workflow}
+  for nid in sorted_ids:
+    let node = none
+    for n in workflow.nodes:
+      if n.id == nid:
+        node = n
+    if node == none:
+      continue
+    let r = _exec_node(node["node_type"], node.config, ctx)
+    ctx[nid] = r
+    _results[nid] = r
+  workflow.status = "completed"
+  workflow.updated_at = str(_stdlib_time())
+  ret ctx
+
+fn _exec_node(node_type, config, context)
+  if node_type == "trigger":
+    ret {event: "manual_trigger", data: context["data"]}
+  if node_type == "webhook":
+    ret {event: "webhook", path: config["path"], body: context["data"]}
+  if node_type == "schedule":
+    ret {event: "scheduled", cron: config["cron"]}
+  if node_type == "http_request":
+    let url = config["url"]
+    let method = config["method"]
+    if method == "GET":
+      let resp = _stdlib_http_get(url)
+      ret {status: "ok", url: url, body: resp}
+    ret {status: "ok", url: url, method: method}
+  if node_type == "filter":
+    ret {filtered: true, field: config["field"], op: config["operator"], value: config["value"]}
+  if node_type == "transform":
+    ret {transformed: true, expression: config["expression"], result: context["data"]}
+  if node_type == "delay":
+    let secs = config["seconds"]
+    _stdlib_sleep(float(secs))
+    ret {delayed: true, seconds: secs}
+  if node_type == "code":
+    ret {executed: true, language: config["language"], source: config["source"]}
+  if node_type == "database":
+    ret {executed: true, action: config["action"], table: config["table"], query: config["query"]}
+  if node_type == "notification":
+    ret {sent: true, message: config["message"]}
+  ret {error: "unknown node type: " + node_type}
