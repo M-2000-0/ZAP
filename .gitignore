@@ -1,19 +1,67 @@
-*.crdownload
-*.db
-*.db-journal
-output.json
-.zap_cache
+# Bytecode / cache
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.zap_cache/
+
+# Virtual environments
 .venv/
 venv/
 env/
+ENV/
+
+# Distribution / packaging
 dist/
 build/
 *.egg-info/
+*.whl
+
+# Test / coverage
+.pytest_cache/
 .coverage
 htmlcov/
-.pytest_cache/
+.tox/
+
+# IDE / editor
+.vscode/
+.idea/
 *.swp
 *.swo
 *~
+*.sublime-workspace
+*.sublime-project
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+
+# Logs
+*.log
+output.json
+
+# Temporary
+*.tmp
+*.temp
+*.crdownload
+
+# Local config (don't commit secrets)
+.env
+.env.local
+*.key
+*.pem
+
+# Debug files (local only)
+debug_*.py
+test_*.py
+bisect*.py
+
+# VS Code extension build
+vscode-extension/out/
+vscode-extension/*.vsix

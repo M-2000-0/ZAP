@@ -467,6 +467,11 @@ class Evaluator:
                 self._current_file = prev_file
         else:
             try:
+                import sys as _sys
+                # Add search directories to Python path for Python imports
+                for d in search_dirs:
+                    if d != '.' and d not in _sys.path:
+                        _sys.path.insert(0, d)
                 py_mod = __import__(module_name)
                 for name in stmt.names:
                     attr = getattr(py_mod, name, None)

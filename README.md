@@ -1,28 +1,21 @@
-# Zap — AI-Native Programming Language | Zero-Boilerplate, Full-Stack, Token-Efficient
+# Zap — AI-Native Programming Language
 
-**One language. One syntax. Zero boilerplate.** — The first programming language designed for AI code generation.
+> **One language. One syntax. Zero boilerplate.**  
+> The first programming language designed for AI code generation.
 
-Zap is a modern, self-hosting programming language optimized for **LLMs and AI models**. Unlike Python (1991) or JavaScript (1995), Zap's syntax uses **30-60% fewer tokens** — making it the most token-efficient language for AI-generated code. It replaces the traditional 6-language stack (Python + JavaScript + SQL + HTML + CSS + YAML) with **one unified syntax** for backend, frontend, database, and configuration — all with zero imports and no build step.
-
-```
-fn greet(name) "Hello, " + name + "!"
-print(greet("World"))
-```
-
-That's a complete program. No imports. No boilerplate. No build step. Just `zap run file.zap`.
-
-Keywords: `programming language`, `AI-native`, `token-efficient`, `self-hosting`, `full-stack`, `zero-boilerplate`, `Python alternative`, `LLM-optimized`, `no build step`, `built-in database`, `pattern matching`, `design by contract`
+[![PyPI](https://img.shields.io/pypi/v/zap-lang?label=zap-lang)](https://pypi.org/project/zap-lang/)
+[![Python](https://img.shields.io/pypi/pyversions/zap-lang)](https://pypi.org/project/zap-lang/)
+[![License](https://img.shields.io/github/license/M-2000-0/ZAP)](LICENSE)
+[![Tests](https://github.com/M-2000-0/ZAP/actions/workflows/test.yml/badge.svg)](https://github.com/M-2000-0/ZAP/actions)
 
 ---
 
 ## Why Zap?
 
-### The Problem
+**Today's AI writes code in 6+ languages for one app:**
 
-When AI writes code today, it must juggle **6+ languages** for a single application:
-
-| Layer | Language | Syntax |
-|-------|----------|--------|
+| Layer | Language | Syntax Overhead |
+|-------|----------|-----------------|
 | Backend | Python | `def func():` |
 | Frontend | JavaScript | `function func() {}` |
 | Database | SQL | `SELECT * FROM...` |
@@ -30,156 +23,62 @@ When AI writes code today, it must juggle **6+ languages** for a single applicat
 | Styles | CSS | `body { ... }` |
 | Types | TypeScript | `x: number` |
 
-**Every layer = different syntax = more tokens = more errors.**
-
-### The Zap Solution
-
-**One language for everything:**
+**Zap replaces all of them with one syntax:**
 
 ```zap
 schema User:
+  id: int
   name: str
   email: str
 
 api GET "/users/{id}":
-  let user = query("SELECT * FROM users WHERE id = ?", id)
-  render_user(user)
+  let user = db_row("SELECT * FROM users WHERE id = ?", [id])
+  ret user
 
 fn render_user(user):
-  element("div", {class: "card"}, [
+  element("article", {class: "card"}, [
     element("h2", {}, user.name),
     element("p", {}, user.email),
   ])
 ```
 
-Schema, API, database query, and HTML rendering — **all in one file, one syntax**.
+**One file. One language. Zero config. No build step.**
 
 ---
 
-## Token Efficiency: Why AI Models Love Zap
+## Token Efficiency: Why LLMs Love Zap
 
-Zap uses **30-60% fewer tokens** than Python or JavaScript for equivalent code:
+Zap uses **30–60% fewer tokens** than Python/JS for equivalent code:
 
-| Pattern | Zap | Python | JavaScript |
-|---------|-----|--------|------------|
+| Pattern | Zap | Python | JS |
+|---------|-----|--------|-----|
 | Function | `fn add(a,b) a+b` | `def add(a,b): return a+b` | `function add(a,b){return a+b}` |
 | Print | `print("hi")` | `print("hi")` | `console.log("hi")` |
+| If/else | `if x: a el: b` | `if x: a else: b` | `if(x){a}else{b}` |
+| Loop | `for i in range(10):` | `for i in range(10):` | `for(let i=0;i<10;i++)` |
 | Class method | `fn speak(self) ...` | `def speak(self): ...` | `speak(){...}` |
-| If/else | `if x: ... el: ...` | `if x: ... else: ...` | `if(x){...}else{...}` |
-| For loop | `for i in range(10):` | `for i in range(10):` | `for(let i=0;i<10;i++)` |
 
-**Fewer tokens = faster generation = lower cost = fewer errors.**
-
----
-
-## Key Features
-
-### AI-Optimized Syntax
-
-```zap
-# 3-character keywords: fn, ret, el, and, or, not
-fn factorial(n):
-  if n <= 1: ret 1
-  ret n * factorial(n - 1)
-```
-
-### Self-Hosting (Zap Written in Zap)
-
-The Zap interpreter is **itself written in Zap**. This proves the language is complete and capable:
-
-```
-self_host/
-  tokens.zap      - Token system
-  lexer.zap       - Lexer
-  parser.zap      - Recursive descent parser
-  ast_nodes.zap   - AST definitions
-  env.zap         - Environment/scoping
-  evaluator.zap   - Full evaluator
-  builtins.zap    - Standard library
-```
-
-**~95% of the interpreter is written in Zap.** The Python layer is only the bootstrap.
-
-### Zero-Boilerplate Standard Library
-
-248+ builtins — no imports needed for most tasks:
-
-```zap
-# HTTP
-http_get("https://api.example.com/data")
-
-# JSON
-let data = json_parse('{"name": "Zap"}')
-
-# Database
-db_auto("my_app"):
-  users:
-    id: "TEXT PRIMARY KEY"
-    name: "TEXT"
-
-# File I/O
-write_file("output.txt", "Hello!")
-let content = read_file("input.txt")
-
-# Crypto
-let hash = sha256("password")
-
-# Math
-let pi = math.pi
-```
-
-### Contract System
-
-Replace docstrings + tests + validation with one construct:
-
-```zap
-@requires(amount > 0)
-@ensures(balance >= 0)
-fn withdraw(amount: float):
-  balance = balance - amount
-```
-
-### Pattern Matching
-
-```zap
-match status:
-  "active": print("Active user")
-  "inactive": print("Inactive user")
-  "banned": print("Banned user")
-el:
-  print("Unknown status")
-```
-
-### Type Annotations
-
-```zap
-fn find_user(users: list[dict[str, any]], id: int) -> dict[str, any] | none:
-  for u in users:
-    if u["id"] == id:
-      ret u
-  ret none
-```
+**Fewer tokens = faster generation + lower cost + fewer errors + more context.**
 
 ---
 
 ## Quick Start
 
 ```bash
-# Install
+# Install from PyPI
 pip install zap-lang
 
 # Run your first program
 echo 'print("Hello from Zap!")' > hello.zap
 zap run hello.zap
 
-# Run examples
+# Run built-in examples
 zap run examples/hello.zap
-zap run examples/fibo.zap
 zap run examples/blog.zap
+zap run examples/rest_api.zap
 ```
 
-### From Source
-
+**From source:**
 ```bash
 git clone https://github.com/M-2000-0/ZAP.git
 cd ZAP
@@ -188,24 +87,84 @@ python -m src run examples/hello.zap
 
 ---
 
-## Examples
+## Language Tour
 
-### Hello World
+### Variables & Types
 ```zap
-print("Hello from Zap!")
+let x = 42              # int
+let name = "Zap"        # str
+let flag = true         # bool
+let empty = none        # null
+let nums = [1, 2, 3]    # list
+let user = ["name": "Alice", "age": 30]  # dict
 ```
 
-### Fibonacci
+### Functions (short keywords: `fn`, `ret`)
 ```zap
-fn fib(n):
-  if n <= 1: ret n
-  ret fib(n - 1) + fib(n - 2)
+fn greet(name):
+  ret "Hello, " + name + "!"
 
-for i in range(10):
-  print(fib(i))
+fn greet_with_default(name, greeting="Hi"):
+  print(greeting + ", " + name)
+
+greet("World")                    # "Hello, World!"
+greet_with_default("Alice")       # "Hi, Alice"
+greet_with_default("Bob", "Hey")  # "Hey, Bob"
 ```
 
-### List Comprehensions
+### Control Flow (`el` not `else`, `ret` not `return`)
+```zap
+fn classify(x):
+  if x > 0: ret "positive"
+  el: if x < 0: ret "negative"
+  el: ret "zero"
+
+let i = 0
+while i < 5:
+  print(i)
+  i += 1
+
+for item in [1, 2, 3]:
+  print(item)
+```
+
+### Pattern Matching
+```zap
+match status:
+  "active": print("User is active")
+  "inactive": print("User is inactive")
+  "banned": print("User is banned")
+  _: print("Unknown status")
+```
+
+### Contracts (Design by Contract)
+```zap
+fn withdraw(amount: float):
+  requires amount > 0
+  requires balance >= amount
+  ensures balance >= 0
+  
+  balance = balance - amount
+```
+
+### Classes & Inheritance
+```zap
+class Animal:
+  fn init(self, name):
+    self.name = name
+  
+  fn speak(self):
+    ret "..."
+
+class Dog(Animal):
+  fn speak(self):
+    ret self.name + " says Woof!"
+
+let d = Dog("Rex")
+print(d.speak())  # "Rex says Woof!"
+```
+
+### Comprehensions
 ```zap
 let nums = [1, 2, 3, 4, 5]
 let doubled = [x * 2 for x in nums]
@@ -213,20 +172,89 @@ let evens = [x for x in nums if x % 2 == 0]
 let squares = {x: x * x for x in nums}
 ```
 
-### Full-Stack Blog
+### Built-ins (248+, no imports needed)
+```zap
+# HTTP
+http_get("https://api.example.com/data")
+http_post(url, json_body={"key": "value"})
+
+# JSON
+json_parse('{"name": "Zap"}')
+json_stringify(data)
+
+# Database (SQLite, auto-deploys on Vercel/Netlify/Render)
+db_auto("my_app"):
+  users:
+    id: "TEXT PRIMARY KEY"
+    name: "TEXT"
+    email: "TEXT UNIQUE"
+
+db_insert("users", {id: "1", name: "Alice", email: "alice@example.com"})
+let user = db_row("SELECT * FROM users WHERE id = ?", ["1"])
+
+# Crypto
+sha256("password")
+b64encode(data)
+
+# Files
+write_file("out.txt", "content")
+read_file("in.txt")
+
+# Math
+abs(-5), max(1, 5), min(1, 5), sqrt(16), round(3.14)
+
+# Parallelism
+pmap(fn, items)
+parallel(fn1, fn2, fn3)
+```
+
+---
+
+## Full-Stack Examples
+
+### 1. REST API (single file, zero config)
+```zap
+schema User:
+  id: int
+  name: str
+  email: str
+
+let users = []
+let next_id = 1
+
+fn create_user(name, email):
+  let user = {id: next_id, name: name, email: email}
+  users.append(user)
+  next_id += 1
+  ret user
+
+api GET "/users":
+  ret users
+
+api GET "/users/{id}":
+  for u in users:
+    if u.id == id: ret u
+  ret {error: "Not found"}
+
+api POST "/users":
+  let body = json_parse(req.body)
+  ret create_user(body.name, body.email)
+```
+
+### 2. Blog with HTML Rendering
 ```zap
 let posts = [
   {title: "Hello Zap", body: "Welcome!"},
   {title: "Full-Stack", body: "One language for everything."},
 ]
 
-fn render_post(post):
+fn render_post(p):
   element("article", {class: "post"}, [
-    element("h2", {}, post.title),
-    element("p", {}, post.body),
+    element("h2", {}, p.title),
+    element("p", {}, p.body),
   ])
 
-fn render_page(title, posts):
+fn page(title, posts):
   element("html", {}, [
     element("head", {}, [element("title", {}, title)]),
     element("body", {}, [
@@ -235,115 +263,200 @@ fn render_page(title, posts):
     ]),
   ])
 
-print(html(render_page("My Blog", posts)))
+print(html(page("My Blog", posts)))
 ```
 
-### Database + API
+### 3. AI-Native Features
 ```zap
-import "lib/db.zap"
+# Permissions
+permission filesystem_read "read access to filesystem"
+permission network_http "outbound HTTP"
 
-db_auto("my_app"):
-  users:
-    id: "TEXT PRIMARY KEY"
-    name: "TEXT"
-    email: "TEXT UNIQUE"
+# Service with metadata
+service PaymentService:
+  version "2.1.0"
+  requires authenticated_user, valid_session
+  guarantees transaction_atomic, audit_logged
+  expose process_payment
+  
+  fn process_payment(amount: float) -> str:
+    ret "processed: " + str(amount)
 
-db_insert("users", {id: "1", name: "Alice", email: "alice@example.com"})
+# Structured concurrency
+concurrent:
+  say("branch 1")
+  let x = 1 + 2
+  say("branch 2")
+  let y = 3 + 4
 
-let user = db_row("SELECT * FROM users WHERE id = ?", ["1"])
-print(user.name)
+# Compile-time checks
+check:
+  expect 1 + 1 == 2 "math works"
+  expect "hello" != "world"
+
+# Runtime assertions
+expect divide(10, 2) == 5
 ```
 
 ---
 
-## Comparison with Other Languages
+## Architecture
 
-| Feature | Zap | Python | JavaScript | Rust | Go |
-|---------|-----|--------|------------|------|----|
-| AI token efficiency | **Best** | Medium | Medium | Low | Medium |
-| Learning curve | **Minutes** | Hours | Hours | Days | Hours |
-| Boilerplate | **Zero** | Low | Medium | High | Medium |
-| Self-hosting | **Yes** | No | No | Yes | Yes |
-| Full-stack | **One syntax** | 3+ languages | 3+ languages | 3+ languages | 3+ languages |
-| Database built-in | **Yes** | No | No | No | No |
-| Contract system | **Built-in** | No | No | No | No |
-| Type annotations | **Optional** | Optional | Required | Required | Required |
+```
+┌─────────────────────────────────────┐
+│           zap run file.zap          │
+└──────────────┬──────────────────────┘
+               ▼
+┌─────────────────────────────────────┐
+│  Lexer (indentation-sensitive)      │
+│  → tokens                           │
+└──────────────┬──────────────────────┘
+               ▼
+┌─────────────────────────────────────┐
+│  Parser (recursive descent)         │
+│  → AST                              │
+└──────────────┬──────────────────────┘
+               ▼
+┌─────────────────────────────────────┐
+│  Type Checker (contracts, types)    │
+│  → validated AST                    │
+└──────────────┬──────────────────────┘
+               ▼
+┌─────────────────────────────────────┐
+│  Evaluator (interpreter)            │
+│  → result                           │
+└──────────────┬──────────────────────┘
+               ▼
+┌─────────────────────────────────────┐
+│  Compiler (optional)                │
+│  → .pyc bytecode cache              │
+└─────────────────────────────────────┘
+```
+
+**Self-hosting**: The interpreter is written in Zap (`self_host/`):
+- `tokens.zap` — Token system
+- `lexer.zap` — Lexer
+- `parser.zap` — Parser
+- `ast_nodes.zap` — AST definitions
+- `env.zap` — Environment/scoping
+- `evaluator.zap` — Full evaluator
+- `builtins.zap` — Standard library
 
 ---
 
-## Why Zap Will Win
+## CLI Reference
 
-### 1. AI is the Future of Coding
+```bash
+zap run <file|folder>      # Execute (auto-detects main.zap/index.zap/app.zap)
+zap check <file>           # Parse + type-check
+zap build <file>           # Check + run
+zap compile <file>         # Transpile to Python bytecode
+zap test [path]            # Run @test / expect blocks
+zap repl                   # Interactive REPL
+zap version                # Print version + grammar version
+zap diag <text>            # Parse diagnostics → JSON
+zap init [name]            # Scaffold new project
+zap add <spec>             # Add dependency
+zap install                # Install from zap.json
+zap ai                     # AI subcommands (train, scan, wifi)
+```
 
-By 2027, **80% of code will be AI-generated**. Languages designed for humans will become legacy. Zap is designed for the world where AI writes most of the code.
+**Flags:** `--format=json` (machine-readable), `--no-color`
 
-### 2. Token Economics
+---
 
-Every token costs money. Every token takes time. Every token is a chance for error. Zap's token-efficient syntax means:
-- **Faster generation** (fewer tokens to produce)
-- **Lower cost** (API calls cost less)
-- **Higher accuracy** (less room for mistakes)
-- **Better context utilization** (more code fits in the window)
+## Editor Support
 
-### 3. One Language > Many
+**VS Code Extension** (`vscode-extension/`):
+- Syntax highlighting
+- Snippets (`fn`, `let`, `if`, `class`, `api`, `schema`, ...)
+- Language configuration (brackets, comments, folding)
 
-The average web app uses 6+ languages. Zap replaces them all with one syntax. This means:
-- **No context switching** for AI or humans
-- **No translation errors** between layers
-- **No build tools** to configure
-- **No package.json** to manage
+**LSP Server** (`zap lsp`):
+- Hover documentation
+- Go to definition
+- Find references
+- Document symbols
+- Workspace symbols
+- Semantic tokens
+- Diagnostics (parse + type errors)
 
-### 4. Self-Hosting Proves It Works
+---
 
-Zap can write itself. The interpreter is written in Zap. This isn't a toy — it's a complete, self-sustaining language.
+## Project Structure
 
-### 5. The Stdlib is Massive
-
-248+ builtins means you rarely need external dependencies:
-- HTTP client/server
-- JSON parsing
-- Database operations
-- Cryptography
-- File I/O
-- Math
-- String manipulation
-- And more
+```
+ZAP/
+├── src/                    # Python interpreter (~300K lines)
+│   ├── lexer.py            # Tokenizer
+│   ├── parser.py           # Recursive descent parser
+│   ├── evaluator.py        # Interpreter with time-travel debugging
+│   ├── compiler.py         # Python bytecode compiler
+│   ├── types.py            # Type checker with contracts
+│   ├── codegen.py          # Code generators
+│   ├── cli.py              # Full CLI
+│   ├── lsp.py              # Language Server Protocol
+│   └── adapters/           # JS/Python transpilers
+├── self_host/              # Zap written in Zap (~95%)
+│   ├── tokens.zap
+│   ├── lexer.zap
+│   ├── parser.zap
+│   ├── ast_nodes.zap
+│   ├── env.zap
+│   ├── evaluator.zap
+│   ├── builtins.zap
+│   └── zap_interpreter.zap
+├── lib/                    # Standard library
+│   ├── std.zap
+│   ├── db.zap
+│   ├── http.zap
+│   ├── strings.zap
+│   └── collections.zap
+├── examples/               # 20+ example programs
+├── tests/                  # 165 passing tests
+├── wasm/                   # Zap → JS transpiler
+├── vscode-extension/       # VS Code extension
+├── registry/               # Package registry
+└── training/               # AI training data
+```
 
 ---
 
 ## Roadmap
 
-### Done
-- [x] Self-hosted parser, lexer, tokenizer, AST, environment
-- [x] 248+ builtins with short aliases
-- [x] Compound type annotations (`list[T]`, `dict[K,V]`, `T|U`)
-- [x] Type aliases (`type User = dict[str, any]`)
-- [x] Contract system (`@requires`, `@ensures`)
-- [x] Pattern matching
-- [x] List/dict comprehensions
-- [x] Auto-deploy database support
-- [x] Deployment platform detection
+### ✅ Done (v0.2)
+- Self-hosted parser, lexer, AST, evaluator
+- 248+ builtins with short aliases
+- Compound types (`list[T]`, `dict[K,V]`, `T|U`)
+- Type aliases
+- Contract system
+- Pattern matching
+- Comprehensions
+- Auto-deploy DB
+- Platform detection
+- LSP, package manager, WASM target
 
-### Coming Soon
+### 🔜 Coming Soon
 - [ ] Optional chaining (`?.`)
-- [ ] Destructuring (`let { a, b } = expr`)
+- [ ] Destructuring (`let {a, b} = expr`)
 - [ ] Web UI framework
 - [ ] Mobile app support
-- [ ] Package registry
-- [ ] IDE plugins (VS Code, Cursor, Windsurf)
+- [ ] Package registry (publish/install)
+- [ ] IDE plugins (Cursor, Windsurf, Zed)
 - [ ] WebAssembly compilation
+- [ ] Incremental compilation
 
 ---
 
 ## Contributing
 
-We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for details.
-
 ```bash
 git clone https://github.com/M-2000-0/ZAP.git
 cd ZAP
-python -m pytest tests/ -q  # Run tests
+python -m pytest tests/ -q  # 165 tests pass
 ```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ---
 
@@ -357,8 +470,14 @@ python -m pytest tests/ -q  # Run tests
 
 ## License
 
-MIT
+MIT — free for commercial use.
 
 ---
+
+## Philosophy
+
+> **By 2027, 80% of code will be AI-generated.**  
+> Languages designed for humans become legacy.  
+> Zap is designed for the world where AI writes most of the code.
 
 **Zap — Write less. Ship faster. Let AI do the rest.**
