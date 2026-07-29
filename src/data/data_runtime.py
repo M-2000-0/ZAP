@@ -22,7 +22,7 @@ from datetime import datetime
 import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
 
-from src.values import zpxList, zpxDict, zpxFunction, _zpx_to_py, _py_to_zpx
+from src.values import ZpxList, ZpxDict, ZpxFunction, _zpx_to_py, _py_to_zpx
 
 
 class DataSourceType(Enum):
@@ -611,7 +611,7 @@ def _stdlib_table(name: str, columns: list = None, data: list = None):
                 for c in columns]
     
     t = _get_registry().table(name, cols, data=data)
-    return zpxDict({
+    return ZpxDict({
         "name": t.name,
         "insert": lambda d: t.insert(d),
         "insert_many": lambda ds: t.insert_many(ds),
@@ -631,7 +631,7 @@ def _stdlib_stream(name: str, columns: list = None, max_size: int = None):
         cols = [Column(c["name"], c.get("type", "any")) for c in columns]
     
     s = _get_registry().stream(name, cols, max_size)
-    return zpxDict({
+    return ZpxDict({
         "name": s.name,
         "append": lambda d: s.append(d).to_dict(),
         "append_many": lambda ds: [e.to_dict() for e in s.append_many(ds)],
