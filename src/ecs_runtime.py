@@ -92,7 +92,7 @@ def _ecs_world_run_systems(world, dt):
     for sys_obj in systems:
         run_fn = sys_obj.fields['__run__']
         if run_fn:
-            run_fn(dt)
+            run_fn(world, dt)
 
 def _ecs_world_destroy_entity(world, entity):
     entities = world.fields['__entities__']

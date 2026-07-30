@@ -1,0 +1,96 @@
+# ZPX Game Engine — high-level wrapper over ECS + math builtins
+# import "lib/engine.zpx"
+
+import "lib/ecs.zpx"
+
+# Component factories (use regular dicts, passed to ECS.add_component)
+fn Transform(x=0, y=0, z=0):
+  ret {x: x, y: y, z: z}
+
+fn Velocity(x=0, y=0, z=0):
+  ret {x: x, y: y, z: z}
+
+fn MeshRenderer(mesh="cube", r=1, g=1, b=1):
+  ret {mesh: mesh, color: [r, g, b]}
+
+fn Rigidbody(mass=1, gravity=-9.8):
+  ret {mass: mass, gravity: gravity, velocity_y: 0}
+
+fn Health(amount=100):
+  ret {amount: amount, max: amount}
+
+fn Tag(name):
+  ret {name: name}
+
+# Engine state
+let __engine_worlds = {}
+let __engine_active = none
+
+fn eng_create_world(name="main"):
+  if __engine_worlds[name]:
+    ret __engine_worlds[name]
+  let w = ECS.World()
+  __engine_worlds[name] = w
+  if not __engine_active:
+    __engine_active = w
+  ret w
+
+fn eng_use_world(name):
+  let w = __engine_worlds[name]
+  if w:
+    __engine_active = w
+  ret w
+
+fn eng_spawn(name):
+  let w = __engine_active
+  if not w:
+    w = eng_create_world()
+  let e = ECS.create_entity(w, name)
+  ECS.add_component(w, e, "Transform", Transform())
+  ret e
+
+fn eng_add_comp(eid, type_name, data):
+  let w = __engine_active
+  if w:
+    ECS.add_component(w, eid, type_name, data)
+
+fn eng_get_comp(eid, type_name):
+  let w = __engine_active
+  if w:
+    ret ECS.get_component(w, eid, type_name)
+  ret none
+
+fn eng_has_comp(eid, type_name):
+  let w = __engine_active
+  if w:
+    ret ECS.has_component(w, eid, type_name)
+  ret False
+
+fn eng_query(comp_types):
+  let w = __engine_active
+  if w:
+    ret ECS.query(w, comp_types)
+  ret []
+
+fn eng_system(name, comp_types, run_fn):
+  let w = __engine_active
+  if w:
+    ECS.register_system(w, name, comp_types, run_fn)
+
+fn eng_tick(dt):
+  let w = __engine_active
+  if w:
+    ECS.run_systems(w, dt)
+
+fn eng_destroy(eid):
+  let w = __engine_active
+  if w:
+    ECS.destroy_entity(w, eid)
+
+fn eng_count():
+  let w = __engine_active
+  if w:
+    ret ECS.entity_count(w)
+  ret 0
+
+print("[Engine] ready")

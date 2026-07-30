@@ -1,0 +1,55 @@
+# ECS Platformer Example — uses lib/engine.zpx
+import "lib/engine.zpx"
+
+eng_create_world("game")
+
+let player = eng_spawn("player")
+let ground = eng_spawn("ground")
+let enemy = eng_spawn("enemy")
+
+eng_add_comp(player, "Velocity", Velocity(0, 0, 0))
+eng_add_comp(player, "Health", Health(100))
+eng_add_comp(player, "Tag", Tag("player"))
+
+eng_add_comp(ground, "MeshRenderer", MeshRenderer("plane", 0.3, 0.7, 0.3))
+let gt = eng_get_comp(ground, "Transform")
+gt.y = -1
+gt.z = 0
+
+eng_add_comp(enemy, "Velocity", Velocity(1, 0, 0))
+eng_add_comp(enemy, "Health", Health(30))
+eng_add_comp(enemy, "Tag", Tag("enemy"))
+
+fn movement_sys(world, dt):
+  for e in ECS.query(world, ["Transform", "Velocity"]):
+    let t = ECS.get_component(world, e, "Transform")
+    let v = ECS.get_component(world, e, "Velocity")
+    t.x += v.x * dt
+    t.y += v.y * dt
+    t.z += v.z * dt
+
+fn enemy_patrol(world, dt):
+  for e in ECS.query(world, ["Velocity", "Tag"]):
+    let tag = ECS.get_component(world, e, "Tag")
+    if tag.name == "enemy":
+      let v = ECS.get_component(world, e, "Velocity")
+      let t = ECS.get_component(world, e, "Transform")
+      if t.x > 8:
+        v.x = -1
+      el if t.x < -8:
+        v.x = 1
+
+eng_system("Movement", ["Transform", "Velocity"], movement_sys)
+eng_system("EnemyPatrol", ["Velocity", "Tag"], enemy_patrol)
+
+let state = {frame: 0}
+fn step():
+  eng_tick(0.016)
+  state.frame += 1
+  if state.frame % 60 == 0:
+    print("Frame", state.frame, "— entities:", eng_count())
+
+print("=== ECS Platformer Demo ===")
+for i in range(10):
+  step()
+print("=== Done ===")
