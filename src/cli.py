@@ -921,6 +921,13 @@ def main(argv=None):
     elif cmd == "add":
         from .pkg import add
         add(args, diag_format=diag_format)
+    elif cmd == "scan":
+        if not args:
+            args = ["."]
+        from .semantic import SemanticGraph
+        sg = SemanticGraph(args[0])
+        sg.scan()
+        print(sg.to_json())
     elif cmd == "ai":
         ai_command(args, diag_format=diag_format)
     elif cmd == "patricio":
