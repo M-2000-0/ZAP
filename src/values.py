@@ -6,6 +6,7 @@ import sys as _sys
 import datetime as _datetime
 from .environment import Environment
 from .ecs_runtime import register_ecs_builtins
+from .math_types import register_math_builtins
 
 class ZpxType:
     pass
@@ -932,6 +933,7 @@ def make_zpx_builtins():
     env.define('True', True)
     env.define('False', False)
     register_ecs_builtins(env)
+    register_math_builtins(env)
     return env
 
 def _tensor_iter(t):
@@ -1812,6 +1814,14 @@ def _py_to_zpx(obj):
 
 def _zpx_to_str(obj):
     if isinstance(obj, ZpxObject):
+        kind = obj.fields.get('__kind__')
+        if kind == 'vec3':
+            return f"vec3({_zpx_to_str(obj.fields['x'])}, {_zpx_to_str(obj.fields['y'])}, {_zpx_to_str(obj.fields['z'])})"
+        if kind == 'quat':
+            return f"quat({_zpx_to_str(obj.fields['x'])}, {_zpx_to_str(obj.fields['y'])}, {_zpx_to_str(obj.fields['z'])}, {_zpx_to_str(obj.fields['w'])})"
+        if kind == 'mat4':
+            d = obj.fields['data']
+            return f"mat4([{d[0]:.3f} {d[1]:.3f} {d[2]:.3f} {d[3]:.3f}] [{d[4]:.3f} {d[5]:.3f} {d[6]:.3f} {d[7]:.3f}] [{d[8]:.3f} {d[9]:.3f} {d[10]:.3f} {d[11]:.3f}] [{d[12]:.3f} {d[13]:.3f} {d[14]:.3f} {d[15]:.3f}])"
         if 'repr' in obj.methods:
             fn = obj.methods['repr']
             if isinstance(fn, ZpxFunction):
@@ -1824,7 +1834,7 @@ def _zpx_to_str(obj):
         if obj.fields:
             parts = []
             for k, v in list(obj.fields.items())[:5]:
-                if k != 'self':
+                if k not in ('self', '__kind__'):
                     try:
                         parts.append(f"{k}={_zpx_to_str(v)}")
                     except Exception:
