@@ -52,6 +52,18 @@ def check_stmt(stmt):
         errors.extend(check_schema(stmt))
     elif isinstance(stmt, ModelDecl):
         errors.extend(check_model(stmt))
+    elif isinstance(stmt, EntityDecl):
+        pass
+    elif isinstance(stmt, ComponentDecl):
+        for f in stmt.fields:
+            if not f.name or not f.field_type:
+                errors.append(f"component field must have name and type")
+    elif isinstance(stmt, SystemDecl):
+        if not stmt.name:
+            errors.append("system must have a name")
+    elif isinstance(stmt, SceneDecl):
+        if not stmt.name:
+            errors.append("scene must have a name")
     elif isinstance(stmt, FnDef):
         errors.extend(check_fn(stmt))
     elif isinstance(stmt, CheckBlock):

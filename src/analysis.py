@@ -103,6 +103,32 @@ class SymbolExtractor:
                 'methods': [m.name for m in stmt.methods],
                 'scope': self._current_scope(), 'line': stmt.line, 'file': self.filepath,
             })
+        elif isinstance(stmt, EntityDecl):
+            self.symbols.append({
+                'kind': 'entity', 'name': stmt.name,
+                'components': stmt.components,
+                'scope': self._current_scope(), 'line': stmt.line, 'file': self.filepath,
+            })
+        elif isinstance(stmt, ComponentDecl):
+            self.symbols.append({
+                'kind': 'component', 'name': stmt.name,
+                'fields': [{'name': f.name, 'type': f.field_type, 'default': f.default} for f in stmt.fields],
+                'scope': self._current_scope(), 'line': stmt.line, 'file': self.filepath,
+            })
+        elif isinstance(stmt, SystemDecl):
+            self.symbols.append({
+                'kind': 'system', 'name': stmt.name,
+                'requires': stmt.requires,
+                'scope': self._current_scope(), 'line': stmt.line, 'file': self.filepath,
+            })
+        elif isinstance(stmt, SceneDecl):
+            entities = [{'var': e.var, 'type': e.entity_type, 'args': list(e.args.keys())} for e in stmt.entities]
+            self.symbols.append({
+                'kind': 'scene', 'name': stmt.name,
+                'inherit': stmt.inherit,
+                'entities': entities,
+                'scope': self._current_scope(), 'line': stmt.line, 'file': self.filepath,
+            })
             self.scope_stack.append(stmt.name)
             for m in stmt.methods:
                 self._visit_fn_def(m)

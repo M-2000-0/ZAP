@@ -20,11 +20,11 @@ fn define_table(name, fields):
     sql = sql + ")"
     db_exec(_db_name, sql)
 
-fn db_auto_open(name, schema):
-    db_open(name)
-    for table_name in schema:
+fn db_auto_open(db_name, table_schema):
+    db_open(db_name)
+    for table_name in table_schema:
         define_table(table_name, schema[table_name])
-    ret name
+    ret db_name
 
 fn db_close_connect(name):
     db_close(name)
@@ -76,7 +76,9 @@ fn db_exists(table, id):
 
 fn db_count(table, where="1=1", params=none):
     let row = db_row("SELECT COUNT(*) as cnt FROM " + table + " WHERE " + where, params)
-    ret row["cnt"] if row != none else 0
+    if row != none:
+      ret row["cnt"]
+    ret 0
 
 # --- JSON REST helper ---
 
@@ -105,5 +107,5 @@ fn db_platform():
 
 # --- Migration helper ---
 
-fn db_migrate_version(name, version):
-    db_migrate(_db_name, name + "_" + str(version))
+fn db_migrate_version(mig_name, ver):
+    db_migrate(_db_name, mig_name + "_" + str(ver))

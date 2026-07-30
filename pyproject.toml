@@ -44,6 +44,10 @@ zpx = "src.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["src*"]
+exclude = ["tests*", "examples*", "training*", "docs*", "vscode-extension*", "wasm*", "registry*"]
 
 [tool.setuptools.package_data]
 src = ["*.ico"]
+
+[tool.setuptools.exclude_package_data]
+"*" = ["*.pyc", "__pycache__", "*.pyo", "*.pyd", ".pytest_cache", "*.egg-info"]

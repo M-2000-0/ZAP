@@ -1,6 +1,5 @@
 import time
 import threading
-from concurrent.futures import ThreadPoolExecutor
 from .ast_nodes import *
 from .environment import Environment
 from .values import _zpx_to_str
@@ -137,6 +136,14 @@ class Evaluator:
             return self._eval_page(stmt)
         if st is SchemaDecl:
             return self._eval_schema(stmt)
+        if st is EntityDecl:
+            return self._eval_entity(stmt)
+        if st is ComponentDecl:
+            return self._eval_component(stmt)
+        if st is SystemDecl:
+            return self._eval_system(stmt)
+        if st is SceneDecl:
+            return self._eval_scene(stmt)
         if st is ModelDecl:
             return self._eval_model(stmt)
         if st is PermissionDecl:
@@ -368,6 +375,7 @@ class Evaluator:
 
     def _apply_distributed(self, fn, args):
         if self.distributed_pool is None:
+            from concurrent.futures import ThreadPoolExecutor
             self.distributed_pool = ThreadPoolExecutor()
         orig_call = fn._call
         def distributed_wrapper(*call_args):
@@ -576,6 +584,53 @@ class Evaluator:
         obj.fields['__tables__'] = tables
         for name, table in tables.items():
             obj.fields[name] = table
+        self.env.define(stmt.name, obj)
+        return obj
+
+    def _eval_entity(self, stmt):
+        obj = ZpxObject()
+        obj.fields['__name__'] = stmt.name
+        obj.fields['__kind__'] = 'entity'
+        for comp_name in stmt.components:
+            obj.fields['__components__'] = obj.fields.get('__components__', []) + [comp_name]
+        self.env.define(stmt.name, obj)
+        return obj
+
+    def _eval_component(self, stmt):
+        comp_obj = ZpxObject()
+        comp_obj.fields['__name__'] = stmt.name
+        comp_obj.fields['__kind__'] = 'component'
+        for f in stmt.fields:
+            comp_obj.fields[f.name] = f.default if f.default else f.field_type
+        self.env.define(stmt.name, comp_obj)
+        return comp_obj
+
+    def _eval_system(self, stmt):
+        obj = ZpxObject()
+        obj.fields['__name__'] = stmt.name
+        obj.fields['__kind__'] = 'system'
+        obj.fields['__requires__'] = stmt.requires
+        obj.fields['__stmts__'] = stmt.stmts
+        for s in stmt.stmts:
+            if isinstance(s, FnDef) and s.name == 'run':
+                fn = ZpxFunction(s.name, s.params, s.body, self.env,
+                                s.return_type, s.is_async, is_method=True)
+                obj.fields['run'] = fn
+        self.env.define(stmt.name, obj)
+        return obj
+
+    def _eval_scene(self, stmt):
+        obj = ZpxObject()
+        obj.fields['__name__'] = stmt.name
+        obj.fields['__kind__'] = 'scene'
+        obj.fields['__inherit__'] = stmt.inherit
+        obj.fields['__entities__'] = []
+        for inst in stmt.entities:
+            entity_obj = ZpxObject()
+            entity_obj.fields['__var__'] = inst.var
+            entity_obj.fields['__type__'] = inst.entity_type
+            entity_obj.fields['__args__'] = inst.args
+            obj.fields['__entities__'].append(entity_obj)
         self.env.define(stmt.name, obj)
         return obj
 

@@ -197,6 +197,14 @@ class Parser:
             return self.parse_schema()
         if tok.type == TokenType.KW_MODEL:
             return self.parse_model()
+        if tok.type == TokenType.KW_ENTITY:
+            return self.parse_entity()
+        if tok.type == TokenType.KW_COMP:
+            return self.parse_component()
+        if tok.type == TokenType.KW_SYSTEM:
+            return self.parse_system()
+        if tok.type == TokenType.KW_SCENE:
+            return self.parse_scene()
 
         # AI-native features (only standalone ones; requires/ensures inside fn body)
         if tok.type == TokenType.KW_PERMISSION:
@@ -507,6 +515,131 @@ class Parser:
                 break
         self._consume_dedents()
         return ModelDecl(name, fields, methods, tok.line, tok.col)
+
+    def parse_entity(self):
+        tok = self.advance()
+        name = self.expect(TokenType.IDENTIFIER).value
+        self.expect(TokenType.LPAREN)
+        components = []
+        if self.peek().type != TokenType.RPAREN:
+            components.append(self.expect(TokenType.IDENTIFIER).value)
+            while self.match(TokenType.COMMA):
+                if self.peek().type == TokenType.RPAREN:
+                    break
+                components.append(self.expect(TokenType.IDENTIFIER).value)
+        self.expect(TokenType.RPAREN)
+        self.expect(TokenType.NEWLINE)
+        return EntityDecl(name, components, tok.line, tok.col)
+
+    def parse_component(self):
+        tok = self.advance()
+        name = self.expect(TokenType.IDENTIFIER).value
+        self.expect(TokenType.COLON)
+        self.expect(TokenType.NEWLINE)
+        self.skip_newlines()
+        indent_tok = self.expect(TokenType.INDENT)
+        self._indents.append(indent_tok.value)
+        fields = []
+        while self.peek().type not in (TokenType.DEDENT, TokenType.EOF):
+            if self.peek().type == TokenType.IDENTIFIER:
+                field_name = self.advance().value
+                self.expect(TokenType.COLON)
+                field_type = self.expect(TokenType.IDENTIFIER).value
+                default = None
+                if self.match(TokenType.EQ):
+                    default = self.parse_expr()
+                fields.append(ComponentField(field_name, field_type, default))
+                self.expect(TokenType.NEWLINE)
+                self.skip_newlines()
+            else:
+                break
+        self._consume_dedents()
+        return ComponentDecl(name, fields, tok.line, tok.col)
+
+    def parse_system(self):
+        tok = self.advance()
+        name = self.expect(TokenType.IDENTIFIER).value
+        self.expect(TokenType.COLON)
+        self.expect(TokenType.NEWLINE)
+        self.skip_newlines()
+        indent_tok = self.expect(TokenType.INDENT)
+        self._indents.append(indent_tok.value)
+        requires = []
+        stmts = []
+        while self.peek().type not in (TokenType.DEDENT, TokenType.EOF):
+            if self.peek().type == TokenType.KW_REQUIRES:
+                self.advance()
+                self.expect(TokenType.COLON)
+                self.expect(TokenType.LBRACKET)
+                requires = []
+                if self.peek().type != TokenType.RBRACKET:
+                    requires.append(self.expect(TokenType.IDENTIFIER).value)
+                    while self.match(TokenType.COMMA):
+                        if self.peek().type == TokenType.RBRACKET:
+                            break
+                        requires.append(self.expect(TokenType.IDENTIFIER).value)
+                self.expect(TokenType.RBRACKET)
+                self.expect(TokenType.NEWLINE)
+            elif self.peek().type == TokenType.KW_FN:
+                stmts.append(self.parse_fn_def())
+            else:
+                stmt = self.parse_stmt()
+                if stmt:
+                    stmts.append(stmt)
+            self.skip_newlines()
+        self._consume_dedents()
+        return SystemDecl(name, requires, stmts, tok.line, tok.col)
+
+    def parse_scene(self):
+        tok = self.advance()
+        name = self.expect(TokenType.IDENTIFIER).value
+        inherit = None
+        if self.peek().type == TokenType.LPAREN:
+            self.advance()
+            if self.peek().type == TokenType.IDENTIFIER:
+                inherit = self.advance().value
+            self.expect(TokenType.RPAREN)
+        self.expect(TokenType.COLON)
+        self.expect(TokenType.NEWLINE)
+        self.skip_newlines()
+        indent_tok = self.expect(TokenType.INDENT)
+        self._indents.append(indent_tok.value)
+        entities = []
+        while self.peek().type not in (TokenType.DEDENT, TokenType.EOF):
+            if self.peek().type == TokenType.MINUS:
+                self.advance()
+                if self.peek().type == TokenType.IDENTIFIER:
+                    var = None
+                    peek2 = self.peek(1)
+                    if peek2 and peek2.type == TokenType.COLON:
+                        var = self.advance().value
+                        self.advance()
+                    entity_type = self.expect(TokenType.IDENTIFIER).value
+                    args = {}
+                    if self.peek().type == TokenType.LPAREN:
+                        self.advance()
+                        while self.peek().type != TokenType.RPAREN and self.peek().type != TokenType.EOF:
+                            if self.peek().type == TokenType.IDENTIFIER:
+                                peek2 = self.peek(1)
+                                if peek2 and peek2.type == TokenType.EQ:
+                                    arg_name = self.advance().value
+                                    self.advance()
+                                    arg_val = self.parse_expr()
+                                    args[arg_name] = arg_val
+                                    self.match(TokenType.COMMA)
+                                else:
+                                    args['_'] = self.parse_expr()
+                                    self.match(TokenType.COMMA)
+                            else:
+                                break
+                        self.expect(TokenType.RPAREN)
+                    entities.append(EntityInstance(var, entity_type, args))
+                self.expect(TokenType.NEWLINE)
+                self.skip_newlines()
+            else:
+                break
+        self._consume_dedents()
+        return SceneDecl(name, inherit, entities, tok.line, tok.col)
 
     def parse_version_value(self):
         """Parse: version STRING, return VersionAnn node."""

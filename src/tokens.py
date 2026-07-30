@@ -101,6 +101,11 @@ class TokenType(Enum):
     KW_CATCH = auto()
     KW_THROW = auto()
     KW_ENUM = auto()
+    KW_ENTITY = auto()
+    KW_COMP = auto()
+    KW_SYSTEM = auto()
+    KW_SCENE = auto()
+    KW_TAG = auto()
 
 KEYWORDS = {
     'fn': TokenType.KW_FN,
@@ -161,6 +166,11 @@ KEYWORDS = {
     'raise': TokenType.KW_THROW,
     'throw': TokenType.KW_THROW,
     'enum': TokenType.KW_ENUM,
+    'entity': TokenType.KW_ENTITY,
+    'comp': TokenType.KW_COMP,
+    'system': TokenType.KW_SYSTEM,
+    'scene': TokenType.KW_SCENE,
+    'tag': TokenType.KW_TAG,
 }
 
 

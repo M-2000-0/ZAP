@@ -321,6 +321,54 @@ class ModelDecl(Node):
         self.fields = fields
         self.methods = methods or []
 
+# ---- ECS / Game Engine constructs ----
+
+class EntityDecl(Node):
+    __slots__ = ('name', 'components')
+    def __init__(self, name, components, line=0, col=0):
+        super().__init__(line, col)
+        self.name = name
+        self.components = components
+
+class ComponentDecl(Node):
+    __slots__ = ('name', 'fields')
+    def __init__(self, name, fields, line=0, col=0):
+        super().__init__(line, col)
+        self.name = name
+        self.fields = fields
+
+class ComponentField(Node):
+    __slots__ = ('name', 'field_type', 'default')
+    def __init__(self, name, field_type, default=None, line=0, col=0):
+        super().__init__(line, col)
+        self.name = name
+        self.field_type = field_type
+        self.default = default
+
+class SystemDecl(Node):
+    __slots__ = ('name', 'requires', 'stmts')
+    def __init__(self, name, requires, stmts, line=0, col=0):
+        super().__init__(line, col)
+        self.name = name
+        self.requires = requires
+        self.stmts = stmts
+
+class SceneDecl(Node):
+    __slots__ = ('name', 'inherit', 'entities')
+    def __init__(self, name, inherit=None, entities=None, line=0, col=0):
+        super().__init__(line, col)
+        self.name = name
+        self.inherit = inherit
+        self.entities = entities or []
+
+class EntityInstance(Node):
+    __slots__ = ('var', 'entity_type', 'args')
+    def __init__(self, var, entity_type, args=None, line=0, col=0):
+        super().__init__(line, col)
+        self.var = var
+        self.entity_type = entity_type
+        self.args = args or []
+
 # ---- AI-native constructs ----
 
 class PermissionDecl(Node):

@@ -4,10 +4,7 @@ import time as _time
 import os as _os
 import sys as _sys
 import datetime as _datetime
-import asyncio
-import concurrent.futures
 from .environment import Environment
-from concurrent.futures import ThreadPoolExecutor
 
 class ZpxType:
     pass
@@ -32,6 +29,7 @@ class ZpxPromise(ZpxType):
     def _schedule(self, loop):
         """Schedule the coroutine on the event loop."""
         if self._coro and not self._done:
+            import asyncio
             self._loop = loop
             # Use asyncio.ensure_future without loop parameter (deprecated in Python 3.10+)
             future = asyncio.ensure_future(self._coro)
@@ -426,6 +424,138 @@ def _builtin_call_host_fn(fn, args):
         return fn(*py_args)
     return fn(*py_args)
 
+# === Screen / GUI Automation Primitives ===
+
+def _stdlib_screen_size():
+    import pyautogui
+    w, h = pyautogui.size()
+    return ZpxDict({'width': w, 'height': h})
+
+def _stdlib_mouse_pos():
+    import pyautogui
+    x, y = pyautogui.position()
+    return ZpxDict({'x': x, 'y': y})
+
+def _stdlib_mouse_move(x, y, duration=0.2):
+    import pyautogui
+    pyautogui.moveTo(x, y, duration=duration)
+
+def _stdlib_mouse_click(x=None, y=None, button='left'):
+    import pyautogui
+    if x is not None and y is not None:
+        pyautogui.click(x, y, button=button)
+    else:
+        pyautogui.click(button=button)
+
+def _stdlib_mouse_double_click(x=None, y=None):
+    import pyautogui
+    if x is not None and y is not None:
+        pyautogui.doubleClick(x, y)
+    else:
+        pyautogui.doubleClick()
+
+def _stdlib_mouse_drag(x, y, duration=0.5):
+    import pyautogui
+    pyautogui.drag(x, y, duration=duration)
+
+def _stdlib_scroll(clicks):
+    import pyautogui
+    pyautogui.scroll(clicks)
+
+def _stdlib_key_type(text, interval=0.05):
+    import pyautogui
+    pyautogui.write(str(text), interval=interval)
+
+def _stdlib_key_press(key):
+    import pyautogui
+    pyautogui.press(key)
+
+def _stdlib_key_hotkey(keys):
+    import pyautogui
+    if isinstance(keys, ZpxList):
+        pyautogui.hotkey(*keys.elements)
+    else:
+        pyautogui.hotkey(str(keys))
+
+def _stdlib_screen_capture(region=None):
+    import pyautogui
+    if region is not None and isinstance(region, ZpxDict):
+        r = region.entries
+        img = pyautogui.screenshot(region=(r['x'], r['y'], r['width'], r['height']))
+    else:
+        img = pyautogui.screenshot()
+    return ZpxDict({'width': img.width, 'height': img.height, 'path': None, 'img': img})
+
+def _stdlib_screen_capture_save(path, region=None):
+    import pyautogui
+    if region is not None and isinstance(region, ZpxDict):
+        r = region.entries
+        img = pyautogui.screenshot(region=(r['x'], r['y'], r['width'], r['height']))
+    else:
+        img = pyautogui.screenshot()
+    img.save(str(path))
+    return path
+
+def _stdlib_locate_on_screen(image_path, confidence=0.9):
+    import pyautogui
+    try:
+        box = pyautogui.locateOnScreen(str(image_path), confidence=confidence)
+        if box:
+            return ZpxDict({'x': box.left, 'y': box.top, 'width': box.width, 'height': box.height})
+        return None
+    except Exception:
+        return None
+
+def _stdlib_get_active_window():
+    import pyautogui
+    try:
+        import pygetwindow as gw
+        w = gw.getActiveWindow()
+        if w:
+            return ZpxDict({'title': w.title, 'left': w.left, 'top': w.top, 'width': w.width, 'height': w.height})
+        return None
+    except Exception:
+        return None
+
+def _stdlib_get_windows(title_filter=None):
+    import pygetwindow as gw
+    try:
+        if title_filter:
+            wins = gw.getWindowsWithText(str(title_filter))
+        else:
+            wins = gw.getAllWindows()
+        result = ZpxList([])
+        for w in wins:
+            result.append(ZpxDict({'title': w.title, 'left': w.left, 'top': w.top, 'width': w.width, 'height': w.height}))
+        return result
+    except Exception:
+        return ZpxList([])
+
+def _stdlib_activate_window(title):
+    import pygetwindow as gw
+    try:
+        wins = gw.getWindowsWithText(str(title))
+        if wins:
+            wins[0].activate()
+            return True
+        return False
+    except Exception:
+        return False
+
+def _stdlib_alert(text, title="ZPX", button="OK"):
+    import pyautogui
+    pyautogui.alert(text=str(text), title=str(title), button=str(button))
+
+def _stdlib_confirm(text, title="ZPX", buttons=None):
+    import pyautogui
+    if buttons:
+        return pyautogui.confirm(text=str(text), title=str(title), buttons=list(buttons.elements) if isinstance(buttons, ZpxList) else [str(buttons)])
+    return pyautogui.confirm(text=str(text), title=str(title))
+
+def _stdlib_prompt(text, title="ZPX", default=""):
+    import pyautogui
+    return pyautogui.prompt(text=str(text), title=str(title), default=str(default))
+
 def make_zpx_builtins():
     env = Environment()
     builtins = {
@@ -668,6 +798,27 @@ def make_zpx_builtins():
     env.define('rag_store', ZpxBuiltin(_stdlib_rag_store, 'rag_store'))
     env.define('rag_search', ZpxBuiltin(_stdlib_rag_search, 'rag_search'))
 
+    # === Screen / GUI Automation ===
+    env.define('screen_size', ZpxBuiltin(_stdlib_screen_size, 'screen_size'))
+    env.define('mouse_pos', ZpxBuiltin(_stdlib_mouse_pos, 'mouse_pos'))
+    env.define('mouse_move', ZpxBuiltin(_stdlib_mouse_move, 'mouse_move'))
+    env.define('mouse_click', ZpxBuiltin(_stdlib_mouse_click, 'mouse_click'))
+    env.define('mouse_double_click', ZpxBuiltin(_stdlib_mouse_double_click, 'mouse_double_click'))
+    env.define('mouse_drag', ZpxBuiltin(_stdlib_mouse_drag, 'mouse_drag'))
+    env.define('scroll', ZpxBuiltin(_stdlib_scroll, 'scroll'))
+    env.define('key_type', ZpxBuiltin(_stdlib_key_type, 'key_type'))
+    env.define('key_press', ZpxBuiltin(_stdlib_key_press, 'key_press'))
+    env.define('key_hotkey', ZpxBuiltin(_stdlib_key_hotkey, 'key_hotkey'))
+    env.define('screen_capture', ZpxBuiltin(_stdlib_screen_capture, 'screen_capture'))
+    env.define('screen_capture_save', ZpxBuiltin(_stdlib_screen_capture_save, 'screen_capture_save'))
+    env.define('locate_on_screen', ZpxBuiltin(_stdlib_locate_on_screen, 'locate_on_screen'))
+    env.define('get_active_window', ZpxBuiltin(_stdlib_get_active_window, 'get_active_window'))
+    env.define('get_windows', ZpxBuiltin(_stdlib_get_windows, 'get_windows'))
+    env.define('activate_window', ZpxBuiltin(_stdlib_activate_window, 'activate_window'))
+    env.define('alert', ZpxBuiltin(_stdlib_alert, 'alert'))
+    env.define('confirm', ZpxBuiltin(_stdlib_confirm, 'confirm'))
+    env.define('input_box', ZpxBuiltin(_stdlib_prompt, 'input_box'))
+
     # Dict helpers
     env.define('has_key', ZpxBuiltin(lambda d, k: k in (d.entries if isinstance(d, ZpxDict) else d), 'has_key'))
 
@@ -753,7 +904,24 @@ def make_zpx_builtins():
         'emb': 'embedding',        # emb("hello world")
         'csim': 'cosine_sim',      # csim(vec_a, vec_b)
         'rgs': 'rag_store',        # rgs(docs, "collection")
-        'rgq': 'rag_search',       #rgq("query", "collection")
+        'rgq': 'rag_search',       # rgq("query", "collection")
+        # Screen automation short aliases
+        'ssz': 'screen_size',      # ssz()
+        'mpos': 'mouse_pos',       # mpos()
+        'mmv': 'mouse_move',       # mmv(x, y)
+        'mclk': 'mouse_click',     # mclk(x, y)
+        'mdcl': 'mouse_double_click', # mdcl(x, y)
+        'mdrg': 'mouse_drag',      # mdrg(dx, dy)
+        'scl': 'scroll',           # scl(3)
+        'kwd': 'key_type',         # kwd("hello")
+        'kpr': 'key_press',        # kpr("enter")
+        'khot': 'key_hotkey',      # khot(["ctrl", "c"])
+        'scap': 'screen_capture',  # scap()
+        'scaps': 'screen_capture_save', # scaps("shot.png")
+        'loc': 'locate_on_screen', # loc("icon.png")
+        'awin': 'get_active_window', # awin()
+        'gwins': 'get_windows',    # gwins()
+        'actw': 'activate_window', # actw("Chrome")
     }
     for short_name, long_name in short.items():
         original = env.store.get(long_name)

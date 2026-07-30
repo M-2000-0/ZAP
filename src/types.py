@@ -696,6 +696,16 @@ class TypeChecker:
                 self.check(f)
             for m in node.methods:
                 self.check(m)
+        elif isinstance(node, EntityDecl):
+            pass
+        elif isinstance(node, ComponentDecl):
+            for f in node.fields:
+                self.check(f)
+        elif isinstance(node, SystemDecl):
+            for s in node.stmts:
+                self.check(s)
+        elif isinstance(node, SceneDecl):
+            pass
         elif isinstance(node, ApiEndpoint):
             pass
         elif isinstance(node, PageDecl):
