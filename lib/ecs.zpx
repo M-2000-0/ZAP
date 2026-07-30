@@ -1,0 +1,63 @@
+# ZPX ECS Runtime Library
+# import "lib/ecs.zpx"
+
+ECS = ZpxObject()
+
+fn __ecs_World():
+  ret _ecs_new_world()
+ECS.World = __ecs_World
+
+fn __ecs_create_entity(world, name=none):
+  ret _ecs_create_entity(world, name)
+ECS.create_entity = __ecs_create_entity
+
+fn __ecs_add_component(world, e, comp_type, comp_data):
+  _ecs_add_component(world, e, comp_type, comp_data)
+ECS.add_component = __ecs_add_component
+
+fn __ecs_get_component(world, e, comp_type):
+  ret _ecs_get_component(world, e, comp_type)
+ECS.get_component = __ecs_get_component
+
+fn __ecs_has_component(world, e, comp_type):
+  ret _ecs_has_component(world, e, comp_type)
+ECS.has_component = __ecs_has_component
+
+fn __ecs_remove_component(world, e, comp_type):
+  _ecs_remove_component(world, e, comp_type)
+ECS.remove_component = __ecs_remove_component
+
+fn __ecs_query(world, comp_types):
+  ret _ecs_query(world, comp_types)
+ECS.query = __ecs_query
+
+fn __ecs_register_system(world, system_name, reqs, run_fn):
+  _ecs_register_system(world, system_name, reqs, run_fn)
+ECS.register_system = __ecs_register_system
+
+fn __ecs_run_systems(world, dt):
+  _ecs_run_systems(world, dt)
+ECS.run_systems = __ecs_run_systems
+
+fn __ecs_destroy_entity(world, e):
+  _ecs_destroy_entity(world, e)
+ECS.destroy_entity = __ecs_destroy_entity
+
+fn __ecs_get_eid(e):
+  ret e.fields["__eid__"]
+ECS.get_eid = __ecs_get_eid
+
+fn __ecs_get_name(e):
+  ret e.fields["__name__"]
+ECS.get_name = __ecs_get_name
+
+fn __ecs_entity_count(world):
+  ret len(world.fields["__entities__"])
+ECS.entity_count = __ecs_entity_count
+
+fn __ecs_list_entities(world):
+  result = []
+  for k in world.fields["__entities__"]:
+    result.append(world.fields["__entities__"][k])
+  ret result
+ECS.list_entities = __ecs_list_entities

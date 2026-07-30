@@ -221,7 +221,9 @@ class Evaluator:
             elif isinstance(obj, ZpxDict):
                 obj.entries[idx] = value
             elif isinstance(obj, list):
-                obj[idx] = value
+                    obj[idx] = value
+            elif isinstance(obj, dict):
+                    obj[idx] = value
             target_name = f"{stmt.target.obj}[{idx}]"
         trace('assign', target_name or 'unknown', {'name': target_name, 'value': repr(value)[:100]})
         return value
@@ -252,7 +254,9 @@ class Evaluator:
             elif isinstance(obj, ZpxDict):
                 obj.entries[idx] = result
             elif isinstance(obj, list):
-                obj[idx] = result
+                    obj[idx] = result
+            elif isinstance(obj, dict):
+                    obj[idx] = result
         return result
 
     def _eval_if(self, stmt):
@@ -1184,6 +1188,8 @@ class Evaluator:
             return obj[idx]
         if obj_type is list:
             return obj[idx]
+        if obj_type is dict:
+            return obj.get(idx, None)
         raise RuntimeError(f"cannot index {type(obj).__name__}")
 
     def _eval_slice(self, expr):
@@ -1225,6 +1231,9 @@ class Evaluator:
                     return fn
                 if name in obj.base.fields:
                     return obj.base.fields[name]
+            py_attr = getattr(obj, name, None)
+            if py_attr is not None:
+                return py_attr
             raise AttributeError(f"'{obj_type.__name__}' has no attribute '{name}'")
 
         if obj_type is ZpxDict:
@@ -1275,6 +1284,8 @@ class Evaluator:
             return list(obj.entries.keys())
         if isinstance(obj, (list, tuple)):
             return list(obj)
+        if isinstance(obj, dict):
+            return list(obj.keys())
         if isinstance(obj, str):
             return list(obj)
         if isinstance(obj, ZpxTensor):

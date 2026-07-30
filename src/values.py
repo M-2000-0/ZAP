@@ -5,6 +5,7 @@ import os as _os
 import sys as _sys
 import datetime as _datetime
 from .environment import Environment
+from .ecs_runtime import register_ecs_builtins
 
 class ZpxType:
     pass
@@ -930,6 +931,7 @@ def make_zpx_builtins():
 
     env.define('True', True)
     env.define('False', False)
+    register_ecs_builtins(env)
     return env
 
 def _tensor_iter(t):
