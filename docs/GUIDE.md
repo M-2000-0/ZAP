@@ -133,7 +133,7 @@ database App
   tasks: Task
 
 fn render_task(t)
-  element("li", {class: if t.done "done" el "pending"}, t.title)
+  element("li", {class: "done" if t.done else "pending"}, t.title)
 
 api GET "/tasks"
   tasks |> query("SELECT * FROM tasks") |> map(t => render_task(t))
@@ -192,7 +192,6 @@ Use these to reduce token count by 40-60%:
 
 | Short | Long | When to use |
 |---|---|---|
-| `el` | `element` | HTML elements |
 | `rd` | `read_file` | File I/O |
 | `wr` | `write_file` | File I/O |
 | `jp` | `json_parse` | JSON parsing |
@@ -208,6 +207,10 @@ Use these to reduce token count by 40-60%:
 | `hpost` | `http_post` | HTTP POST |
 | `@req` | `@requires` | Pre-conditions |
 | `@ens` | `@ensures` | Post-conditions |
+
+> **Note:** `el` is **not** an alias for `element` — `el` is the reserved
+> keyword for `else`. Use `element(tag, attrs, children)` for HTML. This was
+> fixed because older docs suggested `el`, which produced broken code.
 
 ## AI-Specific Tips
 

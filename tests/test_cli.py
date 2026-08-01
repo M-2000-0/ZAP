@@ -135,6 +135,48 @@ class TestCheckCommand:
         rc, stdout, stderr = run_zpx(["check", "nonexistent.zpx"])
         assert rc != 0
 
+    def test_check_empty_dict_arg(self, tmp_project):
+        """zpx check: empty dict {} should satisfy a dict[str, any] parameter."""
+        zpx_file = write_zpx_file(tmp_project, "main.zpx", 'print(element("div", {}, "hi"))\n')
+        rc, stdout, stderr = run_zpx(["check", zpx_file])
+        assert rc == 0, stderr
+
+    def test_check_method_calls(self, tmp_project):
+        """zpx check: dict/list/str methods should resolve, not report 'any' not callable."""
+        src = (
+            'let d = {a: 1}\n'
+            'let ks = d.keys()\n'
+            'let v = d.get("a")\n'
+            'let xs = []\n'
+            'xs.append(1)\n'
+            'let n = xs.len()\n'
+            'let s = "hi"\n'
+            'let u = s.upper()\n'
+            'let parts = s.split(",")\n'
+            'print(n + v)\n'
+        )
+        zpx_file = write_zpx_file(tmp_project, "main.zpx", src)
+        rc, stdout, stderr = run_zpx(["check", zpx_file])
+        assert rc == 0, stderr
+
+    def test_check_index_any(self, tmp_project):
+        """zpx check: indexing a dynamic value (any) should be allowed."""
+        src = 'let f = x => x["name"]\nprint(f({name: "hi"}))\n'
+        zpx_file = write_zpx_file(tmp_project, "main.zpx", src)
+        rc, stdout, stderr = run_zpx(["check", zpx_file])
+        assert rc == 0, stderr
+
+    def test_check_recursive_fn(self, tmp_project):
+        """zpx check: a function should be able to call itself."""
+        src = (
+            'fn fib(n)\n'
+            '  n if n < 2 else fib(n - 1) + fib(n - 2)\n'
+            'print(fib(5))\n'
+        )
+        zpx_file = write_zpx_file(tmp_project, "main.zpx", src)
+        rc, stdout, stderr = run_zpx(["check", zpx_file])
+        assert rc == 0, stderr
+
 
 class TestCompileCommand:
     """Tests for `zpx compile`."""

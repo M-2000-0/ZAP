@@ -12,7 +12,7 @@ same grammar the file was written for.
 """
 
 # Bump in lockstep with pyproject.toml. Format: MAJOR.MINOR.PATCH.
-VERSION = "0.2.0"
+VERSION = "0.2.2"
 
 # The grammar version this interpreter understands. If a .zpx file declares
 # a different grammar version, the parser emits a Z001 diagnostic.

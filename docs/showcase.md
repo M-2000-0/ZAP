@@ -190,7 +190,41 @@ fn play():
 
 ---
 
-### 6. Machine Learning Pipeline
+### 6. Design Systems (5 visual styles)
+
+Claymorphism, glassmorphism, neumorphism, brutalism, and minimal — all from one
+file where each style is a single CSS string.
+
+```zpx
+let glass = ".card { background: rgba(255,255,255,0.18); border: 1px solid rgba(255,255,255,0.35); border-radius: 20px; padding: 28px; backdrop-filter: blur(18px); box-shadow: 0 8px 32px rgba(0,0,0,0.25); }
+body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); font-family: 'Segoe UI', sans-serif; }"
+
+fn hero(name, desc, css):
+  element("html", {}, [
+    element("head", {}, [element("title", {}, name), element("style", {}, css)]),
+    element("body", {}, [
+      element("h1", {}, name),
+      element("div", {class: "card"}, [element("button", {class: "btn"}, "Action")]),
+    ]),
+  ])
+
+print(html(hero("Glassmorphism", "Frosted UI", glass)))
+```
+
+**Run it:** `zpx run examples/design_systems.zpx` → writes `build/design-systems.html`
+
+---
+
+### 7. Desktop-Style App
+
+A desktop-feeling app shell (titlebar, taskbar, menus, app logic) generated
+entirely in Zpx as an HTML shell — no native dependencies.
+
+**Run it:** `zpx run examples/desktop_app.zpx` → writes `build/desktop-app.html`
+
+---
+
+### 8. Machine Learning Pipeline
 
 High-level ML concepts with tensor operations.
 
@@ -232,6 +266,8 @@ zpx run examples/ml_pipeline.zpx
 zpx run examples/comprehensions.zpx
 zpx run examples/pattern_matching.zpx
 zpx run examples/oop.zpx
+zpx run examples/design_systems.zpx
+zpx run examples/desktop_app.zpx
 ```
 
 ## 📊 Token Efficiency Comparison

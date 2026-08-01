@@ -1,0 +1,94 @@
+# Desktop-style app in ZPX — HTML shell, no native dependencies
+# Run: zpx run examples/desktop_app.zpx
+# Writes build/desktop-app.html. Open it in a browser to use the "app".
+#
+# ZPX has no native window toolkit yet, but you can build desktop-feeling UIs
+# entirely in Zpx: window chrome, taskbar, menu, and app logic all generated
+# as HTML/CSS/JS from one file.
+
+# --- Window chrome: a fake OS window with titlebar, buttons, and drag ---------
+let desktop_css = "* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: linear-gradient(135deg, #1e293b, #0f172a); display: flex; align-items: center; justify-content: center; }
+#desktop { width: 100%; height: 100%; display: flex; flex-direction: column; }
+#taskbar { height: 48px; background: rgba(15,23,42,0.95); display: flex; align-items: center; gap: 12px; padding: 0 16px; border-bottom: 1px solid #334155; }
+#taskbar .app-dot { width: 12px; height: 12px; border-radius: 50%; }
+#clock { color: #cbd5e1; font-size: 13px; margin-left: auto; }
+#window { width: 720px; max-width: 92%; height: 460px; background: #f8fafc; border-radius: 12px; box-shadow: 0 24px 64px rgba(0,0,0,0.5); overflow: hidden; display: flex; flex-direction: column; margin: auto; }
+#titlebar { height: 40px; background: #0f172a; display: flex; align-items: center; padding: 0 12px; gap: 8px; user-select: none; }
+#titlebar .title { color: #e2e8f0; font-size: 13px; font-weight: 600; flex: 1; }
+#titlebar .win-btn { width: 26px; height: 26px; border: none; border-radius: 6px; background: transparent; color: #cbd5e1; cursor: pointer; font-size: 12px; }
+#titlebar .win-btn:hover { background: #1e293b; }
+#titlebar .win-btn.close:hover { background: #ef4444; color: #fff; }
+#app-body { flex: 1; padding: 24px; overflow-y: auto; }
+#menu { display: flex; gap: 8px; margin-bottom: 20px; }
+.menu-item { padding: 8px 16px; border: none; border-radius: 8px; background: #e2e8f0; color: #0f172a; font-size: 13px; cursor: pointer; }
+.menu-item.active { background: #2563eb; color: #fff; }
+#content { font-size: 14px; color: #334155; line-height: 1.6; }"
+
+let desktop_js = "const clock = document.getElementById('clock');
+setInterval(() => clock.textContent = new Date().toLocaleTimeString(), 1000);
+document.querySelectorAll('.win-btn.close').forEach(b => b.onclick = () => document.getElementById('window').style.display = 'none');
+const menu = document.querySelectorAll('.menu-item');
+const content = document.getElementById('content');
+const views = {
+  notes: '<h2>Notes</h2><p>This is a notes view rendered by ZPX-generated JS.</p>',
+  todo: '<h2>Tasks</h2><p>[ ] Write ZPX docs<br>[ ] Ship v0.3</p>',
+  about: '<h2>About</h2><p>Built entirely with Zpx in one file.</p>'
+};
+menu.forEach(b => b.onclick = () => {
+  menu.forEach(x => x.classList.remove('active'));
+  b.classList.add('active');
+  content.innerHTML = views[b.dataset.view];
+});"
+
+fn taskbar(clock)
+  element("div", {id: "taskbar"}, [
+    element("span", {class: "app-dot", style: "background:#22c55e"}, ""),
+    element("span", {class: "app-dot", style: "background:#3b82f6"}, ""),
+    element("span", {class: "app-dot", style: "background:#f59e0b"}, ""),
+    element("span", {id: "clock"}, "Zpx Desktop"),
+  ])
+
+fn titlebar(title)
+  element("div", {id: "titlebar"}, [
+    element("span", {class: "title"}, title),
+    element("button", {class: "win-btn close"}, "-"),
+    element("button", {class: "win-btn close"}, "x"),
+  ])
+
+fn menu()
+  element("div", {id: "menu"}, [
+    element("button", {class: "menu-item active", "data-view": "notes"}, "Notes"),
+    element("button", {class: "menu-item", "data-view": "todo"}, "Tasks"),
+    element("button", {class: "menu-item", "data-view": "about"}, "About"),
+  ])
+
+fn app()
+  element("html", {}, [
+    element("head", {}, [
+      element("title", {}, "Zpx Desktop"),
+      element("style", {}, desktop_css),
+    ]),
+    element("body", {}, [
+      element("div", {id: "desktop"}, [
+        taskbar(""),
+        element("div", {id: "window"}, [
+          titlebar("Zpx Desktop App"),
+          element("div", {id: "app-body"}, [
+            menu(),
+            element("div", {id: "content"}, [
+              element("h2", {}, "Notes"),
+              element("p", {}, "Click a menu item to switch views."),
+            ]),
+          ]),
+        ]),
+      ]),
+      element("script", {}, desktop_js),
+    ]),
+  ])
+
+mkdir("build")
+write_file("build/desktop-app.html", html(app()))
+print("Wrote build/desktop-app.html")
+print("Open it in a browser — a desktop-feeling app from one ZPX file.")

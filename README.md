@@ -71,30 +71,37 @@ By 2027, an estimated 80% of code will be AI-generated. Today's languages were d
 
 ## Quick Start
 
+### From source (works today)
+
 ```bash
-# Install from PyPI
-pip install zpx-lang
+git clone https://github.com/M-2000-0/ZPX.git
+cd ZPX
+pip install .            # installs the `zpx` command
+zpx --version
 
 # Run your first program
 echo 'print("Hello from Zpx!")' > hello.zpx
 zpx run hello.zpx
 
-# Try the examples
+# Try the examples (in the repo checkout)
 zpx run examples/hello.zpx
+zpx run examples/design_systems.zpx
 zpx run examples/rest_api.zpx
-zpx run examples/data_pipeline.zpx
-zpx run examples/ai_native.zpx
 ```
 
-**From source:**
+No `pip install .`? You can run directly from the checkout:
 
 ```bash
-git clone https://github.com/M-2000-0/ZPX.git
-cd ZPX
 python -m src run examples/hello.zpx
 ```
 
-**REPL:**
+### From PyPI (coming soon)
+
+```bash
+pip install zpx-lang     # not yet published — install from source for now
+```
+
+### REPL
 
 ```bash
 zpx repl
@@ -315,6 +322,7 @@ zpx ai                     # AI subcommands (train, scan, wifi)
 | Doc | Purpose |
 |-----|---------|
 | [Language Guide](docs/GUIDE.md) | How to write Zpx, AI coding guide, token optimization |
+| [Design Guide](docs/DESIGN.md) | Claymorphism, glassmorphism, neumorphism; web apps, desktop-style apps |
 | [Language Spec](docs/SPEC.md) | Full syntax reference |
 | [Contributing](docs/CONTRIBUTING.md) | How to get involved |
 | [Showcase](docs/showcase.md) | Real-world example gallery |

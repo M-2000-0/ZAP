@@ -7,6 +7,7 @@ Welcome to the Zpx documentation. Start here to learn the language.
 | Doc | What it covers |
 |-----|----------------|
 | [Language Guide](GUIDE.md) | How to write Zpx — syntax, idioms, and token-optimization rules for AI code generation |
+| [Design Guide](DESIGN.md) | Visual styles (claymorphism, glassmorphism, neumorphism, ...), web apps, desktop-style apps |
 | [Language Spec](SPEC.md) | The complete, formal syntax and semantics reference |
 | [Showcase](showcase.md) | Real-world example gallery |
 

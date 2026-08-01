@@ -99,7 +99,7 @@ class DictType(Type):
         self.value_type = value_type
     def is_subtype(self, other):
         if isinstance(other, AnyType): return True
-        return isinstance(other, DictType) and self.key_type == other.key_type and self.value_type.is_subtype(other.value_type)
+        return isinstance(other, DictType) and self.key_type.is_subtype(other.key_type) and self.value_type.is_subtype(other.value_type)
     def __repr__(self): return f'dict[{self.key_type}, {self.value_type}]'
     def __eq__(self, other):
         return isinstance(other, DictType) and self.key_type == other.key_type and self.value_type == other.value_type
@@ -597,13 +597,51 @@ class TypeChecker:
             return obj_type.value_type
         if isinstance(obj_type, PrimitiveType) and obj_type.name == 'str':
             return STR
+        if isinstance(obj_type, AnyType):
+            return ANY  # dynamic value: indexing is legal at runtime
         self.error(node, f"cannot index {obj_type}")
         return ANY
 
     def _infer_member(self, node):
         obj_type = self.infer(node.obj)
-        if isinstance(obj_type, TensorType) and node.member == 'shape':
-            return ListType(INT)
+        name = node.member
+        if isinstance(obj_type, TensorType) and name in ('shape', 'data'):
+            return ListType(INT) if name == 'shape' else ListType(ANY)
+        if isinstance(obj_type, DictType):
+            if name == 'keys':
+                return FunctionType([], ListType(obj_type.key_type))
+            if name == 'values':
+                return FunctionType([], ListType(obj_type.value_type))
+            if name == 'items':
+                return FunctionType([], ListType(ListType(ANY)))
+            if name == 'len':
+                return FunctionType([], INT)
+            if name == 'get':
+                return FunctionType([obj_type.key_type, ANY], obj_type.value_type)
+            if name == 'has_key':
+                return FunctionType([obj_type.key_type], BOOL)
+            return ANY
+        if isinstance(obj_type, ListType):
+            if name == 'len':
+                return FunctionType([], INT)
+            if name == 'append':
+                return FunctionType([obj_type.element_type], NONE)
+            if name == 'remove':
+                return FunctionType([INT], NONE)
+            return ANY
+        if isinstance(obj_type, PrimitiveType) and obj_type.name == 'str':
+            str_methods = {
+                'upper': ([], STR), 'lower': ([], STR), 'strip': ([], STR),
+                'trim': ([], STR), 'reverse': ([], STR),
+                'split': ([STR], ListType(STR)),
+                'replace': ([STR, STR], STR),
+                'startswith': ([STR], BOOL), 'endswith': ([STR], BOOL),
+                'contains': ([STR], BOOL), 'find': ([STR], INT),
+            }
+            if name in str_methods:
+                params, ret = str_methods[name]
+                return FunctionType(params, ret)
+            return ANY
         return ANY
 
     def _infer_lambda(self, node):
@@ -783,6 +821,12 @@ class TypeChecker:
 
         self._current_return = parse_type_annotation(node.return_type) if node.return_type else ANY
 
+        fn_type = FunctionType(
+            [parse_type_annotation(p.get('type')) if p.get('type') else ANY for p in node.params],
+            parse_type_annotation(node.return_type) if node.return_type else ANY
+        )
+        old_env.set(node.name, fn_type, mutable=False)
+
         for p in node.params:
             pt = parse_type_annotation(p.get('type')) if p.get('type') else ANY
             self.env.set(p['name'], pt, mutable=False)
@@ -794,9 +838,3 @@ class TypeChecker:
 
         self._current_return = old_ret
         self.env = old_env
-
-        fn_type = FunctionType(
-            [parse_type_annotation(p.get('type')) if p.get('type') else ANY for p in node.params],
-            parse_type_annotation(node.return_type) if node.return_type else ANY
-        )
-        self.env.set(node.name, fn_type, mutable=False)

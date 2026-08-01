@@ -1,0 +1,49 @@
+# Full-stack web app in one ZPX file — themed UI + server + data
+# Run: zpx run examples/web_app.zpx
+# Starts a server on http://localhost:3000 (serves HTML for "/")
+#
+# NOTE: http_server blocks (serve_forever). To see the page:
+#   open http://localhost:3000 in a browser, then Ctrl+C to stop.
+
+# --- One glassmorphism theme string powers the whole app -----------------------
+let glass = "body { margin: 0; font-family: 'Segoe UI', system-ui, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+.card { background: rgba(255,255,255,0.16); border: 1px solid rgba(255,255,255,0.3); border-radius: 20px; padding: 32px; width: 420px; backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); box-shadow: 0 8px 32px rgba(0,0,0,0.25); color: #fff; }
+h1 { font-size: 22px; margin: 0 0 16px; font-weight: 600; }
+input { width: 100%; padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.4); background: rgba(255,255,255,0.15); color: #fff; margin-bottom: 12px; box-sizing: border-box; }
+input::placeholder { color: rgba(255,255,255,0.7); }
+button { width: 100%; padding: 12px; border: none; border-radius: 10px; background: #fff; color: #667eea; font-weight: 700; cursor: pointer; }
+.list-item { display: flex; justify-content: space-between; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.2); }"
+
+# --- In-memory data -------------------------------------------------------------
+let items = [{name: "Welcome", done: false}]
+
+fn render_item(item)
+  element("div", {class: "list-item"}, [
+    element("span", {}, item["name"]),
+    element("span", {}, "done" if item["done"] else ""),
+  ])
+
+fn page()
+  element("html", {}, [
+    element("head", {}, [
+      element("title", {}, "Zpx Glass App"),
+      element("style", {}, glass),
+    ]),
+    element("body", {}, [
+      element("div", {class: "card"}, [
+        element("h1", {}, "Glassmorphism App"),
+        element("input", {placeholder: "Add a task...", type: "text"}, ""),
+        element("button", {}, "Add"),
+        element("div", {id: "list"}, map(items, it => render_item(it))),
+      ]),
+    ]),
+  ])
+
+# --- Serve the rendered page + JSON API in one server ---------------------------
+let routes = {
+  "/": () => html(page()),
+  "/api/items": () => items,
+}
+
+print("Glassmorphism app running at http://localhost:3000")
+serve(3000, routes)
