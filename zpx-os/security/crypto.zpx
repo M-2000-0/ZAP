@@ -1,0 +1,128 @@
+# ZPX OS - Security: Cryptography Module
+# Encryption, hashing, masking, secure data operations
+
+let crypto_enabled = true
+let crypto_algo = "aes-256-xor"
+let crypto_salt = "zpxos_salt_2026"
+
+fn crypto_hash(data):
+  ret sha256(data)
+
+fn crypto_hash_file(path):
+  if ex(path) == false:
+    ret none
+  let content = read_file(path)
+  if content == none:
+    ret none
+  ret sha256(content)
+
+fn crypto_encrypt(data, key):
+  if key == none or string_len(key) == 0:
+    ret data
+  let key_len = string_len(key)
+  let result = ""
+  for i in range(string_len(data)):
+    let d_code = ord(data[i])
+    let k_code = ord(key[i % key_len])
+    let encrypted = (d_code + k_code) % 256
+    result = result + chr(encrypted)
+  ret result
+
+fn crypto_decrypt(data, key):
+  if key == none or string_len(key) == 0:
+    ret data
+  let key_len = string_len(key)
+  let result = ""
+  for i in range(string_len(data)):
+    let d_code = ord(data[i])
+    let k_code = ord(key[i % key_len])
+    let decrypted = (d_code - k_code) % 256
+    result = result + chr(decrypted)
+  ret result
+
+fn crypto_caesar_encrypt(data, shift):
+  if shift == none:
+    let shift = 13
+  let result = ""
+  for i in range(string_len(data)):
+    let ch = data[i]
+    let code = ord(ch)
+    let shifted = code + shift
+    if shifted > 255:
+      shifted = shifted - 256
+    result = result + chr(shifted)
+  ret result
+
+fn crypto_caesar_decrypt(data, shift):
+  if shift == none:
+    let shift = 13
+  let result = ""
+  for i in range(string_len(data)):
+    let ch = data[i]
+    let code = ord(ch)
+    let shifted = code - shift
+    if shifted < 0:
+      shifted = shifted + 256
+    result = result + chr(shifted)
+  ret result
+
+fn crypto_random_token(length):
+  if length == none:
+    let length = 32
+  let chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+  let token = ""
+  let seed = now()
+  for i in range(length):
+    let idx = (ord(seed[i % string_len(seed)]) + i) % string_len(chars)
+    token = token + chars[idx]
+  ret token
+
+fn crypto_generate_key():
+  ret crypto_random_token(32)
+
+fn crypto_mask_string(s, show_first, show_last):
+  if show_first == none:
+    let show_first = 3
+  if show_last == none:
+    let show_last = 3
+  let total = string_len(s)
+  if total <= show_first + show_last:
+    ret "***"
+  let visible = s[:show_first] + "***" + s[total - show_last:]
+  ret visible
+
+fn crypto_mask_email(email):
+  let parts = email.split("@")
+  if len(parts) != 2:
+    ret crypto_mask_string(email, 2, 2)
+  let masked_name = parts[0][:2] + "***"
+  ret masked_name + "@" + parts[1]
+
+fn crypto_wipe(data):
+  let cleared = ""
+  for i in range(string_len(data)):
+    cleared = cleared + chr(0)
+  ret cleared
+
+fn crypto_sanitize(data):
+  let lines = data.split("\n")
+  let result = []
+  for line in lines:
+    result.append(line)
+  ret result.join("\n")
+
+crypto = {
+  "hash": crypto_hash,
+  "hash_file": crypto_hash_file,
+  "encrypt": crypto_encrypt,
+  "decrypt": crypto_decrypt,
+  "caesar_encrypt": crypto_caesar_encrypt,
+  "caesar_decrypt": crypto_caesar_decrypt,
+  "random_token": crypto_random_token,
+  "generate_key": crypto_generate_key,
+  "mask_string": crypto_mask_string,
+  "mask_email": crypto_mask_email,
+  "wipe": crypto_wipe,
+  "sanitize": crypto_sanitize,
+  "enabled": crypto_enabled
+}

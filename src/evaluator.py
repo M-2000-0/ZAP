@@ -405,51 +405,108 @@ class Evaluator:
             base = self.env.get(stmt.base)
         obj = ZpxObject(methods=methods, base=base)
         self.env.define(stmt.name, obj)
-        has_init = 'init' in methods
-        has_base_init = base and hasattr(base, 'methods') and 'init' in base.methods
-        if has_init or has_base_init:
-            def constructor(*args):
-                instance = ZpxObject(base=obj)
-                instance.fields['self'] = instance
-                merged = {}
-                cur = obj
-                while cur:
-                    for k, v in cur.methods.items():
-                        if k not in merged:
-                            merged[k] = v
-                    cur = cur.base if hasattr(cur, 'base') else None
-                instance.methods = merged
-                init_fn = instance.methods.get('init')
-                if init_fn:
-                    call_env = Environment(init_fn.closure)
-                    call_env.define('self', instance)
-                    for i, param in enumerate(init_fn.params):
-                        if i == 0 and param['name'] == 'self':
-                            continue
-                        val = args[i - 1] if i - 1 < len(args) else param.get('default')
-                        call_env.define(param['name'], val)
-                    prev = self.env
-                    self.env = call_env
-                    try:
-                        self._eval_block(init_fn.body)
-                    finally:
-                        self.env = prev
-                return instance
-            # Store constructor on the class object, don't overwrite it
-            obj.fields['__init__'] = ZpxBuiltin(constructor, stmt.name + '.__init__')
-            # Also make the class callable for ergonomics
-            obj.fields['__call__'] = ZpxBuiltin(constructor, stmt.name)
+        # Always create a constructor so the class object is callable
+        def constructor(*args, **kwargs):
+            instance = ZpxObject(base=obj)
+            instance.fields['self'] = instance
+            merged = {}
+            cur = obj
+            while cur:
+                for k, v in cur.methods.items():
+                    if k not in merged:
+                        merged[k] = v
+                cur = cur.base if hasattr(cur, 'base') else None
+            instance.methods = merged
+            init_fn = instance.methods.get('init')
+            if init_fn:
+                call_env = Environment(init_fn.closure)
+                call_env.define('self', instance)
+                for i, param in enumerate(init_fn.params):
+                    if i == 0 and param['name'] == 'self':
+                        continue
+                    val = args[i - 1] if i - 1 < len(args) else param.get('default')
+                    call_env.define(param['name'], val)
+                prev = self.env
+                self.env = call_env
+                try:
+                    self._eval_block(init_fn.body)
+                finally:
+                    self.env = prev
+            return instance
+        obj.fields['__init__'] = ZpxBuiltin(constructor, stmt.name + '.__init__')
+        obj.fields['__call__'] = ZpxBuiltin(constructor, stmt.name)
         return None
 
     def _eval_import(self, stmt):
-        if stmt.from_module:
+        if stmt.alias:
+            self._eval_module_alias(stmt)
+        elif stmt.from_module:
             self._eval_from_import(stmt)
         elif stmt.module:
             self._eval_zpx_import(stmt)
         return None
 
+    def _eval_module_alias(self, stmt):
+        """Handle `import module as alias` - evaluates module under alias namespace."""
+        import os as _os
+        module_path = stmt.module
+        if not module_path.endswith('.zpx'):
+            module_path = module_path.replace('.', '/') + '.zpx'
+
+        search_dirs = ['.']
+        if self._current_file:
+            search_dirs.insert(0, _os.path.dirname(self._current_file))
+
+        resolved = None
+        for d in search_dirs:
+            candidate = _os.path.join(d, module_path) if d != '.' else module_path
+            if _os.path.exists(candidate):
+                resolved = candidate
+                break
+
+        if resolved is None:
+            raise ImportError(f"cannot find module '{stmt.module}'")
+
+        # Use cached module if already imported
+        if resolved in self._module_cache:
+            # Still need to create the alias if it wasn't already defined
+            # The module's top-level names are already in the current env scope
+            # But we need a namespace - check if the original import already happened
+            return None
+
+        with open(resolved, 'r', encoding='utf-8') as f:
+            text = f.read()
+
+        from .lexer import Lexer
+        from .parser import Parser
+        lexer = Lexer(text, resolved)
+        tokens = lexer.tokenize()
+        parser = Parser(tokens)
+        prog = parser.parse()
+
+        prev_file = getattr(self, '_current_file', None)
+        self._current_file = resolved
+        try:
+            # Evaluate in a child environment to capture module's exports
+            module_env = Environment(self.env)
+            prev_env = self.env
+            self.env = module_env
+            try:
+                self._eval_program(prog)
+                self._module_cache[resolved] = module_env
+            finally:
+                self.env = prev_env
+            # Create a namespace object for the module alias
+            from .values import ZpxObject
+            mod_obj = ZpxObject()
+            for key, val in module_env.store.items():
+                mod_obj.fields[key] = val
+            self.env.define(stmt.alias, mod_obj)
+        finally:
+            self._current_file = prev_file
+
     def _eval_from_import(self, stmt):
-        """Handle 'import from X: Y, Z' - try Zpx module first, fall back to Python."""
+        """Handle 'from module import name as alias' - try Zpx module first, fall back to Python."""
         import os as _os
         module_name = stmt.from_module
         module_path = module_name + '.zpx'
@@ -473,10 +530,21 @@ class Evaluator:
             prog = parser.parse()
             prev_file = getattr(self, '_current_file', None)
             self._current_file = resolved
+            # Evaluate module in a child environment to capture its exports
+            module_env = Environment(self.env)
+            prev_env = self.env
+            self.env = module_env
             try:
                 self._eval_program(prog)
             finally:
+                self.env = prev_env
                 self._current_file = prev_file
+            # Now apply the import with aliases
+            for name in stmt.names:
+                if name in module_env.store:
+                    value = module_env.store[name]
+                    alias_name = stmt.aliases.get(name, name)
+                    self.env.define(alias_name, value)
         else:
             try:
                 import sys as _sys
@@ -488,7 +556,9 @@ class Evaluator:
                 for name in stmt.names:
                     attr = getattr(py_mod, name, None)
                     if attr is not None:
-                        self.env.define(name, attr)
+                        # Check for per-name alias
+                        alias_name = stmt.aliases.get(name, name)
+                        self.env.define(alias_name, attr)
             except ImportError:
                 raise ImportError(f"cannot import '{module_name}'")
 
@@ -528,11 +598,29 @@ class Evaluator:
 
         prev_file = getattr(self, '_current_file', None)
         self._current_file = resolved
-        try:
-            self._eval_program(prog)
-            self._module_cache[resolved] = True
-        finally:
-            self._current_file = prev_file
+        # If alias is requested, evaluate in a child environment for namespacing
+        if stmt.alias:
+            module_env = Environment(self.env)
+            prev_env = self.env
+            self.env = module_env
+            try:
+                self._eval_program(prog)
+                self._module_cache[resolved] = module_env
+            finally:
+                self.env = prev_env
+                self._current_file = prev_file
+            # Create namespace object
+            from .values import ZpxObject
+            mod_obj = ZpxObject()
+            for key, val in module_env.store.items():
+                mod_obj.fields[key] = val
+            self.env.define(stmt.alias, mod_obj)
+        else:
+            try:
+                self._eval_program(prog)
+                self._module_cache[resolved] = True
+            finally:
+                self._current_file = prev_file
 
     def _eval_match(self, stmt):
         value = self._eval_expr(stmt.value)
@@ -554,7 +642,7 @@ class Evaluator:
         methods = {}
         for m in stmt.methods:
             fn = ZpxFunction(m.name, m.params, m.body, self.env,
-                            m.return_type, m.is_async, is_method=True)
+                             m.return_type, m.is_async, is_method=True)
             methods[m.name] = fn
         obj = ZpxObject()
         obj.fields['__name__'] = stmt.name
@@ -566,6 +654,47 @@ class Evaluator:
             obj.fields['__permissions__'] = stmt.permissions
         for name, fn in methods.items():
             obj.fields[name] = BoundMethod(fn, obj)
+
+        # Create a constructor so services can be instantiated
+        init_fn = methods.get('init')
+        def constructor(*args, **kwargs):
+            instance = ZpxObject(base=obj)
+            instance.fields['self'] = instance
+            # Merge methods from class hierarchy
+            merged = {}
+            cur = obj
+            while cur:
+                if hasattr(cur, 'fields') and isinstance(cur.fields.get('__methods__'), dict):
+                    for k, v in cur.fields['__methods__'].items():
+                        if k not in merged:
+                            merged[k] = v
+                if hasattr(cur, 'methods'):
+                    for k, v in cur.methods.items():
+                        if k not in merged:
+                            merged[k] = v
+                cur = cur.base if hasattr(cur, 'base') else None
+            if not merged and init_fn:
+                merged['init'] = init_fn
+            instance.methods = merged
+            if init_fn:
+                call_env = Environment(init_fn.closure)
+                call_env.define('self', instance)
+                for i, param in enumerate(init_fn.params):
+                    if i == 0 and param['name'] == 'self':
+                        continue
+                    val = args[i - 1] if i - 1 < len(args) else param.get('default')
+                    call_env.define(param['name'], val)
+                prev = self.env
+                self.env = call_env
+                try:
+                    self._eval_block(init_fn.body)
+                finally:
+                    self.env = prev
+            return instance
+        obj.methods = methods
+        obj.fields['__init__'] = ZpxBuiltin(constructor, stmt.name + '.__init__')
+        obj.fields['__call__'] = ZpxBuiltin(constructor, stmt.name)
+
         self.env.define(stmt.name, obj)
         ctx = get_context()
         ctx.add_api(stmt.name, f"service with {len(methods)} methods",
@@ -786,6 +915,8 @@ class Evaluator:
             # Handle interpolated strings
             if isinstance(val, tuple) and len(val) == 2 and val[0] == 'interp':
                 return self._eval_interp_string(val[1])
+            if isinstance(val, tuple) and len(val) == 2 and val[0] == 'finterp':
+                return self._eval_fstring(val[1])
             return val
 
         if expr_type is Identifier:
@@ -814,6 +945,9 @@ class Evaluator:
 
         if expr_type is UnaryOp:
             return self._eval_unary(expr)
+
+        if expr_type is TernaryOp:
+            return self._eval_ternary(expr)
 
         if expr_type is Call:
             return self._eval_call(expr)
@@ -932,6 +1066,28 @@ class Evaluator:
                 return match.group(0)  # Return original on error
         return re.sub(r'\$\{([^}]+)\}', replace_expr, s)
 
+    def _eval_fstring(self, s):
+        """Evaluate f-string interpolation: replace {expr} with evaluated results."""
+        import re
+        def replace_expr(match):
+            expr_str = match.group(1)
+            from .lexer import Lexer
+            from .parser import Parser
+            try:
+                tokens = Lexer(expr_str, '<finterp>').tokenize()
+                parser = Parser(tokens)
+                prog = parser.parse()
+                result = None
+                for stmt in prog.stmts:
+                    if hasattr(stmt, 'expr'):
+                        result = self._eval_expr(stmt.expr)
+                    else:
+                        result = self._eval_stmt(stmt)
+                return str(result) if result is not None else ''
+            except Exception:
+                return match.group(0)
+        return re.sub(r'\{([^{}]+)\}', replace_expr, s)
+
     def _eval_binop(self, expr):
         left = self._eval_expr(expr.left)
         op = expr.op
@@ -1003,7 +1159,37 @@ class Evaluator:
             return left <= right
         if op == '>=':
             return left >= right
+        if op == 'in':
+            return self._eval_in(left, right)
+        if op == 'not in':
+            return not self._eval_in(left, right)
         raise RuntimeError(f"unknown operator: {op}")
+
+    def _eval_in(self, left, right):
+        """Evaluate 'x in y' - membership testing."""
+        right_type = type(right)
+        if right_type is ZpxList:
+            return left in right.elements
+        if right_type is ZpxDict:
+            return left in right.entries
+        if right_type is ZpxTensor:
+            flat = right._flatten(right.data)
+            return left in flat
+        if right_type is str:
+            return left in right
+        if right_type is list:
+            return left in right
+        if right_type is dict:
+            return left in right
+        if right_type is ZpxRange:
+            return left in list(right._iter())
+        return left in right
+
+    def _eval_ternary(self, expr):
+        cond = self._eval_expr(expr.condition)
+        if self._is_truthy(cond):
+            return self._eval_expr(expr.expr)
+        return self._eval_expr(expr.expr_else)
 
     def _eval_unary(self, expr):
         operand = self._eval_expr(expr.operand)
@@ -1113,7 +1299,8 @@ class Evaluator:
         if callee_name in ('print', 'len', 'str', 'int', 'float', 'range') and hasattr(callee, 'fn'):
             try:
                 args = [self._eval_expr(a) for a in expr.args]
-                result = callee.fn(*args)
+                kwargs = {k: self._eval_expr(v) for k, v in expr.kwargs.items()} if hasattr(expr, 'kwargs') else {}
+                result = callee.fn(*args, **kwargs)
                 trace('call_end', callee_name, {
                     'callee': callee_name,
                     'arg_count': len(args),
@@ -1131,7 +1318,8 @@ class Evaluator:
         # Normal evaluation
         try:
             args = [self._eval_expr(a) for a in expr.args]
-            result = self._call_fn(callee, args)
+            kwargs = {k: self._eval_expr(v) for k, v in expr.kwargs.items()} if hasattr(expr, 'kwargs') else {}
+            result = self._call_fn(callee, args, kwargs)
             trace('call_end', callee_name, {
                 'callee': callee_name,
                 'arg_count': len(args),
@@ -1146,7 +1334,9 @@ class Evaluator:
             })
             raise RuntimeError(self._format_error_with_context(e, expr)) from None
 
-    def _call_fn(self, callee, args):
+    def _call_fn(self, callee, args, kwargs=None):
+        if kwargs is None:
+            kwargs = {}
         callee_type = type(callee)
 
         if callee_type is BoundMethod:
@@ -1155,22 +1345,22 @@ class Evaluator:
             return fn._call(*([self_obj] + list(args)))
 
         if callee_type is ZpxFunction:
-            return callee._call(*args)
+            return callee._call(*args, **kwargs)
 
         if callee_type is ZpxBuiltin:
-            return callee.fn(*args)
+            return callee.fn(*args, **kwargs)
 
         if callable(callee):
-            return callee(*args)
+            return callee(*args, **kwargs)
 
         if callee_type is ZpxObject and 'call' in callee.methods:
-            return self._call_fn(callee.methods['call'], args)
+            return self._call_fn(callee.methods['call'], args, kwargs)
 
         if callee_type is ZpxObject and '__call__' in callee.fields:
             call_fn = callee.fields['__call__']
             if type(call_fn) is ZpxBuiltin:
-                return call_fn.fn(*args)
-            return call_fn(*args)
+                return call_fn.fn(*args, **kwargs)
+            return call_fn(*args, **kwargs)
 
         raise RuntimeError(f"'{callee_type.__name__}' is not callable")
 
@@ -1239,6 +1429,18 @@ class Evaluator:
         if obj_type is ZpxDict:
             if name in obj.entries:
                 return obj.entries[name]
+            if name == 'keys':
+                return ZpxBuiltin(lambda: ZpxList(list(obj.entries.keys())), 'keys')
+            if name == 'values':
+                return ZpxBuiltin(lambda: ZpxList(list(obj.entries.values())), 'values')
+            if name == 'items':
+                return ZpxBuiltin(lambda: ZpxList([ZpxList([k, v]) for k, v in obj.entries.items()]), 'items')
+            if name == 'len':
+                return ZpxBuiltin(lambda: len(obj.entries), 'len')
+            if name == 'get':
+                return ZpxBuiltin(lambda k, default=None: obj.entries.get(k, default), 'get')
+            if name == 'has_key':
+                return ZpxBuiltin(lambda k: k in obj.entries, 'has_key')
             raise AttributeError(f"dict has no key '{name}'")
 
         if obj_type is ZpxTensor:

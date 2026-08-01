@@ -1,0 +1,291 @@
+# ZPX OS - Shell Module
+# Interactive command shell for ZPX OS
+
+let shell_active = false
+let shell_history = []
+let shell_dir = "/"
+
+fn shell_tokenize(raw):
+  let tokens = []
+  let cur = ""
+  for i in range(string_len(raw)):
+    let c = raw[i]
+    if c == " ":
+      if string_len(cur) > 0:
+        tokens.append(cur)
+        cur = ""
+      continue
+    cur = cur + c
+  if string_len(cur) > 0:
+    tokens.append(cur)
+  ret tokens
+
+fn shell_help():
+  print("")
+  print("  ZPX OS Shell Commands:")
+  print("  ────────────────────────────────────────")
+  print("  help          Show this help")
+  print("  ls            List files")
+  print("  cat <file>    Show file contents")
+  print("  echo <msg>    Print a message")
+  print("  pwd           Print working directory")
+  print("  uname         System information")
+  print("  meminfo       Memory information")
+  print("  date          Current date and time")
+  print("  ps            Process list")
+  print("  clear         Clear screen")
+  print("  editor        Open text editor")
+  print("  terminal      Open terminal emulator")
+  print("  filemgr       Open file manager")
+  print("  settings      System settings")
+  print("  pkg list      List installed packages")
+  print("  pkg install <name>  Install a package")
+  print("  pkg info      Show OS info")
+  print("  shutdown      Shut down ZPX OS")
+  print("  reboot        Reboot ZPX OS")
+  print("  exit          Exit shell")
+  print("")
+
+fn shell_ls():
+  print("")
+  print("  [DIR]  .")
+  print("  [DIR]  ..")
+  print("  [FILE] boot.zpx")
+  print("  [DIR]  ui/")
+  print("  [DIR]  apps/")
+  print("  [DIR]  std/")
+  print("")
+
+fn shell_cd(args):
+  if len(args) == 0:
+    shell_dir = "/"
+  el:
+    let dir = args[0]
+    if dir == "..":
+      let parts = shell_dir.split("/")
+      if len(parts) > 1:
+        parts.pop()
+        shell_dir = parts.join("/")
+    el:
+      if dir == "/":
+        shell_dir = "/"
+      el:
+        shell_dir = shell_dir + "/" + dir
+  print("  Current directory: " + shell_dir)
+
+fn shell_pwd():
+  print("  " + shell_dir)
+
+fn shell_echo(args):
+  print(args.join(" "))
+
+fn shell_cat(args):
+  if len(args) == 0:
+    print_error("Usage: cat <filename>")
+    ret
+  let path = args[0]
+  if ex(path) == false:
+    print_error("cat: " + path + ": No such file")
+    ret
+  let content = read_file(path)
+  if content != none:
+    print("")
+    print("  " + path + ":")
+    print("  ────────────────────────────────────────")
+    print(content)
+    print("  ────────────────────────────────────────")
+  el:
+    print_error("Cannot read file")
+
+fn shell_uname():
+  print("")
+  print("  " + os_name + " " + os_version)
+  print("  Architecture: " + os_arch)
+  print("  Hostname: zpx-os")
+  print("")
+
+fn shell_meminfo():
+  let total = 1024 * 1024 * 1024
+  let used = total - free_mem_bytes
+  print("")
+  print("  Memory Information:")
+  print("  ────────────────────────────────────────")
+  print("  Total: " + str(total) + " bytes")
+  print("  Free:  " + str(free_mem_bytes) + " bytes")
+  print("  Used:  " + str(used) + " bytes")
+  print("")
+
+fn shell_date():
+  print("  " + now())
+
+fn shell_ps():
+  print("")
+  print("  Processes:")
+  print("  ────────────────────────────────────────")
+  print("  PID    NAME             STATUS")
+  print("  1      init             running")
+  print("  2      shell            running")
+  print("")
+
+fn shell_clear():
+  for i in range(50):
+    print("")
+
+fn shell_shutdown():
+  print("")
+  print("  ┌──────────────────────────────────────┐")
+  print("  │    ZPX OS is shutting down...        │")
+  print("  │    Thank you for using ZPX OS!       │")
+  print("  └──────────────────────────────────────┘")
+  print("")
+  shell_active = false
+
+fn shell_reboot():
+  clear_screen()
+  print_logo()
+  print("  Rebooting...")
+  print("")
+  boot()
+
+fn shell_editor():
+  ui_launch_editor()
+
+fn shell_terminal():
+  ui_launch_terminal()
+
+fn shell_filemgr():
+  ui_launch_filemgr()
+
+fn shell_settings():
+  ui_launch_settings()
+
+fn shell_pkg(args):
+  if len(args) == 0:
+    ui_pkg_help()
+  el:
+    let sub = args[0]
+    if sub == "list" or sub == "ls":
+      ui_pkg_list()
+    el:
+      if sub == "install":
+        if len(args) < 2:
+          print_error("Usage: pkg install <name>")
+        el:
+          print("  Searching for " + args[1] + "...")
+          sleep(0.3)
+          print_success(args[1] + " installed")
+      el:
+        if sub == "remove":
+          if len(args) < 2:
+            print_error("Usage: pkg remove <name>")
+          el:
+            print("  Removing " + args[1] + "...")
+            print_success(args[1] + " removed")
+        el:
+          if sub == "info":
+            ui_pkg_info()
+          el:
+            if sub == "search":
+              if len(args) < 2:
+                print_error("Usage: pkg search <keyword>")
+              el:
+                print("  Search results for '" + args[1] + "':")
+                print("  zpx-lang       AI-native programming language")
+                print("  zpx-os         ZPX Operating System")
+                print("  zpx-ui         UI framework")
+                print("  zpx-db         Database module")
+            el:
+              print_error("Unknown pkg command")
+
+fn handle_shell_command(raw):
+  let tokens = shell_tokenize(raw)
+  if len(tokens) == 0:
+    ret shell_active
+  let cmd = tokens[0]
+  let args = []
+  let i = 1
+  while i < len(tokens):
+    args.append(tokens[i])
+    i = i + 1
+  if cmd == "help":
+    shell_help()
+  el:
+    if cmd == "ls":
+      shell_ls()
+    el:
+      if cmd == "cat":
+        shell_cat(args)
+      el:
+        if cmd == "echo":
+          shell_echo(args)
+        el:
+          if cmd == "pwd":
+            shell_pwd()
+          el:
+            if cmd == "cd":
+              shell_cd(args)
+            el:
+              if cmd == "uname":
+                shell_uname()
+              el:
+                if cmd == "meminfo":
+                  shell_meminfo()
+                el:
+                  if cmd == "date":
+                    shell_date()
+                  el:
+                    if cmd == "ps":
+                      shell_ps()
+                    el:
+                      if cmd == "clear":
+                        shell_clear()
+                      el:
+                        if cmd == "editor":
+                          shell_editor()
+                        el:
+                          if cmd == "terminal":
+                            shell_terminal()
+                          el:
+                            if cmd == "filemgr":
+                              shell_filemgr()
+                            el:
+                              if cmd == "settings":
+                                shell_settings()
+                              el:
+                                if cmd == "pkg":
+                                  shell_pkg(args)
+                                el:
+                                  if cmd == "shutdown":
+                                    shell_shutdown()
+                                  el:
+                                    if cmd == "reboot":
+                                      shell_reboot()
+                                    el:
+                                      if cmd == "exit" or cmd == "quit":
+                                        shell_active = false
+                                        print("Goodbye from ZPX OS!")
+                                      el:
+                                        print_error("Unknown command: " + cmd)
+  ret shell_active
+
+fn shell_main():
+  print("")
+  print("  Welcome to ZPX OS!")
+  print("  Type 'help' for available commands")
+  print("")
+  shell_active = true
+  while shell_active:
+    let line = input("zpx-os:/ ")
+    if line == none or line == "":
+      continue
+    shell_active = handle_shell_command(line)
+
+# Export shell API
+shell = {
+  "main": shell_main,
+  "help": shell_help,
+  "handle": handle_shell_command,
+  "clear": shell_clear,
+  "ls": shell_ls,
+  "pwd": shell_pwd
+}

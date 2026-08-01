@@ -4,6 +4,17 @@ All notable changes to the Zpx programming language.
 
 ## v0.3.0 - Renamed from ZAP to ZPX for legal reasons
 
+## [0.2.1] - 2026-07-29
+
+### Added
+- **Improved README.md** with badges, showcase examples, and community links
+- **docs/GUIDE.md** — AI coding guide with token optimization rules
+- **docs/SPEC.md** — Full language specification
+- **docs/showcase.md** — Real-world example gallery
+- **docs/CONTRIBUTING.md** — Contribution guidelines
+- **Community links** — Twitter, Discord, GitHub Discussions
+- **Star/fork badges** for social proof
+
 ## [0.2.0] - 2026-07-28
 
 ### Added

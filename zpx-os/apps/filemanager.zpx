@@ -1,0 +1,56 @@
+# ZPX OS - File Manager Application
+
+fn ui_launch_filemgr():
+  print("")
+  print("  ╔══════════════════════════════════════╗")
+  print("  ║       ZPX OS File Manager               ║")
+  print("  ╚══════════════════════════════════════╝")
+  print("")
+  print("  / (Root Directory)")
+  print("    .")
+  print("    ..")
+  print("    boot.zpx")
+  print("    kernel.zpx")
+  print("    shell.zpx")
+  print("    ui/")
+  print("    apps/")
+  print("    std/")
+  print("    drivers/")
+  print("")
+  print("  Commands: open <file> | refresh | exit")
+  let running = true
+  while running:
+    let choice = input("filemgr> ")
+    if choice == none or choice == "":
+      continue
+    if choice == "exit":
+      running = false
+      print("  File manager closed")
+    el:
+      if choice == "refresh":
+        print("  Refreshed...")
+      el:
+        if choice.startswith("open "):
+          let fname = ""
+          let idx = 5
+          while idx < string_len(choice):
+            fname = fname + choice[idx]
+            idx = idx + 1
+          if ex(fname):
+            let content = read_file(fname)
+            if content != none:
+              print("")
+              print("  File: " + fname)
+              let lines_list = content.split("\n")
+              for i in range(len(lines_list)):
+                if i >= 30:
+                  break
+                print("  " + lines_list[i])
+              if len(lines_list) > 30:
+                print("  ... (" + str(len(lines_list)) + " lines total)")
+              print("")
+          el:
+            print_error("File not found: " + fname)
+        el:
+          print_error("Unknown command")
+  print("")

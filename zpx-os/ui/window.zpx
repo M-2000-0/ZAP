@@ -1,0 +1,106 @@
+# ZPX OS - UI Window Framework
+# Window management, widgets, and layout
+
+let windows_list = []
+let next_win_id = 1
+let theme_dark = {
+  "bg": "#1a1a2e",
+  "text": "#e0e0e0",
+  "accent": "#e94560",
+  "border": "#533483"
+}
+
+fn ui_create_window(title, width, height):
+  let win = {
+    "id": next_win_id,
+    "title": title,
+    "width": width,
+    "height": height,
+    "visible": true
+  }
+  next_win_id = next_win_id + 1
+  windows_list.append(win)
+  ret win
+
+fn ui_close_window(win_id):
+  for i in range(len(windows_list)):
+    if windows_list[i]["id"] == win_id:
+      windows_list[i]["visible"] = false
+      ret true
+  ret false
+
+fn ui_list_windows():
+  ret windows_list
+
+fn ui_render_all():
+  for w in windows_list:
+    if w["visible"]:
+      print("  Window: " + w["title"])
+      print("  Size: " + str(w["width"]) + "x" + str(w["height"]))
+      print("")
+
+fn ui_make_button(label, onclick_fn):
+  let btn = {
+    "type": "button",
+    "label": label,
+    "onclick": onclick_fn
+  }
+  ret btn
+
+fn ui_make_label(text):
+  let lbl = {
+    "type": "label",
+    "text": text
+  }
+  ret lbl
+
+fn ui_make_textbox(placeholder):
+  let tb = {
+    "type": "textbox",
+    "placeholder": placeholder,
+    "text": ""
+  }
+  ret tb
+
+fn ui_layout_vertical(widgets, padding):
+  let result = []
+  if padding != none:
+    let y = padding
+  el:
+    let y = 10
+  for w in widgets:
+    w["y"] = y
+    y = y + w["height"] + 5
+    result.append(w)
+  ret result
+
+fn ui_layout_horizontal(widgets, padding):
+  let result = []
+  if padding != none:
+    let x = padding
+  el:
+    let x = 10
+  for w in widgets:
+    w["x"] = x
+    x = x + w["width"] + 10
+    result.append(w)
+  ret result
+
+fn ui_divider():
+  print("  ────────────────────────────────────────")
+
+fn ui_header(text):
+  print("")
+  print("  ╔══════════════════════════════════════╗")
+  print("  ║  " + text + " ║")
+  print("  ╚══════════════════════════════════════╝")
+  print("")
+
+fn ui_success(msg):
+  print("  OK: " + msg)
+
+fn ui_error(msg):
+  print("  ERROR: " + msg)
+
+fn ui_info(msg):
+  print("  INFO: " + msg)

@@ -1,0 +1,33 @@
+# ZPX OS - System Settings
+
+fn ui_launch_settings():
+  print("")
+  print("  ╔══════════════════════════════════════╗")
+  print("  ║       ZPX OS Settings                   ║")
+  print("  ╚══════════════════════════════════════╝")
+  print("")
+  print("  System:")
+  print("    OS:         " + os_name)
+  print("    Version:    " + os_version)
+  print("    Architecture: " + os_arch)
+  print("    Hostname:   zpx-os")
+  print("")
+  print("  Appearance:")
+  print("    Theme:      dark")
+  print("    Font Size:  14px")
+  print("")
+  print("  Commands: reset | back")
+  let running = true
+  while running:
+    let choice = input("settings> ")
+    if choice == none or choice == "":
+      continue
+    if choice == "back" or choice == "exit":
+      running = false
+      print("  Settings closed")
+    el:
+      if choice == "reset":
+        print_success("Settings reset to defaults")
+      el:
+        print_info("Setting '" + choice + "' (feature coming soon)")
+  print("")

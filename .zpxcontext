@@ -1,0 +1,28 @@
+{
+  "project": {
+    "name": "",
+    "description": "",
+    "version": "0.2"
+  },
+  "intents": [],
+  "decisions": [],
+  "conventions": [],
+  "apis": [
+    {
+      "name": "PaymentService",
+      "description": "service with 1 methods",
+      "endpoints": [
+        "process_payment"
+      ]
+    },
+    {
+      "name": "api",
+      "description": "service with 1 methods",
+      "endpoints": [
+        "init"
+      ]
+    }
+  ],
+  "schemas": [],
+  "services": []
+}

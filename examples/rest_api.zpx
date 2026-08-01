@@ -44,7 +44,7 @@ fn handle_get_users():
   let result = []
   for u in users:
     result.append(user_to_json(u))
-  ret "[" + result.join(", ") + "]"
+  ret "[" + join(result, ", ") + "]"
 
 fn handle_get_user(id):
   let user = find_user(id)

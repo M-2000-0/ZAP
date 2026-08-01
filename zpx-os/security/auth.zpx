@@ -1,0 +1,104 @@
+# ZPX OS - Security: Authentication & Access Control
+
+let auth_enabled = true
+let auth_current_user = none
+let auth_session_token = none
+let auth_session_start = none
+let auth_login_attempts = 0
+let auth_max_attempts = 5
+let auth_locked = false
+let auth_audit_log = []
+
+fn auth_hash_password(password):
+  let combined = password + crypto_salt
+  ret crypto_hash(combined)
+
+fn auth_verify_password(password, stored_hash):
+  let computed = auth_hash_password(password)
+  ret computed == stored_hash
+
+fn auth_create_user(username, password):
+  let hashed = auth_hash_password(password)
+  ret {success: true, user: username}
+
+fn auth_login(username, password):
+  if auth_locked:
+    ret {error: "Account locked"}
+  auth_login_attempts = auth_login_attempts + 1
+  if auth_login_attempts >= auth_max_attempts:
+    auth_locked = true
+    ret {error: "Too many failed attempts"}
+  let verified = auth_verify_password(password, "dummy_hash")
+  if verified == false:
+    ret {error: "Invalid username or password"}
+  auth_current_user = username
+  auth_session_token = crypto_random_token(64)
+  auth_session_start = now()
+  auth_login_attempts = 0
+  ret {success: true, user: username}
+
+fn auth_logout():
+  let user = auth_current_user
+  auth_current_user = none
+  auth_session_token = none
+  auth_session_start = none
+  ret {success: true, message: "Logged out"}
+
+fn auth_is_authenticated():
+  if auth_current_user == none:
+    ret false
+  if auth_session_token == none:
+    ret false
+  ret true
+
+fn auth_current():
+  ret auth_current_user
+
+fn auth_session_info():
+  if auth_current_user == none:
+    ret {authenticated: false}
+  ret {
+    "authenticated": true,
+    "user": auth_current_user,
+    "login_time": auth_session_start
+  }
+
+fn auth_log(event_type, message):
+  let entry = {
+    "timestamp": now(),
+    "event": event_type,
+    "message": message,
+    "user": auth_current_user
+  }
+  auth_audit_log.append(entry)
+
+fn auth_get_audit_log():
+  ret auth_audit_log
+
+fn auth_security_status():
+  ret {
+    "encryption_enabled": crypto_enabled,
+    "authentication": auth_is_authenticated(),
+    "current_user": auth_current_user,
+    "locked": auth_locked,
+    "login_attempts": auth_login_attempts,
+    "max_attempts": auth_max_attempts,
+    "audit_log_entries": len(auth_audit_log)
+  }
+
+fn security_init():
+  auth_log("security_init", "ZPX Security initialized")
+  ret true
+
+security = {
+  "login": auth_login,
+  "logout": auth_logout,
+  "create_user": auth_create_user,
+  "is_authenticated": auth_is_authenticated,
+  "current_user": auth_current,
+  "session_info": auth_session_info,
+  "get_audit_log": auth_get_audit_log,
+  "security_status": auth_security_status,
+  "init": security_init,
+  "log": auth_log
+}

@@ -1,0 +1,10 @@
+{
+  "name": "zpx-os",
+  "version": "0.1.0",
+  "description": "ZPX OS - An operating system built 100% with ZPX",
+  "entrypoint": "boot.zpx",
+  "grammar": "0.2",
+  "dependencies": {
+    "zpx-lang": ">=0.2.0"
+  }
+}

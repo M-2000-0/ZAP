@@ -63,6 +63,7 @@ class TokenType(Enum):
     KW_NOT = auto()
     KW_IMPORT = auto()
     KW_FROM = auto()
+    KW_AS = auto()
     KW_CLASS = auto()
     KW_ASYNC = auto()
     KW_AWAIT = auto()
@@ -126,6 +127,7 @@ KEYWORDS = {
     'import': TokenType.KW_IMPORT,
     'imp': TokenType.KW_IMPORT,
     'from': TokenType.KW_FROM,
+    'as': TokenType.KW_AS,
     'class': TokenType.KW_CLASS,
     'async': TokenType.KW_ASYNC,
     'await': TokenType.KW_AWAIT,
@@ -141,7 +143,6 @@ KEYWORDS = {
     'model': TokenType.KW_MODEL,
     'expose': TokenType.KW_EXPOSE,
     'requires': TokenType.KW_REQUIRES,
-    'req': TokenType.KW_REQUIRES,
     'ensures': TokenType.KW_ENSURES,
     'invariant': TokenType.KW_INVARIANT,
     'inv': TokenType.KW_INVARIANT,

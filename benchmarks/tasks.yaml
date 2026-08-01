@@ -1,0 +1,228 @@
+# LLM Code Generation Benchmark Tasks
+# Each task defines a problem to solve in multiple languages
+# Metrics: token count, correctness (passes tests), latency
+
+tasks:
+  - id: "fibonacci"
+    name: "Fibonacci Function"
+    description: "Write a recursive fibonacci function with memoization"
+    category: "algorithms"
+    difficulty: "easy"
+    spec: |
+      Write a function `fib(n)` that returns the nth Fibonacci number.
+      Use memoization for efficiency. Include a main block that prints fib(10).
+    tests:
+      - input: "fib(0)"
+        expected: "0"
+      - input: "fib(1)"
+        expected: "1"
+      - input: "fib(10)"
+        expected: "55"
+      - input: "fib(20)"
+        expected: "6765"
+
+  - id: "fizzbuzz"
+    name: "FizzBuzz"
+    description: "Classic FizzBuzz implementation"
+    category: "algorithms"
+    difficulty: "easy"
+    spec: |
+      Print numbers 1 to 100. For multiples of 3 print "Fizz", 
+      multiples of 5 print "Buzz", multiples of both print "FizzBuzz".
+    tests:
+      - input: "run"
+        expected_contains: ["FizzBuzz", "Fizz", "Buzz", "1", "2", "98", "99", "100"]
+
+  - id: "http_server"
+    name: "Simple HTTP Server"
+    description: "HTTP server with JSON API endpoints"
+    category: "web"
+    difficulty: "medium"
+    spec: |
+      Create an HTTP server with these endpoints:
+      - GET /health -> {"status": "ok"}
+      - GET /users -> returns list of users (hardcoded array of 3 users with id, name, email)
+      - POST /users -> accepts JSON body {name, email}, returns created user with new id
+      - GET /users/{id} -> returns user or 404
+    tests:
+      - input: "GET /health"
+        expected_contains: ["ok"]
+      - input: "GET /users"
+        expected_contains: ["id", "name", "email"]
+      - input: "POST /users {'name': 'Test', 'email': 'test@test.com'}"
+        expected_contains: ["id", "Test", "test@test.com"]
+
+  - id: "data_pipeline"
+    name: "Data Processing Pipeline"
+    description: "ETL pipeline with filtering, transformation, aggregation"
+    category: "data"
+    difficulty: "medium"
+    spec: |
+      Process a list of transactions (dict with: id, amount, category, date).
+      1. Filter transactions where amount > 100
+      2. Group by category
+      3. Sum amounts per category
+      4. Return top 3 categories by total amount
+      Include sample data with 20 transactions.
+    tests:
+      - input: "run"
+        expected_contains: ["category", "total"]
+
+  - id: "crud_api"
+    name: "CRUD REST API"
+    description: "Full CRUD API with in-memory storage"
+    category: "web"
+    difficulty: "hard"
+    spec: |
+      Build a complete REST API for managing "tasks" with:
+      - GET /tasks - list all tasks
+      - POST /tasks - create task (title, description, completed=false)
+      - GET /tasks/{id} - get single task
+      - PUT /tasks/{id} - update task
+      - DELETE /tasks/{id} - delete task
+      Use in-memory storage (dict/list). Return proper HTTP status codes.
+    tests:
+      - input: "POST /tasks {'title': 'Test', 'description': 'Desc'}"
+        expected_contains: ["id", "Test", "false"]
+      - input: "GET /tasks"
+        expected_contains: ["Test"]
+      - input: "PUT /tasks/1 {'completed': true}"
+        expected_contains: ["true"]
+      - input: "DELETE /tasks/1"
+        expected_status: 204
+
+  - id: "async_concurrent"
+    name: "Concurrent Async Tasks"
+    description: "Structured concurrency with error handling"
+    category: "concurrency"
+    difficulty: "medium"
+    spec: |
+      Fetch data from 3 simulated APIs concurrently.
+      Each API call takes 100-500ms and may fail (10% chance).
+      Use structured concurrency: wait for all, collect results, handle errors.
+      Return combined results or error summary.
+    tests:
+      - input: "run"
+        expected_contains: ["result", "error"]
+
+  - id: "schema_validation"
+    name: "Schema Validation with Contracts"
+    description: "Data validation using contracts/preconditions"
+    category: "correctness"
+    difficulty: "medium"
+    spec: |
+      Define a User schema with: id (int > 0), name (non-empty string), 
+      email (valid format), age (int 0-150).
+      Create a function create_user(data) that validates input and returns 
+      User or raises ValidationError with details.
+      Use preconditions/postconditions (requires/ensures) if language supports.
+    tests:
+      - input: "create_user({'id': 1, 'name': 'John', 'email': 'j@j.com', 'age': 30})"
+        expected_contains: ["id", "John"]
+      - input: "create_user({'id': -1, 'name': 'John', 'email': 'j@j.com', 'age': 30})"
+        expected_error: true
+      - input: "create_user({'id': 1, 'name': '', 'email': 'j@j.com', 'age': 30})"
+        expected_error: true
+
+  - id: "html_dsl"
+    name: "HTML DSL / Templating"
+    description: "Type-safe HTML generation"
+    category: "web"
+    difficulty: "medium"
+    spec: |
+      Create a function render_user_card(user) that generates HTML for a user card:
+      <div class="card">
+        <h2>{name}</h2>
+        <p>{email}</p>
+        <span class="role">{role}</span>
+      </div>
+      Use a type-safe HTML DSL if available (not string concatenation).
+      Include a main function that renders 3 user cards.
+    tests:
+      - input: "run"
+        expected_contains: ["<div", "card", "h2", "email", "role"]
+
+  - id: "database_queries"
+    name: "Type-Safe Database Queries"
+    description: "Query builder with compile-time safety"
+    category: "data"
+    difficulty: "hard"
+    spec: |
+      Define a User table schema. Write type-safe queries for:
+      1. Find user by id
+      2. Find users where age > 18 and active = true
+      3. Count users by role
+      4. Insert new user
+      5. Update user email
+      Use a query builder that prevents SQL injection and validates columns at compile time.
+    tests:
+      - input: "run"
+        expected_contains: ["SELECT", "WHERE", "INSERT", "UPDATE"]
+
+  - id: "cli_tool"
+    name: "CLI Argument Parser"
+    description: "Command-line tool with subcommands"
+    category: "cli"
+    difficulty: "medium"
+    spec: |
+      Build a CLI tool "task-cli" with subcommands:
+      - task-cli add "description" --priority high
+      - task-cli list --filter pending
+      - task-cli done <id>
+      - task-cli remove <id>
+      Use a proper argument parser (not manual argv parsing).
+      Store tasks in JSON file.
+    tests:
+      - input: "task-cli add 'Test task' --priority high"
+        expected_contains: ["added", "Test task"]
+      - input: "task-cli list"
+        expected_contains: ["Test task"]
+
+  - id: "websocket_server"
+    name: "WebSocket Server"
+    description: "Real-time WebSocket server with rooms"
+    category: "web"
+    difficulty: "hard"
+    spec: |
+      Implement a WebSocket server supporting:
+      - Client connects, joins a "room" by name
+      - Broadcast messages to all clients in same room
+      - Handle disconnect gracefully
+      - Support multiple rooms
+      Include a simple test client that connects and sends messages.
+    tests:
+      - input: "run"
+        expected_contains: ["connected", "room", "message"]
+
+  - id: "graphql_api"
+    name: "GraphQL API"
+    description: "GraphQL schema with resolvers"
+    category: "web"
+    difficulty: "hard"
+    spec: |
+      Create a GraphQL API for a blog:
+      Types: Post(id, title, content, author, comments), Author(id, name, posts), Comment(id, text, author)
+      Queries: posts, post(id), authors, author(id)
+      Mutations: createPost, createComment
+      Use a proper GraphQL library with schema-first approach.
+    tests:
+      - input: "query { posts { title } }"
+        expected_contains: ["title"]
+
+  - id: "ml_pipeline"
+    name: "ML Training Pipeline"
+    description: "End-to-end ML pipeline with data loading, training, evaluation"
+    category: "data"
+    difficulty: "hard"
+    spec: |
+      Build a pipeline that:
+      1. Loads CSV data (features + target)
+      2. Splits train/test
+      3. Trains a simple model (logistic regression or decision tree)
+      4. Evaluates accuracy, precision, recall
+      5. Saves model to disk
+      6. Loads model and makes prediction on new data
+      Use standard ML libraries (sklearn, etc.)
+    tests:
+      - input: "run"
+        expected_contains: ["accuracy", "precision", "recall", "model saved"]

@@ -1,0 +1,76 @@
+# ZPX OS - Security: Secure Storage Vault
+
+let storage_vault_enabled = true
+let storage_vault_path = ".secure_vault"
+let storage_vault_encrypted = true
+let storage_vault_encryption_key = none
+let storage_vault_files = {}
+let storage_vault_access_log = []
+
+fn storage_init():
+  if storage_vault_encryption_key == none:
+    storage_vault_encryption_key = crypto_generate_key()
+  ret {initialized: true, key_set: storage_vault_encryption_key != none}
+
+fn storage_store(filename, data):
+  if storage_vault_enabled == false:
+    ret {error: "Secure storage disabled"}
+  if storage_vault_encryption_key == none:
+    storage_init()
+  let encrypted = crypto_encrypt(data, storage_vault_encryption_key)
+  let entry = {
+    "filename": filename,
+    "encrypted": encrypted,
+    "encrypted_at": now(),
+    "size_bytes": string_len(data)
+  }
+  storage_vault_files[filename] = entry
+  ret {success: true, file: filename, encrypted: true}
+
+fn storage_retrieve(filename):
+  let entry = storage_vault_files[filename]
+  if entry == none:
+    ret {error: "File not found in vault"}
+  let decrypted = crypto_decrypt(entry.encrypted, storage_vault_encryption_key)
+  ret {success: true, filename: filename, data: decrypted}
+
+fn storage_list_files():
+  let filenames = []
+  for name, entry in storage_vault_files:
+    filenames.append(name)
+  ret {files: filenames, count: len(filenames)}
+
+fn storage_delete(filename):
+  if storage_vault_files[filename] == none:
+    ret {error: "File not found"}
+  store storage_vault_files[filename]
+  ret {success: true, message: "Deleted from vault"}
+
+fn storage_vault_size():
+  ret len(storage_vault_files)
+
+fn storage_wipe_all():
+  let count = len(storage_vault_files)
+  storage_vault_files = {}
+  storage_vault_encryption_key = crypto_generate_key()
+  ret {success: true, wiped_files: count, new_key: true}
+
+fn storage_audit():
+  ret {
+    "vault_enabled": storage_vault_enabled,
+    "encrypted": storage_vault_encrypted,
+    "file_count": len(storage_vault_files),
+    "encryption_key_set": storage_vault_encryption_key != none
+  }
+
+storage = {
+  "init": storage_init,
+  "store": storage_store,
+  "retrieve": storage_retrieve,
+  "list_files": storage_list_files,
+  "delete": storage_delete,
+  "wipe_all": storage_wipe_all,
+  "audit": storage_audit,
+  "vault_size": storage_vault_size,
+  "enabled": storage_vault_enabled
+}

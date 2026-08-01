@@ -1,0 +1,67 @@
+# ZPX OS - Core Kernel
+# Process management, memory, system calls
+
+let os_name = "ZPX OS"
+let os_version = "0.1.0"
+let os_arch = "x86_64"
+
+# System state
+let kernel_running = true
+let process_count = 0
+let total_mem = 1024 * 1024 * 1024
+let free_mem_bytes = total_mem
+
+# System services exposed to ZPX applications
+
+fn kernel_info():
+  ret {
+    "os": os_name,
+    "version": os_version,
+    "arch": os_arch,
+    "total_memory": total_mem,
+    "free_memory": free_mem_bytes,
+    "process_count": process_count
+  }
+
+fn kernel_memory_info():
+  let used = total_mem - free_mem_bytes
+  ret {
+    "total": total_mem,
+    "free": free_mem_bytes,
+    "used": used,
+    "percent": (used * 100) / total_mem
+  }
+
+fn kernel_run_process(name):
+  process_count = process_count + 1
+  ret {
+    "pid": process_count,
+    "name": name,
+    "status": "running"
+  }
+
+fn kernel_stop_process(pid):
+  if pid > 0 and pid <= process_count:
+    ret true
+  ret false
+
+fn kernel_list_processes():
+  ret [
+    {"pid": 1, "name": "init", "status": "running"},
+    {"pid": 2, "name": "shell", "status": "running"}
+  ]
+
+# Kernel initialization
+fn kernel_init():
+  process_count = 2
+  ret true
+
+# Export kernel API
+kernel = {
+  "info": kernel_info,
+  "memory": kernel_memory_info,
+  "run_process": kernel_run_process,
+  "stop_process": kernel_stop_process,
+  "list_processes": kernel_list_processes,
+  "init": kernel_init
+}

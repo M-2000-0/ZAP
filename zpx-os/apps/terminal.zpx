@@ -1,0 +1,48 @@
+# ZPX OS - Terminal Emulator
+
+fn ui_launch_terminal():
+  print("")
+  print("  ╔══════════════════════════════════════╗")
+  print("  ║    ZPX OS Terminal Emulator             ║")
+  print("  ╚══════════════════════════════════════╝")
+  print("")
+  print("  Welcome to ZPX Terminal")
+  print("  Type 'help' for commands, 'exit' to close")
+  print("")
+  let running = true
+  while running:
+    let line = input("$ ")
+    if line == none or line == "":
+      continue
+    if line == "exit" or line == "quit":
+      running = false
+      print("  Terminal closed")
+    el:
+      if line == "help":
+        shell_help()
+      el:
+        if line == "clear":
+          shell_clear()
+        el:
+          if line == "date":
+            shell_date()
+          el:
+            if line == "uname":
+              shell_uname()
+            el:
+              if line == "meminfo":
+                shell_meminfo()
+              el:
+                if line == "ps":
+                  shell_ps()
+                el:
+                  if line == "shutdown":
+                    running = false
+                    shell_active = false
+                  el:
+                    if line == "reboot":
+                      running = false
+                      boot()
+                    el:
+                      print("  " + line)
+  print("")

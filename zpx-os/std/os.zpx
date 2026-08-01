@@ -1,0 +1,70 @@
+# ZPX OS - OS Standard Library
+# Provides OS-level functions for ZPX applications
+
+fn os_get_name():
+  ret os_name
+
+fn os_get_version():
+  ret os_version
+
+fn os_get_arch():
+  ret os_arch
+
+fn os_get_info():
+  ret {
+    "os": os_name,
+    "version": os_version,
+    "arch": os_arch,
+    "total_memory": 1024 * 1024 * 1024,
+    "hostname": "zpx-os"
+  }
+
+fn os_read_file(path):
+  ret read_file(path)
+
+fn os_write_file(path, content):
+  write_file(path, content)
+  ret true
+
+fn os_file_exists(path):
+  ret ex(path)
+
+fn os_getcwd():
+  ret shell_dir
+
+fn os_get_process_count():
+  ret 2
+
+fn os_sleep(seconds):
+  wait(seconds)
+  ret true
+
+fn os_run_command(cmd_str):
+  let tokens = []
+  let cur = ""
+  for i in range(string_len(cmd_str)):
+    let c = cmd_str[i]
+    if c == " ":
+      if string_len(cur) > 0:
+        tokens.append(cur)
+        cur = ""
+      continue
+    cur = cur + c
+  if string_len(cur) > 0:
+    tokens.append(cur)
+  ret handle_shell_command(cmd_str)
+
+# Export OS API
+os = {
+  "name": os_get_name,
+  "version": os_get_version,
+  "arch": os_get_arch,
+  "info": os_get_info,
+  "read_file": os_read_file,
+  "write_file": os_write_file,
+  "file_exists": os_file_exists,
+  "getcwd": os_getcwd,
+  "process_count": os_get_process_count,
+  "sleep": os_sleep,
+  "run_command": os_run_command
+}

@@ -26,7 +26,7 @@ class Parser:
     # Statement-start tokens for error recovery skip-ahead
     STMT_START = {
         TokenType.KW_LET, TokenType.KW_FN, TokenType.KW_IF, TokenType.KW_FOR,
-        TokenType.KW_WHILE, TokenType.KW_RET, TokenType.KW_IMPORT,
+        TokenType.KW_WHILE, TokenType.KW_RET, TokenType.KW_IMPORT, TokenType.KW_FROM,
         TokenType.KW_CLASS, TokenType.KW_MATCH, TokenType.KW_ASYNC,
         TokenType.KW_INTEND, TokenType.KW_AT, TokenType.KW_SERVICE,
         TokenType.KW_DATABASE, TokenType.KW_API, TokenType.KW_PAGE,
@@ -177,6 +177,8 @@ class Parser:
             return self.parse_ret()
         if tok.type == TokenType.KW_IMPORT:
             return self.parse_import()
+        if tok.type == TokenType.KW_FROM:
+            return self.parse_import()
         if tok.type == TokenType.KW_CLASS:
             return self.parse_class()
         if tok.type == TokenType.KW_MATCH:
@@ -314,14 +316,14 @@ class Parser:
 
     def parse_fn_def(self):
         tok = self.advance()
-        name = self.expect(TokenType.IDENTIFIER)
+        name = self._expect_name()
         return self.parse_fn_body(name.value, is_async=False, tok=tok)
 
     def parse_async_fn(self):
         tok = self.advance()
         if self.peek().type == TokenType.KW_FN:
             self.advance()
-        name = self.expect(TokenType.IDENTIFIER)
+        name = self._expect_name()
         return self.parse_fn_body(name.value, is_async=True, tok=tok)
 
     def parse_intend(self):
@@ -335,7 +337,7 @@ class Parser:
 
     def parse_service(self):
         tok = self.advance()
-        name = self.expect(TokenType.IDENTIFIER).value
+        name = self._expect_name().value
         self.expect(TokenType.COLON)
         self.expect(TokenType.NEWLINE)
         self.skip_newlines()
@@ -370,7 +372,7 @@ class Parser:
 
     def parse_database(self):
         tok = self.advance()
-        name = self.expect(TokenType.IDENTIFIER).value
+        name = self._expect_name().value
         self.expect(TokenType.COLON)
         self.expect(TokenType.NEWLINE)
         self.skip_newlines()
@@ -436,7 +438,7 @@ class Parser:
 
     def parse_page(self):
         tok = self.advance()
-        name = self.expect(TokenType.IDENTIFIER).value
+        name = self._expect_name().value
         route = '/'
         if self.peek().type == TokenType.STRING:
             route = self.advance().value
@@ -456,7 +458,7 @@ class Parser:
 
     def parse_schema(self):
         tok = self.advance()
-        name = self.expect(TokenType.IDENTIFIER).value
+        name = self._expect_name().value
         self.expect(TokenType.COLON)
         self.expect(TokenType.NEWLINE)
         self.skip_newlines()
@@ -485,7 +487,7 @@ class Parser:
 
     def parse_model(self):
         tok = self.advance()
-        name = self.expect(TokenType.IDENTIFIER).value
+        name = self._expect_name().value
         self.expect(TokenType.COLON)
         self.expect(TokenType.NEWLINE)
         self.skip_newlines()
@@ -518,7 +520,7 @@ class Parser:
 
     def parse_entity(self):
         tok = self.advance()
-        name = self.expect(TokenType.IDENTIFIER).value
+        name = self._expect_name().value
         self.expect(TokenType.LPAREN)
         components = []
         if self.peek().type != TokenType.RPAREN:
@@ -533,7 +535,7 @@ class Parser:
 
     def parse_component(self):
         tok = self.advance()
-        name = self.expect(TokenType.IDENTIFIER).value
+        name = self._expect_name().value
         self.expect(TokenType.COLON)
         self.expect(TokenType.NEWLINE)
         self.skip_newlines()
@@ -558,7 +560,7 @@ class Parser:
 
     def parse_system(self):
         tok = self.advance()
-        name = self.expect(TokenType.IDENTIFIER).value
+        name = self._expect_name().value
         self.expect(TokenType.COLON)
         self.expect(TokenType.NEWLINE)
         self.skip_newlines()
@@ -592,7 +594,7 @@ class Parser:
 
     def parse_scene(self):
         tok = self.advance()
-        name = self.expect(TokenType.IDENTIFIER).value
+        name = self._expect_name().value
         inherit = None
         if self.peek().type == TokenType.LPAREN:
             self.advance()
@@ -676,7 +678,7 @@ class Parser:
     def parse_permission(self):
         """permission name [description]"""
         tok = self.advance()
-        name = self.expect(TokenType.IDENTIFIER).value
+        name = self._expect_name().value
         desc = ''
         if self.peek().type == TokenType.STRING:
             desc = self.advance().value
@@ -770,7 +772,7 @@ class Parser:
     def parse_type_alias(self):
         """type Name = expr"""
         tok = self.advance()
-        name = self.expect(TokenType.IDENTIFIER).value
+        name = self._expect_name().value
         self.expect(TokenType.EQ)
         type_expr = self.parse_expr()
         return TypeAliasDecl(name, type_expr, tok.line, tok.col)
@@ -802,7 +804,7 @@ class Parser:
     def parse_enum(self):
         """enum Name: case1, case2, case3"""
         tok = self.advance()
-        name = self.expect(TokenType.IDENTIFIER).value
+        name = self._expect_name().value
         self.expect_colon()
         self.expect(TokenType.NEWLINE)
         indent_tok = self.expect(TokenType.INDENT)
@@ -810,7 +812,7 @@ class Parser:
         cases = []
         self.skip_newlines()
         while self.peek().type != TokenType.DEDENT and self.peek().type != TokenType.EOF:
-            case_name = self.expect(TokenType.IDENTIFIER).value
+            case_name = self._expect_name().value
             cases.append(case_name)
             self.match(TokenType.COMMA)
             self.skip_newlines()
@@ -923,7 +925,7 @@ class Parser:
         return FnDef(name, params, body, return_type, is_async, line, col, contracts=contracts)
 
     def parse_param(self):
-        name = self.expect(TokenType.IDENTIFIER)
+        name = self._expect_name()
         type_ann = None
         if self.match(TokenType.COLON):
             type_ann = self.expect(TokenType.IDENTIFIER).value
@@ -951,10 +953,10 @@ class Parser:
         else_body = None
         if self.peek().type == TokenType.KW_EL:
             self.advance()
+            self.maybe_colon()  # Optional colon after 'el'
             if self.peek().type == TokenType.KW_IF:
                 else_body = self.parse_if()
             else:
-                self.expect_colon()
                 self.expect(TokenType.NEWLINE)
                 else_body = Block(self.parse_block(), tok.line, tok.col)
         return IfStmt(cond, body, else_body, tok.line, tok.col)
@@ -992,37 +994,63 @@ class Parser:
         tok = self.advance()
         return ContinueStmt(tok.line, tok.col)
 
-    def parse_import(self):
-        tok = self.advance()
-        if self.peek().type == TokenType.KW_FROM:
+    def _parse_module_path(self):
+        """Parse a dotted module path like a.b.c"""
+        parts = [self.expect(TokenType.IDENTIFIER).value]
+        while self.peek().type == TokenType.DOT:
             self.advance()
-            module = self.expect(TokenType.IDENTIFIER).value
+            parts.append(self.expect(TokenType.IDENTIFIER).value)
+        return '.'.join(parts)
+
+    def parse_import(self):
+        tok = self.advance()  # consume 'import' or 'from'
+        if tok.type == TokenType.KW_FROM or (tok.type == TokenType.KW_IMPORT and self.peek().type == TokenType.KW_FROM):
+            # Handle: from module import name as alias
+            if tok.type == TokenType.KW_IMPORT:
+                # First token was 'import', now see 'from' - unusual but handle it
+                self.advance()
+            module = self._parse_module_path()
             self.expect(TokenType.KW_IMPORT)
-            names = [self.expect(TokenType.IDENTIFIER).value]
+            names = []
+            aliases = {}
+            # Parse first import name (may include alias)
+            name_tok = self._expect_name()
+            name = name_tok.value
+            if self.peek().type == TokenType.KW_AS:
+                self.advance()
+                alias_name = self._expect_name().value
+                aliases[name] = alias_name
+            names.append(name)
             while self.match(TokenType.COMMA):
-                names.append(self.expect(TokenType.IDENTIFIER).value)
-            return ImportStmt(module, names, from_module=module, line=tok.line, col=tok.col)
+                if self.peek().type == TokenType.IDENTIFIER or self.peek().type.name.startswith('KW_'):
+                    name_tok = self._expect_name()
+                    name = name_tok.value
+                    if self.peek().type == TokenType.KW_AS:
+                        self.advance()
+                        alias_name = self._expect_name().value
+                        aliases[name] = alias_name
+                    names.append(name)
+            return ImportStmt(module, names, from_module=module, aliases=aliases,
+                             module_alias=None, alias=None, line=tok.line, col=tok.col)
         # Support both `import lib.strings` and `import "lib/strings.zpx"`
         if self.peek().type == TokenType.STRING:
             module = self.advance().value
             return ImportStmt(module, None, line=tok.line, col=tok.col)
-        module = self.expect(TokenType.IDENTIFIER).value
+        module = self._parse_module_path()
         names = None
-        if self.peek().type == TokenType.COLON and self.peek(1).value == ':':
+        alias = None
+        # Check for `import module as alias`
+        if self.peek().type == TokenType.KW_AS:
             self.advance()
-            self.advance()
-            name = self.expect(TokenType.IDENTIFIER).value
-            names = [name]
-            while self.match(TokenType.COMMA):
-                names.append(self.expect(TokenType.IDENTIFIER).value)
-        return ImportStmt(module, names, line=tok.line, col=tok.col)
+            alias = self.expect(TokenType.IDENTIFIER).value
+        return ImportStmt(module, names, alias=alias, line=tok.line, col=tok.col)
 
     def parse_class(self):
         tok = self.advance()
-        name = self.expect(TokenType.IDENTIFIER).value
+        name = self._expect_name().value
         base = None
         if self.match(TokenType.LPAREN):
-            base = self.expect(TokenType.IDENTIFIER).value
+            base = self._expect_name().value
             self.expect(TokenType.RPAREN)
         self.expect(TokenType.COLON)
         self.expect(TokenType.NEWLINE)
@@ -1070,10 +1098,14 @@ class Parser:
             cases.append((pattern, body))
         while self.peek().type == TokenType.DEDENT:
             d = self.advance()
-            if d.value == self._indents[-1]:
+            target = self._indents[-1] if self._indents else 0
+            # Guard against non-numeric indent values (type error fix)
+            if not isinstance(d.value, (int, float)) or not isinstance(target, (int, float)):
                 break
-            if d.value < self._indents[-1]:
-                while self._indents and self._indents[-1] > d.value:
+            if d.value == target:
+                break
+            if d.value < target:
+                while self._indents and isinstance(self._indents[-1], (int, float)) and self._indents[-1] > d.value:
                     self._indents.pop()
                 break
         return MatchStmt(value, cases, tok.line, tok.col)
@@ -1111,7 +1143,18 @@ class Parser:
         return ExprStmt(expr, expr.line, expr.col)
 
     def parse_expr(self):
-        return self.parse_pipe()
+        return self.parse_ternary()
+
+    def parse_ternary(self):
+        cond = self.parse_pipe()
+        if self.peek().type == TokenType.KW_IF:
+            if_tok = self.advance()
+            # Parse the condition
+            condition = self.parse_pipe()
+            else_tok = self.expect(TokenType.KW_EL)
+            expr_else = self.parse_ternary()
+            return TernaryOp(cond, condition, expr_else, if_tok.line, if_tok.col)
+        return cond
 
     def parse_pipe(self):
         left = self.parse_or()
@@ -1149,6 +1192,18 @@ class Parser:
             op = self.advance()
             right = self.parse_addition()
             left = BinOp(left, op.value, right, left.line, left.col)
+        # Handle 'in' and 'not in' operators
+        if self.peek().type == TokenType.KW_NOT and self.peek(1).type == TokenType.KW_IN:
+            # 'not in' operator
+            self.advance()  # consume 'not'
+            in_tok = self.advance()  # consume 'in'
+            right = self.parse_addition()
+            left = BinOp(left, 'not in', right, left.line, left.col)
+        elif self.peek().type == TokenType.KW_IN:
+            # 'in' operator
+            in_tok = self.advance()
+            right = self.parse_addition()
+            left = BinOp(left, 'in', right, left.line, left.col)
         return left
 
     def parse_addition(self):
@@ -1188,17 +1243,30 @@ class Parser:
 
     def parse_call(self):
         left = self.parse_primary()
+        if left is None:
+            self.error("unexpected end of input in call expression")
         while True:
             if self.match(TokenType.LPAREN):
                 args = []
+                kwargs = {}
                 if self.peek().type != TokenType.RPAREN:
-                    args.append(self.parse_expr())
+                    arg = self._parse_call_arg()
+                    if arg is not None:
+                        if type(arg) is CallKwarg:
+                            kwargs[arg.name] = arg.value
+                        else:
+                            args.append(arg)
                     while self.match(TokenType.COMMA):
                         if self.peek().type == TokenType.RPAREN:
                             break
-                        args.append(self.parse_expr())
+                        arg = self._parse_call_arg()
+                        if arg is not None:
+                            if type(arg) is CallKwarg:
+                                kwargs[arg.name] = arg.value
+                            else:
+                                args.append(arg)
                 self.expect(TokenType.RPAREN)
-                left = Call(left, args, left.line, left.col)
+                left = Call(left, args, kwargs, left.line, left.col)
             elif self.match(TokenType.LBRACKET):
                 if self.peek().type == TokenType.COLON:
                     self.advance()
@@ -1228,11 +1296,22 @@ class Parser:
                         self.expect(TokenType.RBRACKET)
                         left = Index(left, index, left.line, left.col)
             elif self.match(TokenType.DOT):
-                member = self.expect(TokenType.IDENTIFIER)
+                member = self._expect_name()  # Allow keywords after dot (e.g., obj.match())
                 left = MemberAccess(left, member.value, left.line, left.col)
             else:
                 break
         return left
+
+    def _parse_call_arg(self):
+        """Parse a single call argument, supporting keyword arguments like name=value."""
+        # Check for keyword argument: identifier (or keyword) = ...
+        tok = self.peek()
+        if (tok.type == TokenType.IDENTIFIER or tok.type.name.startswith('KW_')) and self.peek(1).type == TokenType.EQ:
+            name_tok = self.advance()
+            self.advance()  # consume '='
+            value = self.parse_expr()
+            return CallKwarg(name_tok.value, value, name_tok.line, name_tok.col)
+        return self.parse_expr()
 
     def parse_primary(self):
         tok = self.advance()

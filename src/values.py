@@ -92,24 +92,29 @@ class ZpxFunction(ZpxType):
         self.contracts = contracts or []
         self._call = self._default_call
 
-    def _default_call(self, *args):
+    def _default_call(self, *args, **kwargs):
         from .evaluator import Evaluator, ReturnSignal
         env = Environment(self.closure)
         local_eval = Evaluator(is_main=False)
         local_eval.env = env
         local_eval.global_env = self.closure
+        # Build parameter map for keyword resolution
+        param_names = [p['name'] for p in self.params]
         for i, param in enumerate(self.params):
-            if i < len(args):
-                env.define(param['name'], args[i])
+            param_name = param['name']
+            if param_name in kwargs:
+                env.define(param_name, kwargs[param_name])
+            elif i < len(args):
+                env.define(param_name, args[i])
             elif param.get('default') is not None:
-                env.define(param['name'], local_eval._eval_expr(param['default']))
+                env.define(param_name, local_eval._eval_expr(param['default']))
             else:
-                env.define(param['name'], None)
+                env.define(param_name, None)
         for contract in self.contracts:
             if contract.kind == 'requires':
                 cond_env = Environment(env)
-                for i, p in enumerate(self.params):
-                    cond_env.define(p['name'], args[i] if i < len(args) else None)
+                for i, p in enumerate(param_names):
+                    cond_env.define(p, args[i] if i < len(args) else kwargs.get(p, None))
                 prev = local_eval.env
                 local_eval.env = cond_env
                 try:
@@ -167,8 +172,8 @@ class ZpxFunction(ZpxType):
         finally:
             pass
 
-    def __call__(self, *args):
-        return self._call(*args)
+    def __call__(self, *args, **kwargs):
+        return self._call(*args, **kwargs)
 
 class ZpxBuiltin(ZpxType):
     def __init__(self, fn, name=''):
@@ -316,6 +321,10 @@ class ZpxList(ZpxType):
 
     def append(self, item):
         self.elements.append(item)
+        return self
+
+    def remove(self, index):
+        del self.elements[index]
         return self
 
     def __iter__(self):

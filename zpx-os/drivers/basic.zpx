@@ -1,0 +1,117 @@
+# ZPX OS - Basic Device Drivers
+# Virtual drivers for console, keyboard, display, and audio
+
+# Virtual Console Driver
+let console_width = 80
+let console_height = 24
+
+fn driver_console_clear():
+  for i in range(50):
+    print("")
+
+fn driver_console_write(text):
+  print(text)
+
+fn driver_console_width():
+  ret console_width
+
+fn driver_console_height():
+  ret console_height
+
+# Virtual Keyboard Driver
+let keyboard_enabled = true
+
+fn driver_keyboard_read():
+  ret input("")
+
+fn driver_keyboard_enabled():
+  ret keyboard_enabled
+
+# Virtual Display Driver
+let display_width = 80
+let display_height = 24
+
+fn driver_display_set_resolution(width, height):
+  if width > 0 and height > 0:
+    display_width = width
+    display_height = height
+    ret true
+  ret false
+
+fn driver_display_width():
+  ret display_width
+
+fn driver_display_height():
+  ret display_height
+
+fn driver_render_screen():
+  print("")
+  let line = "+"
+  for i in range(display_width - 2):
+    line = line + "-"
+  line = line + "+"
+  for y in range(display_height):
+    print(line)
+  print("")
+
+# Virtual Audio Driver
+let audio_enabled = false
+let audio_volume = 50
+
+fn driver_audio_init():
+  audio_enabled = true
+  ret true
+
+fn driver_audio_set_volume(level):
+  if level >= 0 and level <= 100:
+    audio_volume = level
+    ret true
+  ret false
+
+fn driver_audio_status():
+  ret {
+    "enabled": audio_enabled,
+    "volume": audio_volume
+  }
+
+# Driver registry
+let drivers = {
+  "console": {
+    "name": "Virtual Console",
+    "version": "0.1.0",
+    "clear": driver_console_clear,
+    "write": driver_console_write,
+    "width": driver_console_width,
+    "height": driver_console_height
+  },
+  "keyboard": {
+    "name": "Virtual Keyboard",
+    "version": "0.1.0",
+    "read": driver_keyboard_read,
+    "enabled": driver_keyboard_enabled
+  },
+  "display": {
+    "name": "Virtual Display",
+    "version": "0.1.0",
+    "set_resolution": driver_display_set_resolution,
+    "width": driver_display_width,
+    "height": driver_display_height,
+    "render": driver_render_screen
+  },
+  "audio": {
+    "name": "Virtual Audio",
+    "version": "0.1.0",
+    "init": driver_audio_init,
+    "set_volume": driver_audio_set_volume,
+    "status": driver_audio_status
+  }
+}
+
+fn drivers_load_all():
+  for name in drivers:
+    let d = drivers[name]
+    print("  loaded: " + d["name"] + " v" + d["version"])
+  ret true
+
+fn driver_get(name):
+  ret drivers[name]

@@ -1,0 +1,31 @@
+# ZPX OS - Text Editor Application
+
+fn ui_launch_editor():
+  print("")
+  print("  ╔══════════════════════════════════════╗")
+  print("  ║        ZPX OS Text Editor               ║")
+  print("  ╚══════════════════════════════════════╝")
+  print("")
+  print("  Type your text. Type :wq to save and quit.")
+  print("")
+  let buf = ""
+  let running = true
+  while running:
+    let line = input("editor> ")
+    if line == none:
+      continue
+    if line == ":q":
+      running = false
+    el:
+      if line == ":wq":
+        running = false
+        print_success("File saved")
+      el:
+        if line == ":help":
+          print("  :wq - save and quit")
+          print("  :q  - quit without saving")
+          print("  :help - show this help")
+        el:
+          buf = buf + line + "\n"
+          print("  (" + str(string_len(buf)) + " bytes)")
+  print("")

@@ -137,12 +137,16 @@ class ClassDef(Node):
         self.base = base
 
 class ImportStmt(Node):
-    __slots__ = ('module', 'names', 'from_module')
-    def __init__(self, module, names=None, from_module=None, line=0, col=0):
+    __slots__ = ('module', 'names', 'from_module', 'aliases', 'module_alias', 'alias')
+    def __init__(self, module, names=None, from_module=None, aliases=None,
+                 module_alias=None, alias=None, line=0, col=0):
         super().__init__(line, col)
         self.module = module
         self.names = names
         self.from_module = from_module
+        self.aliases = aliases or {}  # name -> alias mapping
+        self.module_alias = module_alias
+        self.alias = alias  # module-level alias for `import x as y`
 
 class MatchStmt(Node):
     __slots__ = ('value', 'cases')
@@ -178,12 +182,30 @@ class UnaryOp(Node):
         self.op = op
         self.operand = operand
 
+class TernaryOp(Node):
+    """Ternary conditional: expr if cond else expr2"""
+    __slots__ = ('expr', 'condition', 'expr_else')
+    def __init__(self, expr, condition, expr_else, line=0, col=0):
+        super().__init__(line, col)
+        self.expr = expr
+        self.condition = condition
+        self.expr_else = expr_else
+
 class Call(Node):
-    __slots__ = ('callee', 'args')
-    def __init__(self, callee, args, line=0, col=0):
+    __slots__ = ('callee', 'args', 'kwargs')
+    def __init__(self, callee, args, kwargs=None, line=0, col=0):
         super().__init__(line, col)
         self.callee = callee
         self.args = args
+        self.kwargs = kwargs or {}  # keyword arguments: name -> expr
+
+class CallKwarg(Node):
+    """A keyword argument in a function call: name=value."""
+    __slots__ = ('name', 'value')
+    def __init__(self, name, value, line=0, col=0):
+        super().__init__(line, col)
+        self.name = name
+        self.value = value
 
 class Index(Node):
     __slots__ = ('obj', 'index')

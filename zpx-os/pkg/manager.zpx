@@ -1,0 +1,31 @@
+# ZPX OS - Package Manager
+
+fn ui_pkg_help():
+  print("")
+  print("  Package Manager Commands:")
+  print("  ────────────────────────────────────────")
+  print("  pkg list          List installed packages")
+  print("  pkg install <name>  Install a package")
+  print("  pkg remove <name>   Remove a package")
+  print("  pkg info          Show OS information")
+  print("  pkg search <term>  Search for packages")
+  print("")
+
+fn ui_pkg_list():
+  print("")
+  print("  Installed Packages:")
+  print(" ────────────────────────────────────────")
+  print("  zpx-lang    " + os_version + "    [core]")
+  print("  zpx-os      0.1.0            [os]")
+  print("")
+
+fn ui_pkg_info():
+  print("")
+  print("  zpx-os v" + os_version)
+  print("  ────────────────────────────────────────")
+  print("  Description: ZPX Operating System")
+  print("  Type: OS")
+  print("  Language: ZPX")
+  print("  License: MIT")
+  print("  Architecture: " + os_arch)
+  print("")

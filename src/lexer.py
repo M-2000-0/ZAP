@@ -181,6 +181,53 @@ class Lexer:
                 i = self.pos
                 continue
 
+            if ch == 'f' and i + 1 < len(self.source) and self.source[i + 1] in '"\'':
+                # f-string: f"..." or f'...'
+                quote = self.source[i + 1]
+                self.pos = i + 2  # skip 'f' and opening quote
+                self.col += 2
+                s = ''
+                has_interp = False
+                while self.pos < len(self.source):
+                    c = self.source[self.pos]
+                    self.pos += 1
+                    self.col += 1
+                    if c == quote:
+                        if has_interp:
+                            self.tokens.append(Token(TokenType.STRING, ('finterp', s), self.line, i))
+                        else:
+                            self.tokens.append(Token(TokenType.STRING, ('finterp', s), self.line, i))
+                        i = self.pos
+                        break
+                    if c == '\\':
+                        esc = self.source[self.pos]
+                        self.pos += 1
+                        self.col += 1
+                        esc_map = {'n': '\n', 't': '\t', 'r': '\r', '0': '\0',
+                                   "'": "'", '"': '"', '\\': '\\'}
+                        s += esc_map.get(esc, esc)
+                    elif c == '{':
+                        # f-string expression interpolation: {expr}
+                        has_interp = True
+                        expr = ''
+                        depth = 1
+                        while self.pos < len(self.source) and depth > 0:
+                            ec = self.source[self.pos]
+                            self.pos += 1
+                            self.col += 1
+                            if ec == '{':
+                                depth += 1
+                            elif ec == '}':
+                                depth -= 1
+                            if depth > 0:
+                                expr += ec
+                        s += '{' + expr + '}'
+                    else:
+                        s += c
+                else:
+                    self.error("unterminated f-string")
+                continue
+
             if ch.isalpha() or ch == '_':
                 self.pos = i
                 self.advance()

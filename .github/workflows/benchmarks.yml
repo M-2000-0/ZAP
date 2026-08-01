@@ -1,0 +1,206 @@
+name: LLM Benchmarks
+
+on:
+  schedule:
+    # Run weekly on Mondays
+    - cron: '0 0 * * 1'
+  workflow_dispatch:
+    inputs:
+      models:
+        description: 'Models to test (comma-separated)'
+        required: false
+        default: 'gpt-4o-mini'
+      languages:
+        description: 'Languages to test (comma-separated)'
+        required: false
+        default: 'zpx,python,typescript'
+      tasks:
+        description: 'Specific task IDs to run (comma-separated, empty = all)'
+        required: false
+        default: ''
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install -e .
+          pip install pyyaml openai anthropic
+
+      - name: Install Node.js for TypeScript
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install TypeScript runner
+        run: npm install -g tsx
+
+      - name: Run benchmarks
+        run: |
+          cd benchmarks
+          python run.py \
+            --languages ${{ github.event.inputs.languages || 'zpx,python,typescript' }} \
+            --models ${{ github.event.inputs.models || 'gpt-4o-mini' }} \
+            ${{ github.event.inputs.tasks && format('--tasks {0}', github.event.inputs.tasks) || '' }} \
+            --output results.json
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: benchmarks/results.json
+          retention-days: 30
+
+      - name: Generate summary
+        run: |
+          cd benchmarks
+          python -c "
+import json
+with open('results.json') as f:
+    results = json.load(f)
+
+by_lang = {}
+for r in results:
+    by_lang.setdefault(r['language'], []).append(r)
+
+print('## Benchmark Results')
+print('')
+print(f'Total runs: {len(results)}')
+print(f'Models tested: {set(r[\"model\"] for r in results)}')
+print(f'Languages: {set(r[\"language\"] for r in results)}')
+print(f'Tasks: {set(r[\"task_id\"] for r in results)}')
+print('')
+
+for lang, res in by_lang.items():
+    passed = sum(1 for r in res if r['passed'])
+    total = len(res)
+    avg_tokens = sum(r['total_tokens'] for r in res) / total
+    avg_latency = sum(r['latency_ms'] for r in res) / total
+    print(f'### {lang.upper()}')
+    print(f'- Pass rate: {passed}/{total} ({100*passed/total:.1f}%)')
+    print(f'- Avg tokens: {avg_tokens:.0f}')
+    print(f'- Avg latency: {avg_latency:.0f}ms')
+    print('')
+
+# ZPX vs Python comparison
+if 'zpx' in by_lang and 'python' in by_lang:
+    zpx_tokens = sum(r['total_tokens'] for r in by_lang['zpx']) / len(by_lang['zpx'])
+    py_tokens = sum(r['total_tokens'] for r in by_lang['python']) / len(by_lang['python'])
+    if py_tokens > 0:
+        reduction = (1 - zpx_tokens / py_tokens) * 100
+        print(f'**ZPX token reduction vs Python: {reduction:.1f}%**')
+" >> $GITHUB_STEP_SUMMARY
+
+      - name: Comment on PR (if from PR)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const results = JSON.parse(fs.readFileSync('benchmarks/results.json', 'utf8'));
+            
+            const byLang = {};
+            for (const r of results) {
+              byLang[r.language] = byLang[r.language] || [];
+              byLang[r.language].push(r);
+            }
+            
+            let body = '## 🤖 LLM Benchmark Results\n\n';
+            body += `| Language | Pass Rate | Avg Tokens | Avg Latency |\n`;
+            body += `|----------|-----------|------------|-------------|\n`;
+            
+            for (const [lang, res] of Object.entries(byLang)) {
+              const passed = res.filter(r => r.passed).length;
+              const total = res.length;
+              const avgTokens = res.reduce((a, b) => a + b.total_tokens, 0) / total;
+              const avgLatency = res.reduce((a, b) => a + b.latency_ms, 0) / total;
+              body += `| ${lang.toUpperCase()} | ${passed}/${total} | ${avgTokens.toFixed(0)} | ${avgLatency.toFixed(0)}ms |\n`;
+            }
+            
+            if (byLang.zpx && byLang.python) {
+              const zpxTokens = byLang.zpx.reduce((a, b) => a + b.total_tokens, 0) / byLang.zpx.length;
+              const pyTokens = byLang.python.reduce((a, b) => a + b.total_tokens, 0) / byLang.python.length;
+              const reduction = ((1 - zpxTokens / pyTokens) * 100).toFixed(1);
+              body += `\n**ZPX token reduction vs Python: ${reduction}%**\n`;
+            }
+            
+            body += `\n*Generated from workflow run: ${process.env.GITHUB_RUN_NUMBER}*`;
+            
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: body
+            });
+
+  # Regression detection - compare with previous run
+  regression-check:
+    needs: benchmark
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Download previous results
+        uses: actions/download-artifact@v4
+        with:
+          name: benchmark-results
+          path: previous/
+        continue-on-error: true
+
+      - name: Check for regressions
+        if: ${{ hashFiles('previous/results.json') != '' }}
+        run: |
+          cd benchmarks
+          python -c "
+import json
+import sys
+
+with open('results.json') as f:
+    current = json.load(f)
+with open('previous/results.json') as f:
+    previous = json.load(f)
+
+def avg_tokens(results, lang):
+    lang_results = [r for r in results if r['language'] == lang]
+    if not lang_results:
+        return 0
+    return sum(r['total_tokens'] for r in lang_results) / len(lang_results)
+
+def pass_rate(results, lang):
+    lang_results = [r for r in results if r['language'] == lang]
+    if not lang_results:
+        return 0
+    return sum(1 for r in lang_results if r['passed']) / len(lang_results)
+
+for lang in ['zpx', 'python', 'typescript']:
+    curr_tokens = avg_tokens(current, lang)
+    prev_tokens = avg_tokens(previous, lang)
+    curr_pass = pass_rate(current, lang)
+    prev_pass = pass_rate(previous, lang)
+    
+    if prev_tokens > 0:
+        token_change = ((curr_tokens - prev_tokens) / prev_tokens) * 100
+        pass_change = (curr_pass - prev_pass) * 100
+        
+        print(f'{lang}: tokens {token_change:+.1f}%, pass rate {pass_change:+.1f}%')
+        
+        # Fail if significant regression
+        if token_change > 20:
+            print(f'::warning::Token count increased {token_change:.1f}% for {lang}')
+        if pass_change < -10:
+            print(f'::error::Pass rate dropped {abs(pass_change):.1f}% for {lang}')
+            sys.exit(1)
+"
