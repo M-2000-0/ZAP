@@ -4,6 +4,22 @@ All notable changes to the Zpx programming language.
 
 ## v0.3.0 - Renamed from ZAP to ZPX for legal reasons
 
+## [0.2.2] - 2026-08-01
+
+### Added
+- **`in` / `not in` operators** — membership testing for lists, strings, dicts, ranges
+- **Ternary operator** — `expr if cond else expr2`
+- **F-strings** — `f"...{expr}..."` interpolation
+- **Dict iteration methods** — `keys()`, `values()`, `items()`, `len()`, `get()`, `has_key()`
+
+### Fixed
+- Dotted imports (`import a.b.c`), `as` aliases, keyword arguments in calls, optional `el`/`if` colons
+- 213 passing tests (was 166)
+
+### Repository
+- Added `LICENSE`, `SECURITY.md`, `CODE_OF_CONDUCT.md`
+- Consolidated docs into `docs/`, refreshed `README.md`
+
 ## [0.2.1] - 2026-07-29
 
 ### Added

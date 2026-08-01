@@ -1,37 +1,14 @@
-# Zpx — AI-Native Programming Language
+# Zpx — The AI-Native Programming Language
 
-> **One language. One syntax. Zero boilerplate.**  
-> A programming language designed for AI code generation.
+> **One language for backend, frontend, database, and config — designed for the age of AI-written code.**
 
 [![PyPI](https://img.shields.io/pypi/v/zpx-lang?label=zpx-lang&color=blue)](https://pypi.org/project/zpx-lang/)
 [![Python](https://img.shields.io/pypi/pyversions/zpx-lang?color=blue)](https://pypi.org/project/zpx-lang/)
-[![License](https://img.shields.io/github/license/M-2000-0/ZPX?color=blue)](LICENSE)
+[![License: MIT](https://img.shields.io/github/license/M-2000-0/ZPX?color=blue)](LICENSE)
 [![Tests](https://github.com/M-2000-0/ZPX/actions/workflows/test.yml/badge.svg)](https://github.com/M-2000-0/ZPX/actions)
-[![GitHub stars](https://img.shields.io/github/stars/M-2000-0/ZPX?style=social)](https://github.com/M-2000-0/ZPX/stargazers)
+[![Stars](https://img.shields.io/github/stars/M-2000-0/ZPX?style=social)](https://github.com/M-2000-0/ZPX/stargazers)
 
----
-
-## Why Zpx?
-
-**By 2027, 80% of code will be AI-generated.**  
-Languages designed for humans reading printed code (Python 1991, JavaScript 1995, Go 2009) become legacy. Zpx is designed for the world where AI writes most of the code.
-
-### The Problem
-
-Today's AI writes code in **6+ languages** for one app:
-
-| Layer | Language | Syntax Overhead |
-|-------|----------|-----------------|
-| Backend | Python | `def func():` |
-| Frontend | JavaScript | `function func() {}` |
-| Database | SQL | `SELECT * FROM...` |
-| Config | YAML | `key: value` |
-| Styles | CSS | `body { ... }` |
-| Types | TypeScript | `x: number` |
-
-### The Solution
-
-**Zpx replaces them with one syntax:**
+Zpx is a **self-hosting, token-efficient programming language** built for the world where most code is written by AI. It collapses six layers of a typical app stack — backend, frontend, database, config, contracts, and types — into **one syntax, one file, zero boilerplate**.
 
 ```zpx
 schema User:
@@ -50,26 +27,45 @@ fn render_user(user):
   ])
 ```
 
-**One file. One language. Zero config. No build step.**
+---
+
+## Why Zpx?
+
+By 2027, an estimated 80% of code will be AI-generated. Today's languages were designed for humans reading printed code (Python 1991, JavaScript 1995, Go 2009). Zpx is designed for the world where **AI writes most of the code** — and where every token costs time, money, and context.
+
+### The problem it solves
+
+| Layer | Typical Language | Syntax Overhead |
+|-------|------------------|-----------------|
+| Backend | Python | `def func():` |
+| Frontend | JavaScript | `function func() {}` |
+| Database | SQL | `SELECT * FROM ...` |
+| Config | YAML | `key: value` |
+| Styles | CSS | `body { ... }` |
+| Types | TypeScript | `x: number` |
+
+**Zpx replaces all of these with one syntax.** One file. No imports. No build step. No package.json.
 
 ---
 
-## Key Features (Implemented)
+## Key Features
 
-| Feature | Status | Details |
-|---------|--------|---------|
-| **Self-Hosting** | ✅ | ~95% of interpreter written in Zpx (`self_host/`) |
-| **Parser + Interpreter** | ✅ | Recursive descent, 300K+ LOC in `src/` |
-| **Type System** | ✅ | Compound types, unions, type aliases, inference |
-| **Contracts** | ✅ | `@requires`, `@ensures`, `@invariant` (design by contract) |
-| **Pattern Matching** | ✅ | `match` with wildcards, guards |
-| **Auto-Deploy DB** | ✅ | `db_auto()` detects Vercel/Netlify/Render/Fly/Heroku/Replit |
-| **LSP Server** | ✅ | `zpx lsp` — hover, goto-def, diagnostics, symbols |
-| **Package Manager** | ✅ | `zpx init`, `zpx add`, `zpx install`, `zpx.json` |
-| **WASM Transpiler** | ✅ | `wasm/` compiles Zpx → JavaScript |
-| **Time-Travel Debug** | ✅ | Checkpoints, rewind, query, diff |
-| **VS Code Extension** | ✅ | Syntax, snippets, language config |
-| **Tests** | ✅ | 166 passing (`pytest tests/ -v`) |
+| Feature | Details |
+|---------|---------|
+| **Self-Hosting** | Interpreter written in Zpx itself (`self_host/`) |
+| **Token-Efficient** | Short keywords (`fn`, `ret`, `el`), no boilerplate |
+| **Pattern Matching** | `match` with wildcards and guards |
+| **Design by Contract** | `requires` / `ensures` / `invariant` |
+| **Comprehensions** | List and dict comprehensions with filters |
+| **Auto-Deploy DB** | `db_auto()` detects Vercel/Netlify/Render/Fly/Heroku/Replit |
+| **Structured Concurrency** | `concurrent` blocks, `pmap`, `parallel` |
+| **AI-Native Checks** | `check` / `expect` blocks, `service` contracts |
+| **LSP Server** | `zpx lsp` — hover, goto-def, diagnostics, symbols |
+| **Package Manager** | `zpx init`, `zpx add`, `zpx install`, `zpx.json` |
+| **WASM Target** | Transpiles Zpx → JavaScript (`wasm/`) |
+| **Time-Travel Debugging** | Checkpoints, rewind, query, diff |
+| **VS Code Extension** | Syntax highlighting + snippets |
+| **120+ Builtins** | HTTP, JSON, DB, crypto, files, math, no imports needed |
 
 ---
 
@@ -83,9 +79,8 @@ pip install zpx-lang
 echo 'print("Hello from Zpx!")' > hello.zpx
 zpx run hello.zpx
 
-# Try examples
+# Try the examples
 zpx run examples/hello.zpx
-zpx run examples/blog.zpx
 zpx run examples/rest_api.zpx
 zpx run examples/data_pipeline.zpx
 zpx run examples/ai_native.zpx
@@ -97,6 +92,12 @@ zpx run examples/ai_native.zpx
 git clone https://github.com/M-2000-0/ZPX.git
 cd ZPX
 python -m src run examples/hello.zpx
+```
+
+**REPL:**
+
+```bash
+zpx repl
 ```
 
 ---
@@ -111,10 +112,10 @@ let name = "Zpx"        # str
 let flag = true         # bool
 let empty = none        # null
 let nums = [1, 2, 3]    # list
-let user = ["name": "Alice", "age": 30]  # dict
+let user = {name: "Alice", age: 30}  # dict
 ```
 
-### Functions (short keywords: `fn`, `ret`)
+### Functions
 
 ```zpx
 fn greet(name):
@@ -127,7 +128,7 @@ fn greet_with_default(name, greeting="Hi"):
 fn double(x) x * 2
 ```
 
-### Control Flow (`el` not `else`, `ret` not `return`)
+### Control Flow
 
 ```zpx
 fn classify(x):
@@ -145,7 +146,6 @@ for item in [1, 2, 3]:
 match status:
   "active": print("User is active")
   "inactive": print("User is inactive")
-  "banned": print("User is banned")
   _: print("Unknown status")
 ```
 
@@ -156,7 +156,7 @@ fn withdraw(amount: float):
   requires amount > 0
   requires balance >= amount
   ensures balance >= 0
-  
+
   balance = balance - amount
 ```
 
@@ -166,16 +166,9 @@ fn withdraw(amount: float):
 class Animal:
   fn init(self, name):
     self.name = name
-  
+
   fn speak(self):
     ret "..."
-
-class Dog(Animal):
-  fn speak(self):
-    ret self.name + " says Woof!"
-
-let d = Dog("Rex")
-print(d.speak())  # "Rex says Woof!"
 ```
 
 ### Comprehensions
@@ -187,12 +180,12 @@ let evens = [x for x in nums if x % 2 == 0]
 let squares = {x: x * x for x in nums}
 ```
 
-### Built-ins (248+, no imports needed)
+### Built-ins (no imports needed)
 
 ```zpx
 # HTTP
 http_get("https://api.example.com/data")
-http_post(url, json_body={"key": "value"})
+http_post(url, json_body={key: "value"})
 
 # JSON
 json_parse('{"name": "Zpx"}')
@@ -203,10 +196,8 @@ db_auto("my_app"):
   users:
     id: "TEXT PRIMARY KEY"
     name: "TEXT"
-    email: "TEXT UNIQUE"
 
-db_insert("users", {id: "1", name: "Alice", email: "alice@example.com"})
-let user = db_row("SELECT * FROM users WHERE id = ?", ["1"])
+db_insert("users", {id: "1", name: "Alice"})
 
 # Crypto
 sha256("password")
@@ -216,9 +207,6 @@ b64encode(data)
 write_file("out.txt", "content")
 read_file("in.txt")
 
-# Math
-abs(-5), max(1, 5), min(1, 5), sqrt(16), round(3.14)
-
 # Parallelism
 pmap(fn, items)
 parallel(fn1, fn2, fn3)
@@ -226,9 +214,9 @@ parallel(fn1, fn2, fn3)
 
 ---
 
-## Full-Stack Examples
+## Full-Stack in One File
 
-### 1. REST API (single file, zero config)
+### REST API
 
 ```zpx
 schema User:
@@ -237,67 +225,29 @@ schema User:
   email: str
 
 let users = []
-let next_id = 1
 
 fn create_user(name, email):
-  let user = {id: next_id, name: name, email: email}
+  let user = {id: len(users) + 1, name: name, email: email}
   users.append(user)
-  next_id += 1
   ret user
 
 api GET "/users":
   ret users
-
-api GET "/users/{id}":
-  for u in users:
-    if u.id == id: ret u
-  ret {error: "Not found"}
 
 api POST "/users":
   let body = json_parse(req.body)
   ret create_user(body.name, body.email)
 ```
 
-### 2. Blog with HTML Rendering
+### AI-Native Features
 
 ```zpx
-let posts = [
-  {title: "Hello Zpx", body: "Welcome!"},
-  {title: "Full-Stack", body: "One language for everything."},
-]
-
-fn render_post(p):
-  element("article", {class: "post"}, [
-    element("h2", {}, p.title),
-    element("p", {}, p.body),
-  ])
-
-fn page(title, posts):
-  element("html", {}, [
-    element("head", {}, [element("title", {}, title)]),
-    element("body", {}, [
-      element("h1", {}, title),
-      map(posts, p => render_post(p)),
-    ]),
-  ])
-
-print(html(page("My Blog", posts)))
-```
-
-### 3. AI-Native Features
-
-```zpx
-# Permissions
-permission filesystem_read "read access to filesystem"
-permission network_http "outbound HTTP"
-
-# Service with metadata
 service PaymentService:
   version "2.1.0"
   requires authenticated_user, valid_session
   guarantees transaction_atomic, audit_logged
   expose process_payment
-  
+
   fn process_payment(amount: float) -> str:
     ret "processed: " + str(amount)
 
@@ -306,15 +256,10 @@ concurrent:
   say("branch 1")
   let x = 1 + 2
   say("branch 2")
-  let y = 3 + 4
 
 # Compile-time checks
 check:
   expect 1 + 1 == 2 "math works"
-  expect "hello" != "world"
-
-# Runtime assertions
-expect divide(10, 2) == 5
 ```
 
 ---
@@ -322,49 +267,25 @@ expect divide(10, 2) == 5
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────────────┐
-│           zpx run file.zpx                          │
-└─────────────────────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────┐
-│  Lexer (indentation-sensitive)                      │
-│  → tokens                                           │
-└─────────────────────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────┐
-│  Parser (recursive descent)                         │
-│  → AST                                              │
-└─────────────────────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────┐
-│  Type Checker (contracts, types)                    │
-│  → validated AST                                    │
-└─────────────────────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────┐
-│  Evaluator (interpreter with time-travel)           │
-│  → result                                           │
-└─────────────────────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────┐
-│  Compiler (optional)                                │
-│  → .pyc bytecode cache                              │
-└─────────────────────────────────────────────────────┘
+zpx run file.zpx
+      │
+      ▼
+   Lexer ──────────► tokens
+      │
+      ▼
+   Parser ─────────► AST
+      │
+      ▼
+   Type Checker ───► validated AST (contracts, types)
+      │
+      ▼
+   Evaluator ──────► result (time-travel debug enabled)
+      │
+      ▼
+   Compiler ───────► .pyc bytecode cache (optional)
 ```
 
-**Self-hosting**: The interpreter is written in Zpx (`self_host/`):
-- `tokens.zpx` — Token system
-- `lexer.zpx` — Lexer
-- `parser.zpx` — Parser
-- `ast_nodes.zpx` — AST definitions
-- `env.zpx` — Environment/scoping
-- `evaluator.zpx` — Full evaluator
-- `builtins.zpx` — Standard library
+**Self-hosted interpreter** (`self_host/`): the parser, lexer, AST, environment, evaluator, and builtins are written in Zpx itself.
 
 ---
 
@@ -389,21 +310,15 @@ zpx ai                     # AI subcommands (train, scan, wifi)
 
 ---
 
-## Editor Support
+## Documentation
 
-**VS Code Extension** (`vscode-extension/`):
-- Syntax highlighting
-- Snippets (`fn`, `let`, `if`, `class`, `api`, `schema`, ...)
-- Language configuration (brackets, comments, folding)
-
-**LSP Server** (`zpx lsp`):
-- Hover documentation
-- Go to definition
-- Find references
-- Document symbols
-- Workspace symbols
-- Semantic tokens
-- Diagnostics (parse + type errors)
+| Doc | Purpose |
+|-----|---------|
+| [Language Guide](docs/GUIDE.md) | How to write Zpx, AI coding guide, token optimization |
+| [Language Spec](docs/SPEC.md) | Full syntax reference |
+| [Contributing](docs/CONTRIBUTING.md) | How to get involved |
+| [Showcase](docs/showcase.md) | Real-world example gallery |
+| [Changelog](CHANGELOG.md) | Release history |
 
 ---
 
@@ -411,64 +326,49 @@ zpx ai                     # AI subcommands (train, scan, wifi)
 
 ```
 ZPX/
-├── src/                    # Python interpreter (~300K lines)
+├── src/                    # Python interpreter
 │   ├── lexer.py            # Tokenizer
 │   ├── parser.py           # Recursive descent parser
 │   ├── evaluator.py        # Interpreter with time-travel debugging
 │   ├── compiler.py         # Python bytecode compiler
 │   ├── types.py            # Type checker with contracts
-│   ├── codegen.py          # Code generators
 │   ├── cli.py              # Full CLI
-│   ├── lsp.py              # Language Server Protocol
-│   └── adapters/           # JS/Python transpilers
-├── self_host/              # Zpx written in Zpx (~95%)
-│   ├── tokens.zpx
+│   └── lsp.py              # Language Server Protocol
+├── self_host/              # Zpx interpreter written in Zpx
 │   ├── lexer.zpx
 │   ├── parser.zpx
 │   ├── ast_nodes.zpx
-│   ├── env.zpx
 │   ├── evaluator.zpx
-│   ├── builtins.zpx
 │   └── zpx_interpreter.zpx
-├── lib/                    # Standard library
-│   ├── std.zpx
-│   ├── db.zpx
-│   ├── http.zpx
-│   ├── strings.zpx
-│   └── collections.zpx
+├── lib/                    # Standard library (.zpx)
 ├── examples/               # 20+ example programs
-├── tests/                  # 166 passing tests
+├── tests/                  # 213 passing tests
 ├── wasm/                   # Zpx → JS transpiler
 ├── vscode-extension/       # VS Code extension
-├── registry/               # Package registry
-└── training/               # AI training data
+├── docs/                   # Documentation
+└── benchmarks/             # LLM code-gen benchmark harness
 ```
 
 ---
 
 ## Roadmap
 
-### Done (v0.2)
+### Done
 - Self-hosted parser, lexer, AST, evaluator
-- 248+ builtins with short aliases
-- Compound types (`list[T]`, `dict[K,V]`, `T|U`)
-- Type aliases
-- Contract system
-- Pattern matching
-- Comprehensions
-- Auto-deploy DB
-- Platform detection
+- 120+ builtins with short aliases
+- Pattern matching, comprehensions, contracts
+- Auto-deploy DB + platform detection
 - LSP, package manager, WASM target
+- `in` / `not in` operators, ternary expressions, f-strings
+- Dict iteration methods (`keys`, `values`, `items`)
 
-### Coming Soon
-- [ ] Optional chaining (`?.`)
-- [ ] Destructuring (`let {a, b} = expr`)
-- [ ] Web UI framework
-- [ ] Mobile app support
-- [ ] Package registry (publish/install)
-- [ ] IDE plugins (Cursor, Windsurf, Zed)
-- [ ] WebAssembly compilation
-- [ ] Incremental compilation
+### In Progress
+- Optional chaining (`?.`)
+- Destructuring (`let {a, b} = expr`)
+- Web UI framework
+- Mobile app support
+- IDE plugins (Cursor, Windsurf, Zed)
+- Incremental compilation
 
 ---
 
@@ -479,18 +379,17 @@ We're building the language that AI models actually want to write. Your help is 
 ```bash
 git clone https://github.com/M-2000-0/ZPX.git
 cd ZPX
-python -m pytest tests/ -q  # 166 tests pass
+python -m pytest tests/ -q  # 213 tests pass
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
+See [CONTRIBUTING.md](docs/CONTRIBUTING.md) for guidelines, and our [Code of Conduct](CODE_OF_CONDUCT.md).
 
-### Ways to Contribute
-1. **Try Zpx** — Use it and give feedback
-2. **Fix Bugs** — Check [open issues](https://github.com/M-2000-0/ZPX/issues)
-3. **Add Features** — Check the [roadmap](#roadmap)
-4. **Improve Docs** — Fix typos, add examples
-5. **Add Examples** — Showcase the language
-6. **Port Builtins** — Help port builtins from Python to Zpx
+**Ways to help:**
+1. **Try Zpx** — use it and give feedback
+2. **Fix bugs** — check [open issues](https://github.com/M-2000-0/ZPX/issues)
+3. **Add features** — see the [roadmap](#roadmap)
+4. **Improve docs** — typos, examples, guides
+5. **Port builtins** — from Python to Zpx (helps self-hosting)
 
 ---
 
@@ -504,42 +403,18 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## License
 
-MIT — free for commercial use.
+[MIT](LICENSE) — free for commercial use.
 
 ---
 
 ## Philosophy
 
-> **By 2027, 80% of code will be AI-generated.**  
-> Languages designed for humans become legacy.  
+> **By 2027, 80% of code will be AI-generated.**
+> Languages designed for humans become legacy.
 > Zpx is designed for the world where AI writes most of the code.
 
 **Zpx — Write less. Ship faster. Let AI do the rest.**
 
 ---
 
-## Documentation
-
-- [Language Guide (GUIDE.md)](GUIDE.md) — AI coding guide with token optimization rules
-- [Language Specification (SPEC.md)](SPEC.md) — Full syntax reference
-- [Contributing (CONTRIBUTING.md)](CONTRIBUTING.md) — How to contribute
-- [Changelog (CHANGELOG.md)](CHANGELOG.md) — Release history
-
-## Benchmarks
-
-LLM code generation benchmarks are run weekly via GitHub Actions. See [benchmarks/](benchmarks/) for methodology and [latest results](https://github.com/M-2000-0/ZPX/actions/workflows/benchmark.yml).
-
----
-
-## Show Your Support
-
-If you find Zpx useful:
-- ⭐ **Star** this repository
-- 🍴 **Fork** and contribute
-- 🐛 **Report** issues
-- 📢 **Share** with other developers
-- 📸 **Follow** me on Instagram: [@ptzbno](https://instagram.com/ptzbno)
-
----
-
-Thanks for checking out Zpx!
+**Like this project?** ⭐ Star it on GitHub and share it with your favorite AI tools.

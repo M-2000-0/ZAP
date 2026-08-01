@@ -5,7 +5,7 @@ build-backend = "setuptools.backends._legacy:_Backend"
 [project]
 name = "zpx-lang"
 version = "0.2.0"
-description = "Zpx — AI-native, full-stack, token-efficient programming language. Self-hosting, zero-boilerplate, 248+ builtins, no imports, no build step."
+description = "Zpx — AI-native, full-stack, token-efficient programming language. Self-hosting, zero-boilerplate, 120+ builtins, no imports, no build step."
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
