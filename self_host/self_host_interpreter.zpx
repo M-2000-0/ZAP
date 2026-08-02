@@ -14,7 +14,6 @@ fn run_file(filepath):
   if src == none:
     print("Error: cannot read " + filepath)
     ret none
-  print("=== Running: " + filepath + " ===")
   let lexer = Lexer(src, filepath)
   let toks = lexer.tokenize()
   if len(toks) == 0:
@@ -28,7 +27,6 @@ fn run_file(filepath):
   let env = Environment(none)
   setup_builtins(env)
   let result = evaluate(ast, env)
-  print("=== Done ===")
   ret result
 
 fn run_source(source, name="<stdin>"):
@@ -74,4 +72,9 @@ fn main():
   print("")
   print("=== All self-hosted tests passed! ===")
 
-main()
+let _args = sys_args()
+if len(_args) > 1 and _args[1] != "--selftest":
+  run_file(_args[1])
+el:
+  main()
+none

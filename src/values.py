@@ -567,7 +567,7 @@ def _stdlib_prompt(text, title="ZPX", default=""):
     import pyautogui
     return pyautogui.prompt(text=str(text), title=str(title), default=str(default))
 
-def make_zpx_builtins():
+def make_zpx_builtins(argv=None):
     env = Environment()
     builtins = {
         'print': ZpxBuiltin(lambda *args: print(*[_zpx_to_str(a) for a in args]), 'print'),
@@ -575,6 +575,7 @@ def make_zpx_builtins():
         'range': ZpxBuiltin(lambda *a: _builtin_range(*a), 'range'),
         'int': ZpxBuiltin(lambda x: int(x), 'int'),
         'float': ZpxBuiltin(lambda x: float(x), 'float'),
+        'bool': ZpxBuiltin(lambda x: bool(x), 'bool'),
         'str': ZpxBuiltin(lambda x: _zpx_to_str(x), 'str'),
         'list': ZpxBuiltin(lambda x: _builtin_list(x), 'list'),
         'type': ZpxBuiltin(lambda x: type(x).__name__, 'type'),
@@ -671,6 +672,9 @@ def make_zpx_builtins():
     # HTTP
     env.define('http_get', ZpxBuiltin(_stdlib_http_get, 'http_get'))
     env.define('http_post', ZpxBuiltin(_stdlib_http_post, 'http_post'))
+    env.define('http_post_json', ZpxBuiltin(_stdlib_http_post_json, 'http_post_json'))
+    env.define('http_put', ZpxBuiltin(_stdlib_http_put, 'http_put'))
+    env.define('http_delete', ZpxBuiltin(_stdlib_http_delete, 'http_delete'))
 
     # Crypto / encoding
     crypto_fns = {
@@ -680,15 +684,22 @@ def make_zpx_builtins():
     }
     for name, fn in crypto_fns.items():
         env.define(name, ZpxBuiltin(fn, name))
+    env.define('random_uuid', ZpxBuiltin(_stdlib_uuid, 'random_uuid'))
 
     # OS / system
     os_fns = {
         'env_get': _stdlib_env_get, 'env_set': _stdlib_env_set,
+        'env_has': _stdlib_env_has, 'env_list': _stdlib_env_list,
         'exit': _stdlib_exit, 'sleep': _stdlib_sleep,
-        'time': _stdlib_time,
+        'time': _stdlib_time, 'platform': _stdlib_platform,
+        'timestamp': _stdlib_timestamp,
     }
     for name, fn in os_fns.items():
         env.define(name, ZpxBuiltin(fn, name))
+    env.define('sys_exit', ZpxBuiltin(_stdlib_exit, 'sys_exit'))
+    if argv is None:
+        argv = []
+    env.define('sys_args', ZpxBuiltin(lambda: ZpxList(list(argv)), 'sys_args'))
 
     # Collections / iter tools
     coll_fns = {
@@ -699,6 +710,47 @@ def make_zpx_builtins():
     }
     for name, fn in coll_fns.items():
         env.define(name, ZpxBuiltin(fn, name))
+    env.define('repeat', ZpxBuiltin(_stdlib_repeat, 'repeat'))
+    env.define('slice', ZpxBuiltin(_stdlib_slice, 'slice'))
+
+    # Date/time
+    env.define('datetime_add', ZpxBuiltin(_stdlib_datetime_add, 'datetime_add'))
+
+    # Random
+    env.define('seed_random', ZpxBuiltin(_stdlib_seed_random, 'seed_random'))
+
+    # __builtin_* aliases so the pure-Zpx stdlib (self_host/builtins.zpx) works
+    # when executed under the host interpreter.
+    alias_map = {
+        '__builtin_read_file': 'read_file', '__builtin_write_file': 'write_file',
+        '__builtin_append_file': 'append_file', '__builtin_remove': 'remove',
+        '__builtin_file_size': 'file_size', '__builtin_file_exists': 'file_exists',
+        '__builtin_list_dir': 'list_dir',
+        '__builtin_json_parse': 'json_parse', '__builtin_json_stringify': 'json_stringify',
+        '__builtin_json_load': 'json_load', '__builtin_json_save': 'json_save',
+        '__builtin_http_get': 'http_get', '__builtin_http_post': 'http_post',
+        '__builtin_http_post_json': 'http_post_json', '__builtin_http_put': 'http_put',
+        '__builtin_http_delete': 'http_delete',
+        '__builtin_sha256': 'sha256', '__builtin_b64encode': 'base64_encode',
+        '__builtin_b64decode': 'base64_decode',
+        '__builtin_random_uuid': 'random_uuid', '__builtin_random_str': 'random_string',
+        '__builtin_env_get': 'env_get', '__builtin_env_set': 'env_set',
+        '__builtin_env_has': 'env_has', '__builtin_env_list': 'env_list',
+        '__builtin_sleep': 'sleep', '__builtin_exit': 'exit',
+        '__builtin_platform': 'platform',
+        '__builtin_random': 'random', '__builtin_random_int': 'randint',
+        '__builtin_seed_random': 'seed_random',
+        '__builtin_now': 'now', '__builtin_timestamp': 'timestamp',
+        '__builtin_datetime_add': 'datetime_add',
+        '__builtin_upper': 'upper', '__builtin_lower': 'lower',
+        '__builtin_strip': 'strip', '__builtin_split': 'split',
+        '__builtin_join': 'join', '__builtin_replace': 'replace',
+        '__builtin_startswith': 'startswith', '__builtin_endswith': 'endswith',
+        '__builtin_contains': 'contains', '__builtin_find': 'find',
+    }
+    for alias, target in alias_map.items():
+        if target in env.store:
+            env.define(alias, env.store[target])
 
     # Frontend DSL
     env.define('element', ZpxBuiltin(_stdlib_element, 'element'))
@@ -1246,6 +1298,28 @@ def _stdlib_http_post(url, data=None, content_type='application/json'):
         return resp.read().decode('utf-8')
     except Exception as e:
         raise RuntimeError(f"HTTP POST failed: {e}")
+def _stdlib_http_post_json(url, data):
+    return _stdlib_http_post(url, data, 'application/json')
+def _stdlib_http_put(url, data=None, content_type='application/json'):
+    try:
+        import urllib.request
+        import json
+        body = json.dumps(_zpx_to_py(data)).encode('utf-8') if data is not None else None
+        req = urllib.request.Request(str(url), data=body,
+                                      headers={'Content-Type': str(content_type)},
+                                      method='PUT')
+        resp = urllib.request.urlopen(req, timeout=10)
+        return resp.read().decode('utf-8')
+    except Exception as e:
+        raise RuntimeError(f"HTTP PUT failed: {e}")
+def _stdlib_http_delete(url):
+    try:
+        import urllib.request
+        req = urllib.request.Request(str(url), method='DELETE')
+        resp = urllib.request.urlopen(req, timeout=10)
+        return resp.read().decode('utf-8')
+    except Exception as e:
+        raise RuntimeError(f"HTTP DELETE failed: {e}")
 
 def _stdlib_base64_encode(s):
     import base64
@@ -1271,6 +1345,39 @@ def _stdlib_env_get(key, default=None):
 def _stdlib_env_set(key, value):
     __import__('os').environ[str(key)] = str(value)
     return True
+def _stdlib_env_has(key):
+    return str(key) in __import__('os').environ
+def _stdlib_env_list():
+    return ZpxList([ZpxList([k, v]) for k, v in __import__('os').environ.items()])
+def _stdlib_platform():
+    import sys as _s
+    return _s.platform
+def _stdlib_timestamp():
+    return _time.time()
+def _stdlib_seed_random(seed):
+    random.seed(seed)
+    return True
+def _stdlib_repeat(n, fn):
+    for _ in range(int(n)):
+        fn()
+    return None
+def _stdlib_slice(items, start=0, end=None, step=1):
+    if isinstance(items, ZpxList):
+        return ZpxList(list(items.elements)[slice(int(start), None if end is None else int(end), int(step))])
+    if isinstance(items, ZpxRange):
+        return ZpxList(list(items)[slice(int(start), None if end is None else int(end), int(step))])
+    if isinstance(items, list):
+        return items[slice(int(start), None if end is None else int(end), int(step))]
+    if isinstance(items, str):
+        return items[slice(int(start), None if end is None else int(end), int(step))]
+    raise TypeError(f"slice requires a list, got {type(items).__name__}")
+def _stdlib_datetime_add(dt, days=0, hours=0, minutes=0):
+    from datetime import datetime, timedelta
+    try:
+        parsed = datetime.strptime(str(dt), '%Y-%m-%d %H:%M:%S')
+    except ValueError:
+        parsed = datetime.strptime(str(dt), '%Y-%m-%d')
+    return (parsed + timedelta(days=int(days), hours=int(hours), minutes=int(minutes))).strftime('%Y-%m-%d %H:%M:%S')
 def _stdlib_exit(code=0):
     _sys.exit(int(code))
 def _stdlib_sleep(secs):

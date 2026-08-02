@@ -282,14 +282,14 @@ class Lexer:
               expr = expr + c
             self.pos = self.pos + 1
             self.col = self.col + 1
-          s = s + "${" + expr + "}"
+          s = s + "$" + "{" + expr + "}"
         else:
           if ch == "$" and is_alpha(self.peek(0)):
             has_interp = true
             let var = ""
             while is_alnum(self.peek(0)) or self.peek(0) == "_":
               var = var + self.advance()
-            s = s + "${" + var + "}"
+            s = s + "$" + "{" + var + "}"
           else:
             s = s + ch
     self.error("unterminated string")
@@ -452,4 +452,4 @@ fn test_lexer():
     i = i + 1
   print("Lexer test passed!")
 
-test_lexer()
+# test_lexer()

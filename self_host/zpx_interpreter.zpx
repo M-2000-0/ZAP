@@ -2,22 +2,6 @@
 # This is a self-hosting Zpx interpreter: parses and executes Zpx code
 # Usage: zpx run zpx_interpreter.zpx <script.zpx>
 
-let args = sys_args()
-if len(args) < 2:
-  print("Usage: zpx run zpx_interpreter.zpx <script.zpx>")
-  print("  or:  zpx run zpx_interpreter.zpx --repl")
-  sys_exit(1)
-
-let script_file = args[1]
-
-if script_file == "--repl":
-  run_repl()
-el:
-  let source = read_file(script_file)
-  let result = execute(source, script_file)
-  if result != none:
-    print(result)
-
 # ---- Main Execution ----
 
 fn execute(source, filename):
@@ -958,3 +942,21 @@ fn string_len(s):
   for ch in s:
     count = count + 1
   ret count
+
+# ---- Main Execution ----
+
+let args = sys_args()
+if len(args) < 2:
+  print("Usage: zpx run zpx_interpreter.zpx <script.zpx>")
+  print("  or:  zpx run zpx_interpreter.zpx --repl")
+  sys_exit(1)
+
+let script_file = args[1]
+
+if script_file == "--repl":
+  run_repl()
+el:
+  let source = read_file(script_file)
+  let result = execute(source, script_file)
+  if result != none:
+    print(result)

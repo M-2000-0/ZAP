@@ -27,8 +27,8 @@ class Evaluator:
     def _set_current_file(cls, value):
         cls._thread_local.current_file = value
 
-    def __init__(self, is_main=True, current_file=None):
-        self.global_env = make_zpx_builtins()
+    def __init__(self, is_main=True, current_file=None, argv=None):
+        self.global_env = make_zpx_builtins(argv=argv)
         self.env = self.global_env
         self.distributed_pool = None
         self._current_file = current_file

@@ -61,8 +61,11 @@ output.json
 
 # Debug files (local only)
 debug_*.py
-test_*.py
 bisect*.py
+
+# Self-hosting differential harness (test suite, not scratch)
+!test_self_hosting.py
+!tests/test_self_hosting.py
 
 # VS Code extension build
 vscode-extension/out/

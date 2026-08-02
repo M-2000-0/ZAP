@@ -37,6 +37,7 @@ fn setup_builtins(env):
   env.define("int", int)
   env.define("float", float)
   env.define("isinstance", isinstance)
+  env.define("type", type)
   env.define("getattr", getattr)
   env.define("abs", abs)
   env.define("max", max)
@@ -50,7 +51,6 @@ fn setup_builtins(env):
   env.define("ZpxFunction", ZpxFunction)
   env.define("ZpxBuiltin", ZpxBuiltin)
   env.define("ZpxType", ZpxType)
-  print("setup_builtins done, print in env: " + str(env.has_name("print")))
 
 fn evaluate(program, env):
   results = []
@@ -78,7 +78,9 @@ fn eval_stmt(stmt, env):
     ret none
   if isinstance(stmt, FnDef):
     closure = env.clone()
-    env.define(stmt.name, ZpxClosure(stmt, closure))
+    let fn_value = ZpxClosure(stmt, closure)
+    env.define(stmt.name, fn_value)
+    closure.define(stmt.name, fn_value)
     ret none
   if isinstance(stmt, ClassDef):
     methods = {}
@@ -144,16 +146,16 @@ fn eval_stmt(stmt, env):
 
 fn do_import(stmt, env):
   module_path = stmt.module
-  if isinstance(module_path, str):
+  if type(module_path) == "str":
     if module_path.startswith('"') and module_path.endswith('"'):
       module_path = module_path[1:-1]
   source = read_file(str(module_path))
-  tokens_list = tokenize(source, str(module_path))
+  let lex = Lexer(source, str(module_path))
+  tokens_list = lex.tokenize()
   parser = Parser(tokens_list)
   prog = parser.parse()
   evaluate(prog, env)
   ret none
-
 fn eval_block(block, env):
   for s in block.stmts:
     eval_stmt(s, env)
@@ -192,7 +194,11 @@ fn eval_try(stmt, env):
 
 fn eval_expr(expr, env):
   if isinstance(expr, Literal):
-    ret expr.value
+    let val = expr.value
+    if isinstance(val, ZpxDict):
+      if val["type"] == "interp":
+        ret eval_interp(str(val["src"]), env)
+    ret val
   if isinstance(expr, Identifier):
     value = env.get_value(expr.name)
     if value == none and env.parent != none:
@@ -241,6 +247,36 @@ fn eval_expr(expr, env):
     ret ZpxLambda(expr, closure)
   ret none
 
+fn eval_interp(src, env):
+  let result = ""
+  let i = 0
+  while i < len(src):
+    let ch = src[i]
+    if ch == "$" and i + 1 < len(src) and src[i + 1] == "{":
+      let close = -1
+      let depth = 1
+      let j = i + 2
+      while j < len(src) and depth > 0:
+        if src[j] == "{":
+          depth = depth + 1
+        if src[j] == "}":
+          depth = depth - 1
+        if depth > 0:
+          j = j + 1
+      let expr_str = src[(i + 2):j]
+      let tokens_list = tokenize(expr_str, "<interp>")
+      let parser = Parser(tokens_list)
+      let prog = parser.parse()
+      let value = none
+      for stmt in unwrap_list(prog.stmts):
+        value = eval_stmt(stmt, env)
+      result = result + str(value)
+      i = j + 1
+    el:
+      result = result + ch
+      i = i + 1
+  ret result
+
 fn eval_binop(op, left, right, env):
   if op == "+":
     ret left + right
@@ -277,17 +313,18 @@ fn eval_binop(op, left, right, env):
 fn is_truthy(value):
   if value == none:
     ret false
-  if isinstance(value, bool):
+  let t = type(value)
+  if t == "bool":
     ret value
-  if isinstance(value, int):
+  if t == "int":
     ret value != 0
-  if isinstance(value, float):
+  if t == "float":
     ret value != 0.0
-  if isinstance(value, str):
+  if t == "str":
     ret len(value) > 0
-  if isinstance(value, ZpxList):
+  if t == "ZpxList":
     ret len(value.elements) > 0
-  if isinstance(value, ZpxDict):
+  if t == "ZpxDict":
     ret len(value.entries) > 0
   ret true
 
@@ -302,7 +339,7 @@ fn call_function(callee, args, env):
     ret call_host_fn(callee, args)
   if isinstance(callee, ZpxFunction):
     ret call_host_fn(callee, args)
-  raise InterpreterError("TypeError: not callable", 0, 0)
+  ret call_host_fn(callee, args)
 
 fn call_closure(closure, args, env):
   new_env = Environment(closure.closure)
@@ -362,8 +399,18 @@ fn get_attr(obj, member):
     entry = entries.get(member)
     if entry != none:
       ret entry
+    if member == "keys":
+      ret ZpxBuiltin(() -> ZpxList(entries.keys()), "keys")
+    if member == "values":
+      ret ZpxBuiltin(() -> ZpxList(entries.values()), "values")
+    if member == "items":
+      ret ZpxBuiltin(() -> ZpxList([ZpxList(list(pair)) for pair in entries.items()]), "items")
+    if member == "len":
+      ret ZpxBuiltin(() -> len(entries), "len")
   if isinstance(obj, ZpxInstance) and obj.env.get_value(member) != none:
     ret obj.env.get_value(member)
+  if type(obj) == "str" or type(obj) == "int" or type(obj) == "float" or type(obj) == "bool" or isinstance(obj, ZpxList):
+    ret getattr(obj, member)
   raise InterpreterError("AttributeError: " + str(member) + " not found", 0, 0)
 
 fn get_index(obj, idx):

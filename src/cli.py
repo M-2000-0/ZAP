@@ -103,7 +103,7 @@ def _resolve_target(target: str) -> str:
 # Core execution functions
 # ---------------------------------------------------------------------------
 
-def run_file(filepath: str, *, diag_format: str = "text"):
+def run_file(filepath: str, *, diag_format: str = "text", script_args=None):
     from .lexer import Lexer
     from .parser import Parser
     from .evaluator import Evaluator
@@ -141,7 +141,7 @@ def run_file(filepath: str, *, diag_format: str = "text"):
         emit(_diagnostics_from_exception(e, file=filepath, code="Z001"), fmt=diag_format)
         sys.exit(1)
 
-    evaluator = Evaluator(current_file=filepath)
+    evaluator = Evaluator(current_file=filepath, argv=script_args or [])
     try:
         result = evaluator.evaluate(prog)
     except SystemExit:
@@ -158,7 +158,7 @@ def run_file(filepath: str, *, diag_format: str = "text"):
         print(result)
 
 
-def run_path(target: str, *, diag_format: str = "text"):
+def run_path(target: str, *, diag_format: str = "text", script_args=None):
     """Run a .zpx file or folder (auto-detects entrypoint)."""
     try:
         filepath = _resolve_target(target)
@@ -166,7 +166,7 @@ def run_path(target: str, *, diag_format: str = "text"):
         from .diagnostics import runtime_error, emit
         emit([runtime_error(str(e), code="Z500", file=target)], fmt=diag_format)
         sys.exit(1)
-    run_file(filepath, diag_format=diag_format)
+    run_file(filepath, diag_format=diag_format, script_args=[filepath] + (script_args or []))
 
 
 def check_file(filepath: str, *, diag_format: str = "text"):
@@ -877,7 +877,7 @@ def main(argv=None):
         if not args:
             # Default to current directory for plug-and-play experience
             args = ["."]
-        run_path(args[0], diag_format=diag_format)
+        run_path(args[0], diag_format=diag_format, script_args=args[1:])
     elif cmd == "check":
         if not args:
             print("usage: zpx check <file.zpx>", file=sys.stderr)
