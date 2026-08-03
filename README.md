@@ -64,6 +64,8 @@ By 2027, an estimated 80% of code will be AI-generated. Today's languages were d
 | **Package Manager** | `zpx init`, `zpx add`, `zpx install`, `zpx.json` |
 | **WASM Target** | Transpiles Zpx → JavaScript (`wasm/`) |
 | **Time-Travel Debugging** | Checkpoints, rewind, query, diff |
+| **Multi-Format Data** | `zpx convert` ↔ `.zpx` / JSON / JSONL / CSV / TSV / Markdown / SQL |
+| **LLM-Ready Export** | `--llm` training export (chat + instruct JSONL) |
 | **VS Code Extension** | Syntax highlighting + snippets |
 | **120+ Builtins** | HTTP, JSON, DB, crypto, files, math, no imports needed |
 
@@ -271,6 +273,54 @@ check:
 
 ---
 
+## Zpx as a Multi-Format Data Format
+
+`.zpx` doubles as a **data and configuration format** — plain text, schema-free, git-diffable, and lightweight enough to feed straight into LLM training. One `zpx convert` command moves data between `.zpx`, `.json`, `.jsonl`, `.csv`, `.tsv`, Markdown, and SQL.
+
+```bash
+zpx convert data.csv --to jsonl           # print JSONL
+zpx convert data.csv --out data.zpx       # write a runnable Zpx data file
+zpx convert data.zpx --to json            # read it back (evaluates the program)
+zpx convert data.csv --compact --out d.zpx  # smallest .zpx (single-line)
+zpx convert data.csv --to markdown        # print a Markdown table
+zpx convert data.csv --to sql             # print CREATE + INSERT statements
+
+# LLM training export (OpenAI-style chat JSONL / instruct pairs)
+zpx convert chat.csv --llm --system "Be helpful." --out train.jsonl
+zpx convert qa.csv --llm --instruct --out train.jsonl
+```
+
+A `.zpx` data file is just literals plus one line — JSON itself is valid Zpx, so data round-trips through the language:
+
+```zpx
+let rows = [
+  {"name": "Ada", "age": 36, "tags": ["math", "code"]},
+  {"name": "Bob", "age": 41, "tags": ["music"]},
+]
+print(json_stringify(rows))
+```
+
+### How much space does Zpx save?
+
+Benchmark: **10,000 rows × 10 columns** (names, emails, ages, scores, dates, notes) in every format.
+
+| Format | Raw | gzip'd | Notes |
+|--------|-----|--------|-------|
+| Excel `.xlsx` | 552 KB | 544 KB | already a ZIP — can't compress further |
+| CSV | 869 KB | 175 KB | |
+| SQL dump | 1308 KB | 190 KB | terse dump, no schema boilerplate |
+| JSON | 2495 KB | 213 KB | |
+| JSONL | 1928 KB | 202 KB | |
+| `.zpx --compact` | 2006 KB | 204 KB | |
+
+Takeaways:
+- **vs Excel:** compressed `.zpx` is ~**62% smaller** (204 KB vs 544 KB) *and* plain text, so it diffs and merges cleanly in git.
+- **vs SQL:** `.zpx` saves on structure, not bytes — no `CREATE TABLE`, no `INSERT` boilerplate; values are just literals (and both gzip to ~190–205 KB).
+- **vs JSONL:** `.zpx` for data is roughly JSONL-sized, but it runs directly through the language.
+- **Compression is the big win:** text formats (`zpx`/`jsonl`/`csv`) gzip to ~**10–20%** of their size; `.xlsx` stays at ~**98%**. Store `.zpx` gzipped (or in git, which zlib-compresses) and it crushes Excel.
+
+---
+
 ## Architecture
 
 ```
@@ -311,6 +361,7 @@ zpx init [name]            # Scaffold new project
 zpx add <spec>             # Add dependency
 zpx install                # Install from zpx.json
 zpx ai                     # AI subcommands (train, scan, wifi)
+zpx convert <in> [--to fmt] [--out f] [--compact] [--llm ...]   # data conversion
 ```
 
 **Flags:** `--format=json` (machine-readable), `--no-color`
@@ -369,6 +420,8 @@ ZPX/
 - LSP, package manager, WASM target
 - `in` / `not in` operators, ternary expressions, f-strings
 - Dict iteration methods (`keys`, `values`, `items`)
+- `zpx convert` multi-format data conversion (`.zpx`/JSON/JSONL/CSV/TSV/Markdown/SQL)
+- LLM training export (`--llm` chat + instruct JSONL)
 
 ### In Progress
 - Optional chaining (`?.`)
