@@ -415,17 +415,21 @@ ZPX/
 ### Done
 - Self-hosted parser, lexer, AST, evaluator
 - 120+ builtins with short aliases
-- Pattern matching, comprehensions, contracts
+- Pattern matching, comprehensions, contracts, destructuring (`let {a, b} = expr`)
 - Auto-deploy DB + platform detection
 - LSP, package manager, WASM target
 - `in` / `not in` operators, ternary expressions, f-strings
 - Dict iteration methods (`keys`, `values`, `items`)
+- ECS runtime (`entity` / `comp` / `system` / `scene`) + 3D math (`vec3` / `quat` / `mat4`)
+- Engine runtime + platformer example
+- `zpx scan` semantic project graph; `zpx ai` subcommands (train, scan, wifi)
+- Git-as-Language runtime, ZPX-OS subproject
+- Windows icon + `.zpx` file-association integration
 - `zpx convert` multi-format data conversion (`.zpx`/JSON/JSONL/CSV/TSV/Markdown/SQL)
 - LLM training export (`--llm` chat + instruct JSONL)
 
 ### In Progress
 - Optional chaining (`?.`)
-- Destructuring (`let {a, b} = expr`)
 - Web UI framework
 - Mobile app support
 - IDE plugins (Cursor, Windsurf, Zed)
