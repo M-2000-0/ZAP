@@ -870,6 +870,7 @@ Options:
   --to <fmt>              target format (default: json to stdout)
   --from <fmt>            source format (default: from the file extension)
   --delimiter <ch>        field delimiter for csv/tsv (default: auto)
+  --compact               single-line zpx/json output (smallest files)
   --llm                   emit chat/instruct JSONL for LLM training
   --system <text>         system prompt for --llm chat records
   --instruct              emit {prompt, completion} records instead of messages
@@ -1004,6 +1005,27 @@ def _zpx_dumps(obj, indent=0):
     return json.dumps(str(obj), ensure_ascii=False)
 
 
+def _zpx_dumps_compact(obj):
+    """Single-line Zpx literal (no pretty-printing)."""
+    import json
+    if obj is None:
+        return "none"
+    if obj is True:
+        return "true"
+    if obj is False:
+        return "false"
+    if isinstance(obj, (int, float)):
+        return repr(obj)
+    if isinstance(obj, str):
+        return json.dumps(obj, ensure_ascii=False)
+    if isinstance(obj, dict):
+        return "{" + ", ".join(_zpx_dumps_compact(str(k)) + ": " + _zpx_dumps_compact(v)
+                               for k, v in obj.items()) + "}"
+    if isinstance(obj, list):
+        return "[" + ", ".join(_zpx_dumps_compact(v) for v in obj) + "]"
+    return json.dumps(str(obj), ensure_ascii=False)
+
+
 def _write_csv(rows, out, delimiter):
     import csv
     import io
@@ -1093,10 +1115,13 @@ def _write_sql(rows, out):
         sys.stdout.write(text)
 
 
-def _write_rows(rows, out, fmt, delimiter):
+def _write_rows(rows, out, fmt, delimiter, compact=False):
     import json
     if fmt == 'json':
-        text = json.dumps(rows, indent=2, ensure_ascii=False) + "\n"
+        if compact:
+            text = json.dumps(rows, separators=(',', ':'), ensure_ascii=False) + "\n"
+        else:
+            text = json.dumps(rows, indent=2, ensure_ascii=False) + "\n"
     elif fmt == 'jsonl':
         text = "\n".join(json.dumps(r, ensure_ascii=False) for r in rows)
         if rows:
@@ -1108,7 +1133,7 @@ def _write_rows(rows, out, fmt, delimiter):
         _write_csv(rows, out, delimiter or '\t')
         return
     elif fmt == 'zpx':
-        body = _zpx_dumps(rows)
+        body = _zpx_dumps_compact(rows) if compact else _zpx_dumps(rows)
         text = "# Zpx data file (auto-generated)\nlet rows = " + body + "\n"
         text += "print(json_stringify(rows))\n"
     elif fmt == 'markdown':
@@ -1199,6 +1224,8 @@ def convert_command(args, diag_format="text"):
             opts['llm'] = True; i += 1; continue
         if a == "--instruct":
             opts['instruct'] = True; i += 1; continue
+        if a == "--compact":
+            opts['compact'] = True; i += 1; continue
         if a.startswith("--"):
             print(f"unknown option: {a}", file=sys.stderr)
             sys.exit(1)
@@ -1235,7 +1262,7 @@ def convert_command(args, diag_format="text"):
         if opts.get('llm'):
             _export_llm(rows, out, opts)
         else:
-            _write_rows(rows, out, dst_fmt, delimiter)
+            _write_rows(rows, out, dst_fmt, delimiter, compact=opts.get('compact'))
     except ConvertError as e:
         print(f"error: {e}", file=sys.stderr)
         sys.exit(1)

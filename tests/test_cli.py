@@ -431,6 +431,22 @@ class TestConvertCommand:
         assert "Bob" in stdout
         assert os.path.exists(os.path.join(tmp_project, "out.jsonl"))
 
+    def test_compact_zpx(self, tmp_project):
+        """--compact should emit a single-line .zpx that still reads back."""
+        csv_path = os.path.join(tmp_project, "data.csv")
+        with open(csv_path, "w", encoding="utf-8") as f:
+            f.write("id,name\n1,Ada\n2,Bob\n")
+        zpx_path = os.path.join(tmp_project, "data.zpx")
+        rc, stdout, stderr = run_zpx(["convert", csv_path, "--compact", "--out", zpx_path])
+        assert rc == 0, stderr
+        with open(zpx_path, encoding="utf-8") as f:
+            assert f.read().count("\n") < 5  # effectively single-line data
+        rc, stdout, stderr = run_zpx(["convert", zpx_path, "--to", "json"])
+        assert rc == 0, stderr
+        data = json.loads(stdout)
+        assert len(data) == 2
+        assert data[0]["name"] == "Ada"
+
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
