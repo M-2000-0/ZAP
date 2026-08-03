@@ -728,6 +728,7 @@ def make_zpx_builtins(argv=None):
         '__builtin_list_dir': 'list_dir',
         '__builtin_json_parse': 'json_parse', '__builtin_json_stringify': 'json_stringify',
         '__builtin_json_load': 'json_load', '__builtin_json_save': 'json_save',
+        '__builtin_jsonl_load': 'jsonl_load', '__builtin_jsonl_save': 'jsonl_save',
         '__builtin_http_get': 'http_get', '__builtin_http_post': 'http_post',
         '__builtin_http_post_json': 'http_post_json', '__builtin_http_put': 'http_put',
         '__builtin_http_delete': 'http_delete',
@@ -794,6 +795,8 @@ def make_zpx_builtins(argv=None):
     env.define('csv_save', ZpxBuiltin(_stdlib_csv_save, 'csv_save'))
     env.define('json_load', ZpxBuiltin(_stdlib_json_load, 'json_load'))
     env.define('json_save', ZpxBuiltin(_stdlib_json_save, 'json_save'))
+    env.define('jsonl_load', ZpxBuiltin(_stdlib_jsonl_load, 'jsonl_load'))
+    env.define('jsonl_save', ZpxBuiltin(_stdlib_jsonl_save, 'jsonl_save'))
     env.define('image_load', ZpxBuiltin(_stdlib_image_load, 'image_load'))
     env.define('image_save', ZpxBuiltin(_stdlib_image_save, 'image_save'))
     env.define('web_fetch', ZpxBuiltin(_stdlib_web_fetch, 'web_fetch'))
@@ -915,6 +918,8 @@ def make_zpx_builtins(argv=None):
         'csv': 'csv_load',         # csv("data.csv")
         'jload': 'json_load',      # jload("data.json")
         'jsave': 'json_save',      # jsave("out.json", data)
+        'jl': 'jsonl_load',        # jl("data.jsonl")
+        'jls': 'jsonl_save',       # jls("out.jsonl", data)
         'wf': 'web_fetch',         # wf("https://...")
         'dl': 'download',          # dl("https://...", "file")
         'wl': 'wifi_scan',         # wl()
@@ -2123,6 +2128,30 @@ def _stdlib_json_save(path, data):
     import json
     with open(str(path), 'w', encoding='utf-8') as f:
         json.dump(_zpx_to_py(data), f, indent=2)
+    return True
+
+def _stdlib_jsonl_load(path):
+    """Load a JSONL file (one JSON value per line) into a ZpxList."""
+    import json
+    rows = []
+    with open(str(path), 'r', encoding='utf-8') as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            rows.append(_py_to_zpx(json.loads(line)))
+    return ZpxList(rows)
+
+def _stdlib_jsonl_save(path, data):
+    """Save a ZpxList of values as JSONL (one JSON value per line)."""
+    import json
+    with open(str(path), 'w', encoding='utf-8') as f:
+        if isinstance(data, ZpxList):
+            for row in data.elements:
+                f.write(json.dumps(_zpx_to_py(row)) + "\n")
+        else:
+            for row in list(data):
+                f.write(json.dumps(_zpx_to_py(row)) + "\n")
     return True
 
 def _stdlib_image_load(path):

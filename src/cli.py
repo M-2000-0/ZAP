@@ -169,6 +169,26 @@ def run_path(target: str, *, diag_format: str = "text", script_args=None):
     run_file(filepath, diag_format=diag_format, script_args=[filepath] + (script_args or []))
 
 
+def self_host_command(filepath: str, *, script_args=None):
+    """Run a .zpx file through the Zpx-written self-hosted interpreter.
+
+    The interpreter is self_host/self_host_interpreter.zpx (pure Zpx); it is
+    invoked via the host interpreter, which reads the target file, tokenizes,
+    parses, and evaluates it with its own Zpx implementation of the pipeline.
+    """
+    interp = os.path.join(
+        os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+        "self_host", "self_host_interpreter.zpx",
+    )
+    if not os.path.exists(interp):
+        print(f"error: self-hosted interpreter not found: {interp}", file=sys.stderr)
+        sys.exit(1)
+    if not os.path.exists(filepath):
+        print(f"error: file not found: {filepath}", file=sys.stderr)
+        sys.exit(1)
+    run_file(interp, script_args=[interp, filepath] + (script_args or []))
+
+
 def check_file(filepath: str, *, diag_format: str = "text"):
     from .lexer import Lexer
     from .parser import Parser
@@ -612,11 +632,14 @@ HELP_TEXT = """Zpx — one language, every layer
 
 Usage:
   zpx run <file.zpx|folder>   execute a .zpx file or folder (auto-detects entrypoint)
+  zpx self-host <file.zpx>    run a file via the Zpx-written self-hosted interpreter
   zpx check <file.zpx>        parse + type-check
   zpx build <file.zpx>        check + run
   zpx test [path]             run @test / expect blocks
   zpx compile <file.zpx>      transpile to Python bytecode
   zpx repl                    interactive REPL
+  zpx convert <file> [opts]   convert data between zpx/json/jsonl/csv/tsv/md/sql
+                              (use --llm to emit LLM training JSONL)
   zpx version                 print version + grammar version
   zpx diag <text>             parse diagnostic text -> JSON
   zpx init [name]             scaffold a new Zpx project
@@ -811,6 +834,414 @@ def _ai_fetch(args):
 
 
 # ---------------------------------------------------------------------------
+# Data conversion (multi-format) + LLM training export
+# ---------------------------------------------------------------------------
+
+# Extension -> format name
+FORMAT_BY_EXT = {
+    '.zpx': 'zpx',
+    '.json': 'json',
+    '.jsonl': 'jsonl',
+    '.ndjson': 'jsonl',
+    '.csv': 'csv',
+    '.tsv': 'tsv',
+    '.md': 'markdown',
+    '.markdown': 'markdown',
+    '.sql': 'sql',
+}
+
+CONVERT_HELP_TEXT = """Convert structured data between formats (multi-format, LLM-ready).
+
+.zpx doubles as a data format: it is plain text, schema-free, git-diffable,
+and JSON is valid Zpx for data, so .zpx files round-trip through the language
+itself -- lighter than SQL files or spreadsheets, and easy to feed to LLMs.
+
+Usage:
+  zpx convert <input> [--out <file>] [--to <fmt>] [--from <fmt>]
+  zpx convert <input> --llm --out train.jsonl [--system "text"] [--instruct]
+  zpx convert <input> --to markdown          # print a Markdown table
+  zpx convert <input> --to sql               # print CREATE + INSERT statements
+
+Formats:
+  zpx, json, jsonl (ndjson), csv, tsv, markdown (md), sql
+
+Options:
+  --out <file>            write to file (format taken from its extension)
+  --to <fmt>              target format (default: json to stdout)
+  --from <fmt>            source format (default: from the file extension)
+  --delimiter <ch>        field delimiter for csv/tsv (default: auto)
+  --llm                   emit chat/instruct JSONL for LLM training
+  --system <text>         system prompt for --llm chat records
+  --instruct              emit {prompt, completion} records instead of messages
+  --user-col <name>       row column holding the user turn (default: user)
+  --assistant-col <name>  row column holding the assistant turn (default: assistant)
+  --prompt-col <name>     row column holding the prompt (default: prompt)
+  --completion-col <name> row column holding the completion (default: completion)
+
+Notes:
+  - A .zpx data file is any Zpx program whose stdout is JSON, e.g.
+      let rows = [{"name": "Ada", "age": 36}]
+      print(json_stringify(rows))
+    `zpx convert out.zpx` produces exactly this shape, so conversions round-trip.
+  - `zpx convert data.csv --llm --system "Answer as Ada." --out train.jsonl`
+    turns rows with user/assistant columns into OpenAI-style chat JSONL.
+"""
+
+
+class ConvertError(Exception):
+    pass
+
+
+def _to_scalar(v):
+    if v is None:
+        return ""
+    if isinstance(v, str):
+        return v
+    return str(v)
+
+
+def _read_rows(path, fmt, delimiter):
+    import json
+    if fmt == 'json':
+        with open(path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+        if isinstance(data, dict):
+            return [data]
+        if isinstance(data, list):
+            return data
+        raise ConvertError(f"{path}: top-level JSON must be an object or array")
+    if fmt == 'jsonl':
+        rows = []
+        with open(path, 'r', encoding='utf-8') as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    rows.append(json.loads(line))
+        return rows
+    if fmt in ('csv', 'tsv'):
+        import csv
+        sep = delimiter or ('\t' if fmt == 'tsv' else ',')
+        rows = []
+        with open(path, 'r', encoding='utf-8', newline='') as f:
+            reader = csv.reader(f, delimiter=sep)
+            header = next(reader, None)
+            if header is None:
+                return []
+            for line in reader:
+                if all(not str(c).strip() for c in line):
+                    continue
+                rows.append({h: (line[i] if i < len(line) else '') for i, h in enumerate(header)})
+        return rows
+    if fmt == 'zpx':
+        return _read_zpx(path)
+    raise ConvertError(f"unsupported source format: {fmt}")
+
+
+def _read_zpx(path):
+    """Evaluate a .zpx data file and parse its stdout as JSON."""
+    import io
+    import contextlib
+    import json
+    from .lexer import Lexer
+    from .parser import Parser
+    from .evaluator import Evaluator
+    with open(path, 'r', encoding='utf-8') as f:
+        text = f.read()
+    try:
+        tokens = Lexer(text, path).tokenize()
+        prog = Parser(tokens).parse()
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            evaluator = Evaluator(current_file=path, argv=[path])
+            evaluator.evaluate(prog)
+        out = buf.getvalue().strip()
+    except ConvertError:
+        raise
+    except Exception as e:
+        raise ConvertError(f"{path}: could not evaluate as Zpx data: {e}")
+    if not out:
+        raise ConvertError(
+            f"{path}: Zpx data file produced no output; end it with print(json_stringify(rows))")
+    try:
+        data = json.loads(out)
+    except Exception as e:
+        raise ConvertError(
+            f"{path}: Zpx output was not JSON ({e}); make the last line print(json_stringify(...))")
+    if isinstance(data, dict):
+        return [data]
+    return data
+
+
+def _zpx_dumps(obj, indent=0):
+    """Serialize Python data as a Zpx literal (JSON that uses none/true/false)."""
+    import json
+    if obj is None:
+        return "none"
+    if obj is True:
+        return "true"
+    if obj is False:
+        return "false"
+    if isinstance(obj, (int, float)):
+        return repr(obj)
+    if isinstance(obj, str):
+        return json.dumps(obj, ensure_ascii=False)
+    if isinstance(obj, dict):
+        if not obj:
+            return "{}"
+        pad = "  " * (indent + 1)
+        close = "  " * indent
+        items = ",\n".join(
+            pad + _zpx_dumps(str(k), indent + 1) + ": " + _zpx_dumps(v, indent + 1)
+            for k, v in obj.items())
+        return "{\n" + items + "\n" + close + "}"
+    if isinstance(obj, list):
+        if not obj:
+            return "[]"
+        pad = "  " * (indent + 1)
+        close = "  " * indent
+        items = ",\n".join(pad + _zpx_dumps(v, indent + 1) for v in obj)
+        return "[\n" + items + "\n" + close + "]"
+    return json.dumps(str(obj), ensure_ascii=False)
+
+
+def _write_csv(rows, out, delimiter):
+    import csv
+    import io
+    if rows and isinstance(rows[0], dict):
+        headers = list(rows[0].keys())
+        get = lambda r, h: r.get(h)
+    else:
+        headers = list(range(len(rows[0]))) if rows else []
+        get = lambda r, h: r[h]
+    buf = io.StringIO()
+    w = csv.writer(buf, delimiter=delimiter, lineterminator="\n")
+    if rows:
+        w.writerow([str(h) for h in headers])
+        for r in rows:
+            w.writerow([_to_scalar(get(r, h)) for h in headers])
+    text = buf.getvalue()
+    if out:
+        with open(out, 'w', encoding='utf-8', newline='') as f:
+            f.write(text)
+    else:
+        sys.stdout.write(text)
+
+
+def _write_markdown(rows, out):
+    def esc(s):
+        return s.replace("\\", "\\\\").replace("|", "\\|").replace("\n", "<br>")
+    if rows and isinstance(rows[0], dict):
+        headers = [str(h) for h in rows[0].keys()]
+        get = lambda r, h: r.get(h)
+    else:
+        headers = [str(i) for i in range(len(rows[0]))] if rows else []
+        get = lambda r, h: r[h]
+    if not rows:
+        text = "| (empty) |\n|---|\n"
+    else:
+        text = "| " + " | ".join(headers) + " |\n"
+        text += "| " + " | ".join("---" for _ in headers) + " |\n"
+        for r in rows:
+            text += "| " + " | ".join(esc(_to_scalar(get(r, h))) for h in headers) + " |\n"
+    if out:
+        with open(out, 'w', encoding='utf-8') as f:
+            f.write(text)
+    else:
+        sys.stdout.write(text)
+
+
+def _write_sql(rows, out):
+    def sql_id(c):
+        return '"' + str(c).replace('"', '""') + '"'
+    def sql_value(v):
+        if v is None:
+            return "NULL"
+        if isinstance(v, bool):
+            return "1" if v else "0"
+        if isinstance(v, (int, float)):
+            return repr(v)
+        return "'" + str(v).replace("'", "''") + "'"
+    if rows and isinstance(rows[0], dict):
+        cols = [str(h) for h in rows[0].keys()]
+        get = lambda r, h: r.get(h)
+    else:
+        cols = [f"col{i}" for i in range(len(rows[0]))] if rows else []
+        get = lambda r, h: r[h]
+    if not rows:
+        text = "-- (no rows)\n"
+    else:
+        ctypes = []
+        for h in cols:
+            t = "TEXT"
+            for r in rows:
+                v = get(r, h)
+                if isinstance(v, int) and not isinstance(v, bool):
+                    t = "INTEGER"
+                elif isinstance(v, float):
+                    t = "REAL"
+            ctypes.append(t)
+        text = "CREATE TABLE IF NOT EXISTS data (\n"
+        text += ",\n".join(f"  {sql_id(c)} {ct}" for c, ct in zip(cols, ctypes))
+        text += "\n);\n"
+        for r in rows:
+            vals = ", ".join(sql_value(get(r, h)) for h in cols)
+            text += f"INSERT INTO data ({', '.join(sql_id(c) for c in cols)}) VALUES ({vals});\n"
+    if out:
+        with open(out, 'w', encoding='utf-8') as f:
+            f.write(text)
+    else:
+        sys.stdout.write(text)
+
+
+def _write_rows(rows, out, fmt, delimiter):
+    import json
+    if fmt == 'json':
+        text = json.dumps(rows, indent=2, ensure_ascii=False) + "\n"
+    elif fmt == 'jsonl':
+        text = "\n".join(json.dumps(r, ensure_ascii=False) for r in rows)
+        if rows:
+            text += "\n"
+    elif fmt == 'csv':
+        _write_csv(rows, out, delimiter or ',')
+        return
+    elif fmt == 'tsv':
+        _write_csv(rows, out, delimiter or '\t')
+        return
+    elif fmt == 'zpx':
+        body = _zpx_dumps(rows)
+        text = "# Zpx data file (auto-generated)\nlet rows = " + body + "\n"
+        text += "print(json_stringify(rows))\n"
+    elif fmt == 'markdown':
+        _write_markdown(rows, out)
+        return
+    elif fmt == 'sql':
+        _write_sql(rows, out)
+        return
+    else:
+        raise ConvertError(f"unsupported target format: {fmt}")
+    if out:
+        with open(out, 'w', encoding='utf-8') as f:
+            f.write(text)
+    else:
+        sys.stdout.write(text)
+
+
+def _export_llm(rows, out, opts):
+    """Emit LLM training JSONL: chat messages or {prompt, completion}."""
+    import json
+    system = opts.get('system')
+    instruct = opts.get('instruct')
+    user_col = opts.get('user_col', 'user')
+    assistant_col = opts.get('assistant_col', 'assistant')
+    prompt_col = opts.get('prompt_col', 'prompt')
+    completion_col = opts.get('completion_col', 'completion')
+    lines = []
+    for r in rows:
+        if instruct:
+            if prompt_col not in r:
+                raise ConvertError(f"--instruct: row is missing the '{prompt_col}' column")
+            rec = {"prompt": str(r.get(prompt_col)),
+                   "completion": str(r.get(completion_col, ""))}
+        else:
+            if user_col not in r:
+                raise ConvertError(f"--llm: row is missing the '{user_col}' column")
+            messages = []
+            if system:
+                messages.append({"role": "system", "content": str(system)})
+            messages.append({"role": "user", "content": str(r.get(user_col))})
+            if assistant_col in r and r.get(assistant_col) not in (None, ""):
+                messages.append({"role": "assistant", "content": str(r.get(assistant_col))})
+            rec = {"messages": messages}
+        lines.append(json.dumps(rec, ensure_ascii=False))
+    text = "\n".join(lines) + ("\n" if lines else "")
+    if out:
+        with open(out, 'w', encoding='utf-8') as f:
+            f.write(text)
+    else:
+        sys.stdout.write(text)
+
+
+def convert_command(args, diag_format="text"):
+    """Handle 'zpx convert': multi-format data conversion + LLM export."""
+    if not args or any(a in ("-h", "--help", "help") for a in args):
+        print(CONVERT_HELP_TEXT, file=sys.stderr)
+        sys.exit(0 if args else 1)
+
+    src = None
+    out = None
+    to_fmt = None
+    from_fmt = None
+    delimiter = None
+    opts = {}
+
+    i = 0
+    while i < len(args):
+        a = args[i]
+        if a == "--out" and i + 1 < len(args):
+            out = args[i + 1]; i += 2; continue
+        if a == "--to" and i + 1 < len(args):
+            to_fmt = args[i + 1]; i += 2; continue
+        if a == "--from" and i + 1 < len(args):
+            from_fmt = args[i + 1]; i += 2; continue
+        if a == "--delimiter" and i + 1 < len(args):
+            delimiter = args[i + 1]; i += 2; continue
+        if a == "--system" and i + 1 < len(args):
+            opts['system'] = args[i + 1]; i += 2; continue
+        if a == "--user-col" and i + 1 < len(args):
+            opts['user_col'] = args[i + 1]; i += 2; continue
+        if a == "--assistant-col" and i + 1 < len(args):
+            opts['assistant_col'] = args[i + 1]; i += 2; continue
+        if a == "--prompt-col" and i + 1 < len(args):
+            opts['prompt_col'] = args[i + 1]; i += 2; continue
+        if a == "--completion-col" and i + 1 < len(args):
+            opts['completion_col'] = args[i + 1]; i += 2; continue
+        if a == "--llm":
+            opts['llm'] = True; i += 1; continue
+        if a == "--instruct":
+            opts['instruct'] = True; i += 1; continue
+        if a.startswith("--"):
+            print(f"unknown option: {a}", file=sys.stderr)
+            sys.exit(1)
+        src = a
+        i += 1
+
+    if not src:
+        print("usage: zpx convert <input> [--out <file>] [--to <fmt>] [--llm]", file=sys.stderr)
+        sys.exit(1)
+    if not os.path.exists(src):
+        print(f"error: file not found: {src}", file=sys.stderr)
+        sys.exit(1)
+
+    src_fmt = from_fmt or FORMAT_BY_EXT.get(os.path.splitext(src)[1].lower())
+    if src_fmt is None:
+        print(f"error: cannot detect format for {src}; use --from <fmt>", file=sys.stderr)
+        sys.exit(1)
+
+    if out:
+        dst_fmt = to_fmt or FORMAT_BY_EXT.get(os.path.splitext(out)[1].lower())
+        if dst_fmt is None:
+            print(f"error: cannot detect format for {out}; use --to <fmt>", file=sys.stderr)
+            sys.exit(1)
+    else:
+        dst_fmt = 'jsonl' if (opts.get('llm') or to_fmt == 'jsonl') else (to_fmt or 'json')
+
+    try:
+        rows = _read_rows(src, src_fmt, delimiter)
+    except ConvertError as e:
+        print(f"error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+    try:
+        if opts.get('llm'):
+            _export_llm(rows, out, opts)
+        else:
+            _write_rows(rows, out, dst_fmt, delimiter)
+    except ConvertError as e:
+        print(f"error: {e}", file=sys.stderr)
+        sys.exit(1)
+
+
+# ---------------------------------------------------------------------------
 # Main entrypoint
 # ---------------------------------------------------------------------------
 
@@ -921,6 +1352,11 @@ def main(argv=None):
     elif cmd == "add":
         from .pkg import add
         add(args, diag_format=diag_format)
+    elif cmd == "self-host":
+        if not args:
+            print("usage: zpx self-host <file.zpx>", file=sys.stderr)
+            sys.exit(1)
+        self_host_command(args[0], script_args=args[1:])
     elif cmd == "scan":
         if not args:
             args = ["."]
@@ -928,6 +1364,8 @@ def main(argv=None):
         sg = SemanticGraph(args[0])
         sg.scan()
         print(sg.to_json())
+    elif cmd == "convert":
+        convert_command(args, diag_format=diag_format)
     elif cmd == "ai":
         ai_command(args, diag_format=diag_format)
     elif cmd == "patricio":

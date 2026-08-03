@@ -300,5 +300,137 @@ class TestBuiltins:
         assert "hello" in stdout
 
 
+class TestConvertCommand:
+    """Tests for `zpx convert` (multi-format data + LLM export)."""
+
+    def test_csv_to_json(self, tmp_project):
+        """zpx convert csv --to json should print JSON."""
+        csv_path = os.path.join(tmp_project, "data.csv")
+        with open(csv_path, "w", encoding="utf-8") as f:
+            f.write("name,age\nAda,36\nBob,41\n")
+        rc, stdout, stderr = run_zpx(["convert", csv_path, "--to", "json"])
+        assert rc == 0, stderr
+        data = json.loads(stdout)
+        assert len(data) == 2
+        assert data[0]["name"] == "Ada"
+        assert data[0]["age"] == "36"
+
+    def test_csv_to_jsonl(self, tmp_project):
+        """zpx convert csv --to jsonl should emit one JSON object per line."""
+        csv_path = os.path.join(tmp_project, "data.csv")
+        with open(csv_path, "w", encoding="utf-8") as f:
+            f.write("name,age\nAda,36\nBob,41\n")
+        rc, stdout, stderr = run_zpx(["convert", csv_path, "--to", "jsonl"])
+        assert rc == 0, stderr
+        lines = [json.loads(l) for l in stdout.strip().splitlines()]
+        assert [r["name"] for r in lines] == ["Ada", "Bob"]
+
+    def test_json_to_csv_roundtrip(self, tmp_project):
+        """csv -> json -> csv should preserve the original rows."""
+        csv1 = os.path.join(tmp_project, "a.csv")
+        with open(csv1, "w", encoding="utf-8") as f:
+            f.write("x,y\n1,one\n2,two\n")
+        rc, stdout, stderr = run_zpx(["convert", csv1, "--out", os.path.join(tmp_project, "a.json")])
+        assert rc == 0, stderr
+        rc, stdout, stderr = run_zpx(
+            ["convert", os.path.join(tmp_project, "a.json"), "--out", os.path.join(tmp_project, "b.csv")])
+        assert rc == 0, stderr
+        with open(os.path.join(tmp_project, "b.csv"), encoding="utf-8") as f:
+            assert f.read() == "x,y\n1,one\n2,two\n"
+
+    def test_zpx_roundtrip(self, tmp_project):
+        """Converting to .zpx should produce a runnable file that reads back."""
+        csv_path = os.path.join(tmp_project, "data.csv")
+        with open(csv_path, "w", encoding="utf-8") as f:
+            f.write("name,age\nAda,36\n")
+        zpx_path = os.path.join(tmp_project, "data.zpx")
+        rc, stdout, stderr = run_zpx(["convert", csv_path, "--out", zpx_path])
+        assert rc == 0, stderr
+        assert os.path.exists(zpx_path)
+        rc, stdout, stderr = run_zpx(["convert", zpx_path, "--to", "jsonl"])
+        assert rc == 0, stderr
+        lines = [json.loads(l) for l in stdout.strip().splitlines()]
+        assert lines == [{"name": "Ada", "age": "36"}]
+
+    def test_zpx_null_to_none(self, tmp_project):
+        """JSON null should round-trip through a .zpx file as none."""
+        json_path = os.path.join(tmp_project, "n.json")
+        with open(json_path, "w", encoding="utf-8") as f:
+            f.write('[{"a": 1, "b": null, "c": true}]\n')
+        zpx_path = os.path.join(tmp_project, "n.zpx")
+        rc, stdout, stderr = run_zpx(["convert", json_path, "--out", zpx_path])
+        assert rc == 0, stderr
+        with open(zpx_path, encoding="utf-8") as f:
+            assert "none" in f.read()
+        rc, stdout, stderr = run_zpx(["convert", zpx_path, "--to", "json"])
+        assert rc == 0, stderr
+        data = json.loads(stdout)
+        assert data[0]["b"] is None
+        assert data[0]["c"] is True
+
+    def test_markdown_output(self, tmp_project):
+        """zpx convert --to markdown should render a table."""
+        csv_path = os.path.join(tmp_project, "data.csv")
+        with open(csv_path, "w", encoding="utf-8") as f:
+            f.write("a,b\n1,x\n")
+        rc, stdout, stderr = run_zpx(["convert", csv_path, "--to", "markdown"])
+        assert rc == 0, stderr
+        assert "| a | b |" in stdout
+        assert "| 1 | x |" in stdout
+
+    def test_sql_output(self, tmp_project):
+        """zpx convert --to sql should emit CREATE + INSERT statements."""
+        csv_path = os.path.join(tmp_project, "data.csv")
+        with open(csv_path, "w", encoding="utf-8") as f:
+            f.write("id,name\n1,Ada\n")
+        rc, stdout, stderr = run_zpx(["convert", csv_path, "--to", "sql"])
+        assert rc == 0, stderr
+        assert "CREATE TABLE" in stdout
+        assert "INSERT INTO data" in stdout
+        assert "Ada" in stdout
+
+    def test_llm_chat_export(self, tmp_project):
+        """--llm should emit OpenAI-style messages JSONL."""
+        csv_path = os.path.join(tmp_project, "chat.csv")
+        with open(csv_path, "w", encoding="utf-8") as f:
+            f.write("user,assistant\nWhat is 2+2?,It is 4.\n")
+        out = os.path.join(tmp_project, "train.jsonl")
+        rc, stdout, stderr = run_zpx(
+            ["convert", csv_path, "--llm", "--system", "Be helpful.", "--out", out])
+        assert rc == 0, stderr
+        with open(out, encoding="utf-8") as f:
+            rec = json.loads(f.readline())
+        roles = [m["role"] for m in rec["messages"]]
+        assert roles == ["system", "user", "assistant"]
+        assert rec["messages"][0]["content"] == "Be helpful."
+
+    def test_llm_instruct_export(self, tmp_project):
+        """--llm --instruct should emit {prompt, completion} records."""
+        csv_path = os.path.join(tmp_project, "qa.csv")
+        with open(csv_path, "w", encoding="utf-8") as f:
+            f.write("prompt,completion\nfib(5),5\n")
+        rc, stdout, stderr = run_zpx(
+            ["convert", csv_path, "--llm", "--instruct", "--to", "jsonl"])
+        assert rc == 0, stderr
+        rec = json.loads(stdout.strip())
+        assert rec == {"prompt": "fib(5)", "completion": "5"}
+
+    def test_jsonl_builtins(self, tmp_project):
+        """jsonl_save/jsonl_load should work inside a .zpx program."""
+        src = (
+            'let rows = [{"name": "Ada"}, {"name": "Bob"}]\n'
+            'jsonl_save("out.jsonl", rows)\n'
+            'let loaded = jsonl_load("out.jsonl")\n'
+            'print(len(loaded))\n'
+            'print(loaded[1]["name"])\n'
+        )
+        zpx_file = write_zpx_file(tmp_project, "main.zpx", src)
+        rc, stdout, stderr = run_zpx(["run", zpx_file], cwd=tmp_project)
+        assert rc == 0, stderr
+        assert "2" in stdout
+        assert "Bob" in stdout
+        assert os.path.exists(os.path.join(tmp_project, "out.jsonl"))
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
